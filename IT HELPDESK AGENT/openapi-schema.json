@@ -1,0 +1,535 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "IT Ticket Manager API",
+    "version": "1.0.0",
+    "description": "API for managing IT support tickets. This tool allows agents to create, read, update, and delete IT support tickets including incidents, access requests, and general requests."
+  },
+  "servers": [
+    {
+      "url": "https://nonrural-ariah-subclausal.ngrok-free.dev",
+      "description": "Development server (replace with your ngrok URL)"
+    }
+  ],
+  "paths": {
+    "/api/tickets": {
+      "get": {
+        "summary": "Get all tickets",
+        "description": "Retrieve a list of all tickets with optional filtering by status, priority, ticket type, or team. Use this to check existing tickets or find specific tickets.",
+        "operationId": "getTickets",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter tickets by status",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["new", "open", "in_progress", "resolved", "closed"]
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "description": "Filter tickets by priority",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["low", "medium", "high"]
+            }
+          },
+          {
+            "name": "ticket_type",
+            "in": "query",
+            "description": "Filter tickets by type",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["incident", "access_request", "request"]
+            }
+          },
+          {
+            "name": "suggested_team",
+            "in": "query",
+            "description": "Filter tickets by assigned team",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["IT Helpdesk", "Network", "Security", "DevOps"]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of tickets to return",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search tickets by title, description, user name, or app/system",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of tickets retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketsListResponse"
+                },
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "id": "TKT-ABC123",
+                      "ticket_type": "incident",
+                      "title": "VPN connection issues",
+                      "description": "- VPN disconnects frequently\n- Affects work from home",
+                      "user_name": "John Smith",
+                      "app_or_system": "VPN",
+                      "priority": "high",
+                      "collected_details": {},
+                      "suggested_team": "Network",
+                      "status": "open",
+                      "created_at": "2024-12-03T10:00:00Z",
+                      "updated_at": "2024-12-03T10:00:00Z"
+                    }
+                  ],
+                  "total": 1,
+                  "message": "Retrieved 1 of 1 tickets"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new ticket",
+        "description": "Create a new IT support ticket. Use this when a user issue needs to be escalated or when an access request needs to be processed. The ticket will be assigned a unique ID automatically.",
+        "operationId": "createTicket",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTicketRequest"
+              },
+              "example": {
+                "ticket_type": "incident",
+                "title": "Cannot access email on laptop",
+                "description": "- User reports Outlook keeps crashing\n- Issue started this morning\n- Already tried restarting",
+                "user_name": "John Smith",
+                "app_or_system": "Outlook",
+                "priority": "high",
+                "collected_details": {
+                  "os": "Windows 11",
+                  "error_message": "Outlook not responding"
+                },
+                "suggested_team": "IT Helpdesk"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Ticket created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "TKT-XYZ789",
+                    "ticket_type": "incident",
+                    "title": "Cannot access email on laptop",
+                    "description": "- User reports Outlook keeps crashing\n- Issue started this morning\n- Already tried restarting",
+                    "user_name": "John Smith",
+                    "app_or_system": "Outlook",
+                    "priority": "high",
+                    "collected_details": {
+                      "os": "Windows 11",
+                      "error_message": "Outlook not responding"
+                    },
+                    "suggested_team": "IT Helpdesk",
+                    "status": "new",
+                    "created_at": "2024-12-03T10:30:00Z",
+                    "updated_at": "2024-12-03T10:30:00Z"
+                  },
+                  "message": "Ticket TKT-XYZ789 created successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request - missing required fields or invalid values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tickets/{id}": {
+      "get": {
+        "summary": "Get a specific ticket",
+        "description": "Retrieve details of a specific ticket by its ID. Use this to check the status or details of a previously created ticket.",
+        "operationId": "getTicketById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The unique ticket ID (e.g., TKT-ABC123)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ticket details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ticket not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update a ticket",
+        "description": "Update an existing ticket's details. Use this to change the status (e.g., from 'new' to 'in_progress'), update priority, or add information to the ticket.",
+        "operationId": "updateTicket",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The unique ticket ID to update",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTicketRequest"
+              },
+              "example": {
+                "status": "in_progress",
+                "priority": "high"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ticket updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ticket not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a ticket",
+        "description": "Permanently delete a ticket from the system. Use with caution - this action cannot be undone.",
+        "operationId": "deleteTicket",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The unique ticket ID to delete",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ticket deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ticket not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Ticket": {
+        "type": "object",
+        "required": [
+          "id",
+          "ticket_type",
+          "title",
+          "description",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique ticket identifier",
+            "example": "TKT-ABC123"
+          },
+          "ticket_type": {
+            "type": "string",
+            "enum": ["incident", "access_request", "request"],
+            "description": "Type of ticket: incident (something broken), access_request (permission needed), or request (general help)"
+          },
+          "title": {
+            "type": "string",
+            "description": "Short summary of the issue or request",
+            "example": "Cannot access email on laptop"
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description with bullet points",
+            "example": "- User reports Outlook keeps crashing\n- Issue started this morning"
+          },
+          "user_name": {
+            "type": "string",
+            "description": "Name of the user who reported the issue",
+            "example": "John Smith"
+          },
+          "app_or_system": {
+            "type": "string",
+            "description": "The affected application or system",
+            "example": "Outlook"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "description": "Ticket priority level"
+          },
+          "collected_details": {
+            "type": "object",
+            "description": "Additional structured data about the issue",
+            "additionalProperties": true
+          },
+          "suggested_team": {
+            "type": "string",
+            "enum": ["IT Helpdesk", "Network", "Security", "DevOps"],
+            "description": "Team that should handle this ticket"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["new", "open", "in_progress", "resolved", "closed"],
+            "description": "Current status of the ticket"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the ticket was created"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the ticket was last updated"
+          }
+        }
+      },
+      "CreateTicketRequest": {
+        "type": "object",
+        "required": ["ticket_type", "title", "description"],
+        "properties": {
+          "ticket_type": {
+            "type": "string",
+            "enum": ["incident", "access_request", "request"],
+            "description": "Type of ticket"
+          },
+          "title": {
+            "type": "string",
+            "description": "Short summary of the issue"
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description"
+          },
+          "user_name": {
+            "type": "string",
+            "description": "Name of the user",
+            "default": "unknown"
+          },
+          "app_or_system": {
+            "type": "string",
+            "description": "Affected application",
+            "default": "general"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "default": "medium"
+          },
+          "collected_details": {
+            "type": "object",
+            "additionalProperties": true,
+            "default": {}
+          },
+          "suggested_team": {
+            "type": "string",
+            "enum": ["IT Helpdesk", "Network", "Security", "DevOps"],
+            "default": "IT Helpdesk"
+          }
+        }
+      },
+      "UpdateTicketRequest": {
+        "type": "object",
+        "properties": {
+          "ticket_type": {
+            "type": "string",
+            "enum": ["incident", "access_request", "request"]
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "user_name": {
+            "type": "string"
+          },
+          "app_or_system": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          },
+          "collected_details": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "suggested_team": {
+            "type": "string",
+            "enum": ["IT Helpdesk", "Network", "Security", "DevOps"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["new", "open", "in_progress", "resolved", "closed"]
+          }
+        }
+      },
+      "TicketResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Ticket"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "TicketsListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ticket"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total number of tickets matching the query"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "DeleteResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "message": {
+            "type": "string",
+            "description": "Error message explaining what went wrong"
+          }
+        }
+      }
+    }
+  }
+}

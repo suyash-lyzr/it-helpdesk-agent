@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { usePathname } from "next/navigation"
 import {
   Bot,
   Ticket,
@@ -41,20 +42,16 @@ const navMain = [
   {
     title: "AI Assistant",
     icon: Bot,
-    isActive: true,
     url: "/",
   },
   {
     title: "Tickets",
     icon: Ticket,
-    isActive: false,
-    url: "#",
-    disabled: true,
+    url: "/tickets",
   },
   {
     title: "Documents",
     icon: FileText,
-    isActive: false,
     url: "#",
     disabled: true,
   },
@@ -80,6 +77,8 @@ const user = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const pathname = usePathname()
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -108,30 +107,35 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupLabel>APPLICATION</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navMain.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild={!item.disabled}
-                    isActive={item.isActive}
-                    tooltip={item.title}
-                    disabled={item.disabled}
-                    className={item.disabled ? "opacity-50 cursor-not-allowed" : ""}
-                  >
-                    {item.disabled ? (
-                      <span className="flex items-center gap-2">
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                        <span className="ml-auto text-xs text-muted-foreground">Soon</span>
-                      </span>
-                    ) : (
-                      <a href={item.url}>
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </a>
-                    )}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {navMain.map((item) => {
+                const isActive = pathname === item.url
+                const isDisabled = 'disabled' in item && item.disabled
+
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild={!isDisabled}
+                      isActive={isActive}
+                      tooltip={item.title}
+                      disabled={isDisabled}
+                      className={isDisabled ? "opacity-50 cursor-not-allowed" : ""}
+                    >
+                      {isDisabled ? (
+                        <span className="flex items-center gap-2">
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                          <span className="ml-auto text-xs text-muted-foreground">Soon</span>
+                        </span>
+                      ) : (
+                        <a href={item.url}>
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </a>
+                      )}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -219,4 +223,3 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     </Sidebar>
   )
 }
-
