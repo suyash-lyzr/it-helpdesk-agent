@@ -9,6 +9,7 @@ import {
   Settings,
   HelpCircle,
   LogOut,
+  Puzzle,
 } from "lucide-react"
 
 import {
@@ -37,6 +38,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { Switch } from "@/components/ui/switch"
+import { useAdminMode } from "@/contexts/admin-mode-context"
 
 const navMain = [
   {
@@ -50,10 +53,14 @@ const navMain = [
     url: "/tickets",
   },
   {
-    title: "Documents",
+    title: "Integrations",
+    icon: Puzzle,
+    url: "/integrations",
+  },
+  {
+    title: "Knowledge Base",
     icon: FileText,
-    url: "#",
-    disabled: true,
+    url: "/knowledge-base",
   },
 ]
 
@@ -78,6 +85,7 @@ const user = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
+  const { isAdmin, setIsAdmin } = useAdminMode()
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -108,6 +116,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupContent>
             <SidebarMenu>
               {navMain.map((item) => {
+                if (item.title === "Integrations" && !isAdmin) {
+                  // When not in admin mode, hide the nav item entirely;
+                  // integrations can still be accessed via direct link if needed.
+                  return null
+                }
                 const isActive = pathname === item.url
                 const isDisabled = 'disabled' in item && item.disabled
 
@@ -161,6 +174,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
+            <div className="flex items-center justify-between mb-2 px-1">
+              <span className="text-xs text-muted-foreground">Admin Mode</span>
+              <Switch
+                checked={isAdmin}
+                onCheckedChange={setIsAdmin}
+                aria-label="Toggle admin mode"
+              />
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton

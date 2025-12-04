@@ -47,6 +47,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 }
 
 
+// Validate ../../src/app/integrations/[provider]/page.tsx
+{
+  const handler = {} as typeof import("../../src/app/integrations/[provider]/page.js")
+  handler satisfies AppPageConfig<"/integrations/[provider]">
+}
+
+// Validate ../../src/app/integrations/page.tsx
+{
+  const handler = {} as typeof import("../../src/app/integrations/page.js")
+  handler satisfies AppPageConfig<"/integrations">
+}
+
+// Validate ../../src/app/knowledge-base/page.tsx
+{
+  const handler = {} as typeof import("../../src/app/knowledge-base/page.js")
+  handler satisfies AppPageConfig<"/knowledge-base">
+}
+
 // Validate ../../src/app/page.tsx
 {
   const handler = {} as typeof import("../../src/app/page.js")
@@ -65,6 +83,78 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies RouteHandlerConfig<"/api/chat">
 }
 
+// Validate ../../src/app/api/integrations/[provider]/connect/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/integrations/[provider]/connect/route.js")
+  handler satisfies RouteHandlerConfig<"/api/integrations/[provider]/connect">
+}
+
+// Validate ../../src/app/api/integrations/[provider]/disconnect/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/integrations/[provider]/disconnect/route.js")
+  handler satisfies RouteHandlerConfig<"/api/integrations/[provider]/disconnect">
+}
+
+// Validate ../../src/app/api/integrations/[provider]/logs/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/integrations/[provider]/logs/route.js")
+  handler satisfies RouteHandlerConfig<"/api/integrations/[provider]/logs">
+}
+
+// Validate ../../src/app/api/integrations/[provider]/mapping/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/integrations/[provider]/mapping/route.js")
+  handler satisfies RouteHandlerConfig<"/api/integrations/[provider]/mapping">
+}
+
+// Validate ../../src/app/api/integrations/[provider]/test/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/integrations/[provider]/test/route.js")
+  handler satisfies RouteHandlerConfig<"/api/integrations/[provider]/test">
+}
+
+// Validate ../../src/app/api/integrations/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/integrations/route.js")
+  handler satisfies RouteHandlerConfig<"/api/integrations">
+}
+
+// Validate ../../src/app/api/mock/google/check-device/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/mock/google/check-device/route.js")
+  handler satisfies RouteHandlerConfig<"/api/mock/google/check-device">
+}
+
+// Validate ../../src/app/api/mock/jira/create-issue/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/mock/jira/create-issue/route.js")
+  handler satisfies RouteHandlerConfig<"/api/mock/jira/create-issue">
+}
+
+// Validate ../../src/app/api/mock/okta/provision/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/mock/okta/provision/route.js")
+  handler satisfies RouteHandlerConfig<"/api/mock/okta/provision">
+}
+
+// Validate ../../src/app/api/mock/servicenow/create-incident/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/mock/servicenow/create-incident/route.js")
+  handler satisfies RouteHandlerConfig<"/api/mock/servicenow/create-incident">
+}
+
+// Validate ../../src/app/api/oauth/jira/callback/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/oauth/jira/callback/route.js")
+  handler satisfies RouteHandlerConfig<"/api/oauth/jira/callback">
+}
+
+// Validate ../../src/app/api/oauth/jira/start/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/oauth/jira/start/route.js")
+  handler satisfies RouteHandlerConfig<"/api/oauth/jira/start">
+}
+
 // Validate ../../src/app/api/tickets/[id]/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/tickets/[id]/route.js")
@@ -75,6 +165,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   const handler = {} as typeof import("../../src/app/api/tickets/route.js")
   handler satisfies RouteHandlerConfig<"/api/tickets">
+}
+
+// Validate ../../src/app/api/webhook/replay/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/webhook/replay/route.js")
+  handler satisfies RouteHandlerConfig<"/api/webhook/replay">
 }
 
 

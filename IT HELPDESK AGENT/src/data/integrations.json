@@ -1,0 +1,88 @@
+{
+  "integrations": {
+    "jira": {
+      "provider": "jira",
+      "status": "disconnected",
+      "mode": "demo",
+      "meta": {
+        "id": "jira",
+        "name": "Jira",
+        "description": "Sync incidents and requests with Jira Software or Jira Service Management."
+      }
+    },
+    "servicenow": {
+      "provider": "servicenow",
+      "status": "disconnected",
+      "mode": "demo",
+      "meta": {
+        "id": "servicenow",
+        "name": "ServiceNow",
+        "description": "Create and track incidents in your ServiceNow instance."
+      }
+    },
+    "okta": {
+      "provider": "okta",
+      "status": "disconnected",
+      "mode": "demo",
+      "meta": {
+        "id": "okta",
+        "name": "Okta",
+        "description": "Provision users and manage access requests using Okta."
+      }
+    },
+    "google": {
+      "provider": "google",
+      "status": "disconnected",
+      "mode": "demo",
+      "meta": {
+        "id": "google",
+        "name": "Google Workspace Admin",
+        "description": "Check device posture and user accounts from Google Workspace."
+      }
+    }
+  },
+  "auditLogs": [
+    {
+      "id": "seed-jira-demo",
+      "provider": "jira",
+      "action": "seed",
+      "actor": "system",
+      "timestamp": "2025-12-04T12:00:00Z",
+      "details": {
+        "message": "Seeded Jira integration in demo-disconnected state."
+      }
+    },
+    {
+      "id": "seed-servicenow-demo",
+      "provider": "servicenow",
+      "action": "seed",
+      "actor": "system",
+      "timestamp": "2025-12-04T12:00:00Z",
+      "details": {
+        "message": "Seeded ServiceNow integration in demo-disconnected state."
+      }
+    },
+    {
+      "id": "seed-okta-demo",
+      "provider": "okta",
+      "action": "seed",
+      "actor": "system",
+      "timestamp": "2025-12-04T12:00:00Z",
+      "details": {
+        "message": "Seeded Okta integration in demo-disconnected state."
+      }
+    },
+    {
+      "id": "seed-google-demo",
+      "provider": "google",
+      "action": "seed",
+      "actor": "system",
+      "timestamp": "2025-12-04T12:00:00Z",
+      "details": {
+        "message": "Seeded Google Workspace Admin integration in demo-disconnected state."
+      }
+    }
+  ]
+}
+
+
