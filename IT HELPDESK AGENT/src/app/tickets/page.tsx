@@ -8,6 +8,7 @@ import { TicketsTable } from "@/components/tickets-table"
 import { Switch } from "@/components/ui/switch"
 import { Ticket } from "@/lib/ticket-types"
 import { toast } from "sonner"
+import { AdminTicketsDashboard } from "@/components/admin-tickets-dashboard"
 
 interface TicketCounts {
   total: number
@@ -95,20 +96,31 @@ export default function TicketsPage() {
             </div>
           </div>
 
-          <TicketSummaryCards
-            total={counts.total}
-            new_count={counts.new}
-            open={counts.open}
-            inProgress={counts.in_progress}
-            resolved={counts.resolved}
-          />
+          {isAdmin ? (
+            <AdminTicketsDashboard
+              tickets={tickets}
+              onTicketsUpdated={setTickets}
+              onRefresh={handleRefresh}
+              isLoading={isLoading}
+            />
+          ) : (
+            <>
+              <TicketSummaryCards
+                total={counts.total}
+                new_count={counts.new}
+                open={counts.open}
+                inProgress={counts.in_progress}
+                resolved={counts.resolved}
+              />
 
-          <TicketsTable
-            data={tickets}
-            onRefresh={handleRefresh}
-            onNewTicket={handleNewTicket}
-            isLoading={isLoading}
-          />
+              <TicketsTable
+                data={tickets}
+                onRefresh={handleRefresh}
+                onNewTicket={handleNewTicket}
+                isLoading={isLoading}
+              />
+            </>
+          )}
         </div>
       </SidebarInset>
     </SidebarProvider>

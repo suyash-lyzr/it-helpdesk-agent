@@ -187,6 +187,7 @@ interface TicketsTableProps {
   onRefresh?: () => void
   onNewTicket?: () => void
   isLoading?: boolean
+  onRowClick?: (ticket: TicketType) => void
 }
 
 export function TicketsTable({
@@ -194,6 +195,7 @@ export function TicketsTable({
   onRefresh,
   onNewTicket,
   isLoading = false,
+  onRowClick,
 }: TicketsTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -293,7 +295,12 @@ export function TicketsTable({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className="cursor-pointer"
+                  className={onRowClick ? "cursor-pointer" : undefined}
+                  onClick={
+                    onRowClick
+                      ? () => onRowClick(row.original)
+                      : undefined
+                  }
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
