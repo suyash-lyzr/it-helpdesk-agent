@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
+import { AppSidebar } from "@/components/app-sidebar"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -258,14 +260,36 @@ export default function IntegrationDetailPage() {
 
   if (loading || !integration) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        Loading integration...
-      </div>
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "18rem",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as React.CSSProperties
+        }
+      >
+        <AppSidebar variant="inset" />
+        <SidebarInset className="h-screen overflow-auto">
+          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+            Loading integration...
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
     )
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4">
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "18rem",
+          "--header-height": "calc(var(--spacing) * 12)",
+        } as React.CSSProperties
+      }
+    >
+      <AppSidebar variant="inset" />
+      <SidebarInset className="h-screen overflow-auto">
+        <div className="flex h-full flex-col gap-4 p-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
@@ -321,7 +345,7 @@ export default function IntegrationDetailPage() {
           </div>
           {provider === "jira" && (
             <Button
-              size="xs"
+              size="sm"
               variant="ghost"
               disabled={busy || !isAdmin}
               onClick={handleJiraRealOAuth}
@@ -508,7 +532,9 @@ export default function IntegrationDetailPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }
 

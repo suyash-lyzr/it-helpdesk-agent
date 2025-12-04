@@ -2,12 +2,22 @@
   "integrations": {
     "jira": {
       "provider": "jira",
-      "status": "disconnected",
+      "status": "connected",
       "mode": "demo",
       "meta": {
         "id": "jira",
         "name": "Jira",
         "description": "Sync incidents and requests with Jira Software or Jira Service Management."
+      },
+      "maskedToken": "xxxx-xxxx-ABCD",
+      "connectedAt": "2025-12-04T10:33:26.582Z",
+      "lastTestAt": "2025-12-04T10:33:34.114Z",
+      "mapping": {
+        "title": "ticket.title",
+        "description": "ticket.description",
+        "priority": "ticket.priority",
+        "assignee": "ticket.assignee",
+        "project": "ticket.component"
       }
     },
     "servicenow": {
@@ -18,7 +28,8 @@
         "id": "servicenow",
         "name": "ServiceNow",
         "description": "Create and track incidents in your ServiceNow instance."
-      }
+      },
+      "lastTestAt": "2025-12-04T10:38:11.258Z"
     },
     "okta": {
       "provider": "okta",
@@ -81,8 +92,64 @@
       "details": {
         "message": "Seeded Google Workspace Admin integration in demo-disconnected state."
       }
+    },
+    {
+      "id": "jira-connect-1764844406582",
+      "timestamp": "2025-12-04T10:33:26.582Z",
+      "provider": "jira",
+      "action": "connect",
+      "actor": "admin",
+      "details": {
+        "mode": "demo",
+        "demo": true
+      }
+    },
+    {
+      "id": "jira-mapping.updated-1764844437497",
+      "timestamp": "2025-12-04T10:33:57.497Z",
+      "provider": "jira",
+      "action": "mapping.updated",
+      "actor": "admin",
+      "details": {
+        "mappings": {
+          "title": "ticket.title",
+          "description": "ticket.description",
+          "priority": "ticket.priority",
+          "assignee": "ticket.assignee",
+          "project": "ticket.component"
+        }
+      }
+    },
+    {
+      "id": "jira-demo.create_issue-1764844441529",
+      "timestamp": "2025-12-04T10:34:01.529Z",
+      "provider": "jira",
+      "action": "demo.create_issue",
+      "actor": "admin",
+      "details": {
+        "title": "VPN disconnecting",
+        "priority": "high",
+        "assignee": "demo.user",
+        "external_id": "JRA-2031"
+      }
+    },
+    {
+      "id": "servicenow-connect-1764844683201",
+      "timestamp": "2025-12-04T10:38:03.201Z",
+      "provider": "servicenow",
+      "action": "connect",
+      "actor": "admin",
+      "details": {
+        "mode": "demo",
+        "demo": true
+      }
+    },
+    {
+      "id": "servicenow-disconnect-1764844693233",
+      "timestamp": "2025-12-04T10:38:13.233Z",
+      "provider": "servicenow",
+      "action": "disconnect",
+      "actor": "admin"
     }
   ]
 }
-
-

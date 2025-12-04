@@ -28,9 +28,10 @@ export async function OPTIONS() {
 // GET returns current mapping; POST saves a new mapping
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { provider: string } },
+  { params }: { params: Promise<{ provider: string }> },
 ) {
-  const provider = toProvider(params.provider)
+  const { provider: providerParam } = await params
+  const provider = toProvider(providerParam)
   if (!provider) {
     return NextResponse.json(
       { success: false, message: "Unknown provider" },
@@ -58,9 +59,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { provider: string } },
+  { params }: { params: Promise<{ provider: string }> },
 ) {
-  const provider = toProvider(params.provider)
+  const { provider: providerParam } = await params
+  const provider = toProvider(providerParam)
   if (!provider) {
     return NextResponse.json(
       { success: false, message: "Unknown provider" },

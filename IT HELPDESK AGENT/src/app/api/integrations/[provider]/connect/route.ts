@@ -31,10 +31,11 @@ export async function OPTIONS() {
 // POST /api/integrations/:provider/connect
 export async function POST(
   request: NextRequest,
-  { params }: { params: { provider: string } },
+  { params }: { params: Promise<{ provider: string }> },
 ) {
   try {
-    const provider = toProvider(params.provider)
+    const { provider: providerParam } = await params
+    const provider = toProvider(providerParam)
     if (!provider) {
       return NextResponse.json(
         { success: false, message: "Unknown provider" },

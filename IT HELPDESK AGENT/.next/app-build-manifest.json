@@ -55,6 +55,26 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/integrations/[provider]/logs/route.js"
+    ],
+    "/api/integrations/[provider]/connect/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/integrations/[provider]/connect/route.js"
+    ],
+    "/api/integrations/[provider]/test/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/integrations/[provider]/test/route.js"
+    ],
+    "/api/mock/jira/create-issue/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/mock/jira/create-issue/route.js"
+    ],
+    "/api/integrations/[provider]/disconnect/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/integrations/[provider]/disconnect/route.js"
     ]
   }
 }
