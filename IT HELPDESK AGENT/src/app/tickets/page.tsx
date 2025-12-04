@@ -72,7 +72,7 @@ export default function TicketsPage() {
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "16rem",
+          "--sidebar-width": "18rem",
           "--header-height": "calc(var(--spacing) * 12)",
         } as React.CSSProperties
       }

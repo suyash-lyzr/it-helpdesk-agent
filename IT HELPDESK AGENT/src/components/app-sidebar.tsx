@@ -89,7 +89,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-r from-[#603BFC] to-[#A94FA1]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#603BFC]">
                   <Bot className="h-4 w-4 text-white" />
                 </div>
                 <div className="flex flex-col">
@@ -169,7 +169,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
                     <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback className="rounded-lg bg-gradient-to-r from-[#603BFC] to-[#A94FA1] text-white text-xs">
+                    <AvatarFallback className="rounded-lg bg-[#603BFC] text-white text-xs">
                       {user.name.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>

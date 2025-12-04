@@ -9,6 +9,7 @@ Copy the relevant instruction for each tool when adding it to your Ticket Genera
 **Tool Name:** `Openapi-it_ticket_manager-createTicket`
 
 **Instruction:**
+
 ```
 Use this tool to save a new ticket to the IT Helpdesk system after generating the ticket data.
 
@@ -42,6 +43,7 @@ AFTER CALLING:
 **Tool Name:** `Openapi-it_ticket_manager-getTickets`
 
 **Instruction:**
+
 ```
 Use this tool to retrieve a list of existing tickets from the IT Helpdesk system.
 
@@ -70,6 +72,7 @@ RESPONSE:
 **Tool Name:** `Openapi-it_ticket_manager-getTicketById`
 
 **Instruction:**
+
 ```
 Use this tool to get detailed information about a specific ticket using its ID.
 
@@ -93,6 +96,7 @@ RESPONSE:
 **Tool Name:** `Openapi-it_ticket_manager-updateTicket`
 
 **Instruction:**
+
 ```
 Use this tool to update an existing ticket's information.
 
@@ -130,6 +134,7 @@ RESPONSE:
 **Tool Name:** `Openapi-it_ticket_manager-deleteTicket`
 
 **Instruction:**
+
 ```
 Use this tool to permanently delete a ticket from the system.
 
@@ -155,13 +160,13 @@ RESPONSE:
 
 ## Quick Copy Reference
 
-| Tool | Copy This Instruction |
-|------|----------------------|
-| createTicket | Use to save new tickets. Requires: ticket_type, title, description. Returns ticket with unique ID. |
-| getTickets | Use to list tickets with optional filters (status, priority, type, team, search). |
-| getTicketById | Use to get details of a specific ticket by ID. |
-| updateTicket | Use to update ticket status, priority, or details. Requires ticket ID. |
-| deleteTicket | Use to permanently delete a ticket. Requires ticket ID. Use with caution. |
+| Tool          | Copy This Instruction                                                                              |
+| ------------- | -------------------------------------------------------------------------------------------------- |
+| createTicket  | Use to save new tickets. Requires: ticket_type, title, description. Returns ticket with unique ID. |
+| getTickets    | Use to list tickets with optional filters (status, priority, type, team, search).                  |
+| getTicketById | Use to get details of a specific ticket by ID.                                                     |
+| updateTicket  | Use to update ticket status, priority, or details. Requires ticket ID.                             |
+| deleteTicket  | Use to permanently delete a ticket. Requires ticket ID. Use with caution.                          |
 
 ---
 
@@ -170,6 +175,7 @@ RESPONSE:
 For the **Ticket Generator Agent**, add these tools with instructions:
 
 ### Primary Tool: createTicket
+
 ```
 After generating the ticket JSON, ALWAYS call this tool to save the ticket.
 Pass all collected information: ticket_type, title, description, user_name, app_or_system, priority, collected_details, suggested_team.
@@ -177,8 +183,8 @@ Include the returned ticket ID in your final output.
 ```
 
 ### Optional: getTickets (if agent needs to check for duplicates)
+
 ```
 Use to check if a similar ticket already exists before creating a new one.
 Search by user name or issue keywords.
 ```
-

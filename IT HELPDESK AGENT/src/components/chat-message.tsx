@@ -25,17 +25,18 @@ export function ChatMessage({ message }: ChatMessageProps) {
   return (
     <div
       className={cn(
-        "flex gap-3",
+        "group flex gap-3 mb-6",
         isUser ? "flex-row-reverse" : "flex-row"
       )}
     >
       {/* Avatar */}
-      <Avatar className="h-8 w-8 shrink-0">
+      <Avatar className="h-8 w-8 shrink-0 mt-1">
         <AvatarFallback 
           className={cn(
+            "border-0",
             isUser 
-              ? "bg-gradient-to-r from-[#603BFC] to-[#A94FA1] text-white" 
-              : "bg-muted text-muted-foreground"
+              ? "bg-[#603BFC] text-white" 
+              : "bg-muted/50 text-muted-foreground"
           )}
         >
           {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
@@ -45,25 +46,25 @@ export function ChatMessage({ message }: ChatMessageProps) {
       {/* Message Content */}
       <div
         className={cn(
-          "flex flex-col gap-1",
-          isUser ? "items-end max-w-[70%]" : "items-start max-w-[85%]"
+          "flex flex-col gap-1.5",
+          isUser ? "items-end max-w-[75%]" : "items-start max-w-[80%]"
         )}
       >
         <div
           className={cn(
-            "rounded-2xl px-4 py-3 text-sm leading-relaxed",
+            "rounded-2xl px-4 py-3 text-base leading-relaxed break-words",
             isUser
-              ? "bg-gradient-to-r from-[#603BFC] to-[#A94FA1] text-white rounded-tr-sm"
-              : "bg-card border border-border text-card-foreground rounded-tl-sm shadow-sm"
+              ? "bg-[#603BFC] text-white rounded-tr-sm shadow-sm"
+              : "bg-[#f3f4f6] dark:bg-[#1f1f1f] border border-[#e5e7eb] dark:border-[#374151] text-foreground rounded-tl-sm"
           )}
         >
-          {/* Message text with basic markdown-like formatting */}
-          <div className="whitespace-pre-wrap break-words">
+          {/* Message text with markdown-like formatting */}
+          <div className="whitespace-pre-wrap">
             {message.content.split('\n').map((line, i) => {
               // Handle bold text
               const formattedLine = line.replace(
                 /\*\*(.*?)\*\*/g,
-                '<strong>$1</strong>'
+                '<strong class="font-semibold">$1</strong>'
               )
               return (
                 <span key={i}>
@@ -75,7 +76,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
           </div>
         </div>
 
-        {/* Timestamp and actions */}
+        {/* Timestamp */}
         <div className={cn(
           "flex items-center gap-2 text-xs text-muted-foreground px-1",
           isUser ? "flex-row-reverse" : "flex-row"
@@ -85,7 +86,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6"
+              className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-transparent"
               onClick={copyToClipboard}
             >
               {copied ? (
