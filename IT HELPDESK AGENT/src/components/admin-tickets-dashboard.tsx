@@ -3,18 +3,9 @@
 import * as React from "react"
 import { format, subDays, differenceInMinutes } from "date-fns"
 import { Ticket } from "@/lib/ticket-types"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   Sheet,
   SheetContent,
@@ -25,15 +16,30 @@ import {
 } from "@/components/ui/sheet"
 import { TicketsTable } from "@/components/tickets-table"
 import { toast } from "sonner"
+import { AnalyticsFilters, FilterState } from "@/components/admin/analytics-filters"
+import { KPICards } from "@/components/admin/kpi-cards"
+import { SLAFunnel } from "@/components/admin/sla-funnel"
+import { TopIssuesTable } from "@/components/admin/top-issues-table"
+import { TeamPerformanceComponent } from "@/components/admin/team-performance"
+import { LifecycleFunnel } from "@/components/admin/lifecycle-funnel"
+import { LiveActivityFeed } from "@/components/admin/live-activity-feed"
+import { ForecastChart } from "@/components/admin/forecast-chart"
+import { AccessRequestAnalytics } from "@/components/admin/access-request-analytics"
+import { ReportBuilder } from "@/components/admin/report-builder"
+import { AlertRules } from "@/components/admin/alert-rules"
+import { AssetWidget } from "@/components/admin/asset-widget"
+import { SLABreachDiagnostics } from "@/components/admin/sla-breach-diagnostics"
+import { getAssetById } from "@/lib/mock-assets"
 import {
-  Activity,
-  ArrowUpRight,
-  ArrowDownRight,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  Sparkles,
-} from "lucide-react"
+  KPIMetrics,
+  SLAFunnelData,
+  TopIssue,
+  TeamPerformance,
+  LifecycleStageData,
+  LiveEvent,
+  ForecastData,
+  addLiveEvent,
+} from "@/lib/analytics-store"
 
 interface AdminTicketsDashboardProps {
   tickets: Ticket[]
@@ -42,190 +48,86 @@ interface AdminTicketsDashboardProps {
   isLoading?: boolean
 }
 
-interface TicketCounts {
-  total: number
-  new: number
-  open: number
-  in_progress: number
-  resolved: number
-  closed: number
-}
-
 export function AdminTicketsDashboard({
   tickets,
   onTicketsUpdated,
   onRefresh,
   isLoading,
 }: AdminTicketsDashboardProps) {
-  const [statusFilter, setStatusFilter] = React.useState<string>("all")
-  const [teamFilter, setTeamFilter] = React.useState<string>("all")
-  const [assigneeFilter] = React.useState<string>("all") // Placeholder for future use
   const [selectedTicket, setSelectedTicket] = React.useState<Ticket | null>(null)
   const [isResolving, setIsResolving] = React.useState(false)
   const [resolutionText, setResolutionText] = React.useState("")
+  const [filters, setFilters] = React.useState<FilterState>({})
+  const [kpiMetrics, setKpiMetrics] = React.useState<KPIMetrics | null>(null)
+  const [slaFunnel, setSlaFunnel] = React.useState<SLAFunnelData[]>([])
+  const [topIssues, setTopIssues] = React.useState<TopIssue[]>([])
+  const [teamPerformance, setTeamPerformance] = React.useState<TeamPerformance[]>([])
+  const [lifecycleData, setLifecycleData] = React.useState<LifecycleStageData[]>([])
+  const [forecastData, setForecastData] = React.useState<ForecastData[]>([])
+  const [liveEvents, setLiveEvents] = React.useState<LiveEvent[]>([])
+  const [accessRequestAnalytics, setAccessRequestAnalytics] = React.useState<any>(null)
+  const [scheduledReports, setScheduledReports] = React.useState<any[]>([])
 
-  const counts = React.useMemo<TicketCounts>(() => {
-    const base: TicketCounts = {
-      total: tickets.length,
-      new: 0,
-      open: 0,
-      in_progress: 0,
-      resolved: 0,
-      closed: 0,
-    }
-    for (const t of tickets) {
-      if (t.status in base) {
-        // @ts-expect-error narrow by key
-        base[t.status] += 1
-      }
-    }
-    return base
-  }, [tickets])
+  // Fetch analytics data
+  React.useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const startDate = filters.startDate || format(subDays(new Date(), 7), "yyyy-MM-dd")
+        const endDate = filters.endDate || format(new Date(), "yyyy-MM-dd")
 
-  const last15DaysTickets = React.useMemo(() => {
-    const cutoff = subDays(new Date(), 15)
-    return tickets.filter((t) => new Date(t.created_at) >= cutoff)
-  }, [tickets])
+        const [kpisRes, slaRes, topIssuesRes, teamRes, lifecycleRes, forecastRes, accessRes, eventsRes] =
+          await Promise.all([
+            fetch(`/api/analytics/kpis?start_date=${startDate}&end_date=${endDate}`),
+            fetch("/api/analytics/sla-funnel"),
+            fetch("/api/analytics/top-issues?limit=10"),
+            fetch("/api/analytics/team-performance"),
+            fetch("/api/analytics/lifecycle"),
+            fetch("/api/analytics/forecast?days=7"),
+            fetch("/api/analytics/access-requests"),
+            fetch("/api/analytics/live-events"),
+          ])
 
-  const teamStats = React.useMemo(() => {
-    const map = new Map<
-      string,
-      { count: number; resolved: number; open: number }
-    >()
-    for (const t of tickets) {
-      const key = t.suggested_team
-      const entry =
-        map.get(key) ?? {
-          count: 0,
-          resolved: 0,
-          open: 0,
+        if (kpisRes.ok) {
+          const kpis = await kpisRes.json()
+          setKpiMetrics(kpis.data)
         }
-      entry.count += 1
-      if (t.status === "resolved" || t.status === "closed") {
-        entry.resolved += 1
-      } else {
-        entry.open += 1
-      }
-      map.set(key, entry)
-    }
-    return Array.from(map.entries()).map(([team, value]) => ({
-      team,
-      ...value,
-    }))
-  }, [tickets])
-
-  const categoryStats = React.useMemo(() => {
-    const map = new Map<
-      string,
-      { count: number; incidents: number; requests: number }
-    >()
-    for (const t of tickets) {
-      const key = t.ticket_type
-      const entry =
-        map.get(key) ?? {
-          count: 0,
-          incidents: 0,
-          requests: 0,
+        if (slaRes.ok) {
+          const sla = await slaRes.json()
+          setSlaFunnel(sla.data)
         }
-      entry.count += 1
-      if (t.ticket_type === "incident") {
-        entry.incidents += 1
-      } else {
-        entry.requests += 1
+        if (topIssuesRes.ok) {
+          const issues = await topIssuesRes.json()
+          setTopIssues(issues.data)
+        }
+        if (teamRes.ok) {
+          const team = await teamRes.json()
+          setTeamPerformance(team.data)
+        }
+        if (lifecycleRes.ok) {
+          const lifecycle = await lifecycleRes.json()
+          setLifecycleData(lifecycle.data)
+        }
+        if (forecastRes.ok) {
+          const forecast = await forecastRes.json()
+          setForecastData(forecast.data)
+        }
+        if (accessRes.ok) {
+          const access = await accessRes.json()
+          setAccessRequestAnalytics(access.data)
+        }
+        if (eventsRes.ok) {
+          const events = await eventsRes.json()
+          setLiveEvents(events.data)
+        }
+      } catch (error) {
+        console.error("Error fetching analytics:", error)
       }
-      map.set(key, entry)
-    }
-    return Array.from(map.entries()).map(([category, value]) => ({
-      category,
-      ...value,
-    }))
-  }, [tickets])
-
-  const liveActivity = React.useMemo(() => {
-    const sorted = [...tickets].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
-    return sorted.slice(0, 6)
-  }, [tickets])
-
-  const suggestions = React.useMemo(() => {
-    const result: {
-      title: string
-      description: string
-      cta: string
-      badge: string
-    }[] = []
-
-    const repeatedMap = new Map<string, number>()
-    for (const t of last15DaysTickets) {
-      const key = t.title.toLowerCase()
-      repeatedMap.set(key, (repeatedMap.get(key) ?? 0) + 1)
-    }
-    const repeatedIssues = Array.from(repeatedMap.values()).filter(
-      (c) => c >= 3
-    ).length
-
-    if (repeatedIssues > 0) {
-      result.push({
-        title: "Policy or KB gaps detected",
-        description:
-          "Multiple similar issues raised in the last 15 days. Consider updating IT policies or KB articles.",
-        cta: "Review Knowledge Base",
-        badge: `${repeatedIssues} patterns`,
-      })
     }
 
-    const pendingAccessRequests = last15DaysTickets.filter(
-      (t) =>
-        t.ticket_type === "access_request" &&
-        (t.status === "new" || t.status === "open" || t.status === "in_progress")
-    ).length
-
-    if (pendingAccessRequests > 0) {
-      result.push({
-        title: "Pending access approvals",
-        description:
-          "Access request tickets are waiting for approvals. Send reminders to approvers.",
-        cta: "Send Reminder",
-        badge: `${pendingAccessRequests} tickets`,
-      })
-    }
-
-    const hardwareIssues = last15DaysTickets.filter((t) =>
-      t.app_or_system.toLowerCase().includes("laptop")
-    ).length
-
-    if (hardwareIssues > 0) {
-      result.push({
-        title: "Hardware issues trending",
-        description:
-          "Multiple hardware-related tickets detected. Consider reviewing asset health and replacement plans.",
-        cta: "Review Assets",
-        badge: `${hardwareIssues} tickets`,
-      })
-    }
-
-    if (result.length === 0) {
-      result.push({
-        title: "System healthy",
-        description:
-          "No significant patterns detected in the last 15 days. Continue monitoring ticket inflow.",
-        cta: "View All Tickets",
-        badge: "Stable",
-      })
-    }
-
-    return result
-  }, [last15DaysTickets])
-
-  const filteredTickets = React.useMemo(() => {
-    return tickets.filter((t) => {
-      if (statusFilter !== "all" && t.status !== statusFilter) return false
-      if (teamFilter !== "all" && t.suggested_team !== teamFilter) return false
-      // assigneeFilter is reserved for future when assignee is available
-      return true
-    })
-  }, [tickets, statusFilter, teamFilter])
+    fetchAnalytics()
+    const interval = setInterval(fetchAnalytics, 30000) // Refresh every 30 seconds
+    return () => clearInterval(interval)
+  }, [filters])
 
   async function handleResolveTicket() {
     if (!selectedTicket) return
@@ -247,6 +149,7 @@ export function AdminTicketsDashboard({
         },
         body: JSON.stringify({
           status: "resolved",
+          resolved_at: new Date().toISOString(),
           collected_details: {
             ...(selectedTicket.collected_details ?? {}),
             resolution: resolutionText.trim(),
@@ -256,16 +159,10 @@ export function AdminTicketsDashboard({
 
       const data = await res.json()
       if (!res.ok || !data.success) {
-        console.error("Failed to resolve ticket", data)
-        toast.error(
-          data.message ||
-            "Failed to resolve ticket on the server. Status will be updated locally only."
-        )
-
-        // Fallback: update ticket locally so the admin experience still works
         const fallbackUpdated: Ticket = {
           ...selectedTicket,
           status: "resolved",
+          resolved_at: new Date().toISOString(),
           collected_details: {
             ...(selectedTicket.collected_details ?? {}),
             resolution: resolutionText.trim(),
@@ -286,6 +183,26 @@ export function AdminTicketsDashboard({
       onTicketsUpdated(newTickets)
       setSelectedTicket(updated)
       setResolutionText("")
+
+      // Add live event
+      addLiveEvent({
+        type: "ticket_updated",
+        ticketId: updated.id,
+        actor: "Admin",
+        description: `Ticket ${updated.id} resolved`,
+      })
+      setLiveEvents((prev) => [
+        {
+          id: `event-${Date.now()}`,
+          type: "ticket_updated",
+          timestamp: new Date().toISOString(),
+          ticketId: updated.id,
+          actor: "Admin",
+          description: `Ticket ${updated.id} resolved`,
+        },
+        ...prev,
+      ])
+
       toast.success(`Ticket ${updated.id} marked as resolved`)
     } catch (error) {
       console.error(error)
@@ -304,305 +221,222 @@ export function AdminTicketsDashboard({
     return `${hours} hr`
   }
 
-  const uniqueTeams = React.useMemo(
-    () => Array.from(new Set(tickets.map((t) => t.suggested_team))),
-    [tickets]
-  )
+  const handleKpiClick = (filter: string) => {
+    // Filter tickets based on KPI click
+    toast.info(`Filtering by: ${filter}`)
+  }
+
+  const handleWebhookReplay = async (eventType: string) => {
+    try {
+      const response = await fetch("/api/webhook/replay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventType }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        addLiveEvent({
+          type: "external_id_created",
+          ticketId: data.ticketId,
+          actor: "System",
+          description: data.message,
+          externalId: data.externalId,
+        })
+        setLiveEvents((prev) => [
+          {
+            id: `event-${Date.now()}`,
+            type: "external_id_created",
+            timestamp: new Date().toISOString(),
+            ticketId: data.ticketId,
+            actor: "System",
+            description: data.message,
+            externalId: data.externalId,
+          },
+          ...prev,
+        ])
+        toast.success("Webhook replayed successfully")
+        onRefresh?.()
+      }
+    } catch (error) {
+      console.error("Error replaying webhook:", error)
+      toast.error("Failed to replay webhook")
+    }
+  }
+
+  const handleReportGenerate = async (config: any) => {
+    try {
+      const response = await fetch("/api/analytics/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+      })
+
+      if (response.ok) {
+        if (config.format === "csv") {
+          const blob = await response.blob()
+          const url = window.URL.createObjectURL(blob)
+          const a = document.createElement("a")
+          a.href = url
+          a.download = `report-${Date.now()}.csv`
+          a.click()
+          window.URL.revokeObjectURL(url)
+        }
+        if (config.schedule) {
+          // Refresh scheduled reports
+          const scheduledRes = await fetch("/api/analytics/reports")
+          if (scheduledRes.ok) {
+            const scheduled = await scheduledRes.json()
+            setScheduledReports(scheduled.data || [])
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error generating report:", error)
+      toast.error("Failed to generate report")
+    }
+  }
+
+  const filteredTickets = React.useMemo(() => {
+    return tickets.filter((t) => {
+      if (filters.team && filters.team !== "all" && t.suggested_team !== filters.team)
+        return false
+      if (filters.priority && filters.priority !== "all" && t.priority !== filters.priority)
+        return false
+      if (filters.category && filters.category !== "all" && t.ticket_type !== filters.category)
+        return false
+      if (filters.source && filters.source !== "all" && t.source !== filters.source) return false
+      if (filters.startDate) {
+        const created = new Date(t.created_at)
+        const start = new Date(filters.startDate)
+        if (created < start) return false
+      }
+      if (filters.endDate) {
+        const created = new Date(t.created_at)
+        const end = new Date(filters.endDate)
+        end.setHours(23, 59, 59, 999)
+        if (created > end) return false
+      }
+      return true
+    })
+  }, [tickets, filters])
+
+  const selectedTicketAsset = React.useMemo(() => {
+    if (!selectedTicket?.asset_id) return null
+    return getAssetById(selectedTicket.asset_id)
+  }, [selectedTicket])
+
+  const isSLABreached = selectedTicket
+    ? selectedTicket.sla_due_at &&
+      new Date() > new Date(selectedTicket.sla_due_at) &&
+      selectedTicket.status !== "resolved" &&
+      selectedTicket.status !== "closed"
+    : false
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Top summary metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Tickets</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{counts.total}</div>
-            <p className="text-xs text-muted-foreground">
-              Across all teams and categories
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Open</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{counts.open}</div>
-            <p className="text-xs text-muted-foreground">
-              Tickets currently waiting for action
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-            <Clock className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{counts.in_progress}</div>
-            <p className="text-xs text-muted-foreground">
-              Being actively worked on by teams
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Resolved</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{counts.resolved}</div>
-            <p className="text-xs text-muted-foreground">
-              Successfully closed by IT teams
-            </p>
-          </CardContent>
-        </Card>
+    <div className="@container/main flex flex-1 flex-col">
+      <div className="flex flex-col gap-3 py-3 md:gap-4 md:py-4">
+        {/* Filters - Top Right */}
+        <div className="flex justify-end px-6 lg:px-8">
+          <AnalyticsFilters onFiltersChange={setFilters} />
       </div>
 
-      {/* Potential upcoming queries / risk cards */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Potential Upcoming Queries
-          </CardTitle>
-          <CardDescription>
-            Forecasted areas where ticket volume may rise based on recent patterns.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <AdminInsightCard
-            title="Access Requests"
-            description="Spike expected as new users onboard or change roles."
-            value={`${last15DaysTickets.filter((t) => t.ticket_type === "access_request").length * 5}%`}
-            impact="High impact"
-            trend="up"
-          />
-          <AdminInsightCard
-            title="Incident Volume"
-            description="Operational issues and outages based on current patterns."
-            value={`${last15DaysTickets.filter((t) => t.ticket_type === "incident").length * 3}%`}
-            impact="Medium impact"
-            trend="up"
-          />
-          <AdminInsightCard
-            title="Service Requests"
-            description="General IT service and how-to questions remain stable."
-            value="Stable"
-            impact="Low impact"
-            trend="flat"
-          />
-        </CardContent>
-      </Card>
+        {/* Executive Summary KPIs */}
+        {kpiMetrics && <KPICards metrics={kpiMetrics} onKpiClick={handleKpiClick} />}
 
-      {/* Team queries, category trends, live activity */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">Team Queries</CardTitle>
-            <CardDescription>Load and performance across IT teams.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {teamStats.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No tickets yet. Team insights will appear here once traffic starts.
-              </p>
-            ) : (
-              teamStats.map((team) => (
-                <div
-                  key={team.team}
-                  className="flex items-center justify-between rounded-lg border bg-card px-3 py-2"
-                >
-                  <div>
-                    <p className="text-sm font-medium">{team.team}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {team.count} tickets • {team.open} open • {team.resolved} resolved
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="text-xs">
-                    {team.open > team.resolved ? (
-                      <span className="flex items-center gap-1 text-amber-600">
-                        <ArrowUpRight className="h-3 w-3" />
-                        High load
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-emerald-600">
-                        <ArrowDownRight className="h-3 w-3" />
-                        Stable
-                      </span>
-                    )}
-                  </Badge>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">Category Trends</CardTitle>
-            <CardDescription>Ticket mix by type and volume.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {categoryStats.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No categories yet. Once tickets are created, trends will appear here.
-              </p>
-            ) : (
-              categoryStats.map((cat) => (
-                <div
-                  key={cat.category}
-                  className="flex items-center justify-between rounded-lg border bg-card px-3 py-2"
-                >
-                  <div>
-                    <p className="text-sm font-medium" style={{ textTransform: "capitalize" }}>
-                      {cat.category.replace("_", " ")}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {cat.count} tickets • {cat.incidents} incidents • {cat.requests} requests
-                    </p>
-                  </div>
-                  <Badge variant="secondary" className="text-xs">
-                    {cat.count >= 5 ? "Trending" : "Normal"}
-                  </Badge>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">Live Activity</CardTitle>
-            <CardDescription>Recent ticket events across the helpdesk.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {liveActivity.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No activity yet. New tickets and updates will show up here.
-              </p>
-            ) : (
-              liveActivity.map((t) => (
-                <div
-                  key={t.id}
-                  className="flex items-center justify-between rounded-lg border bg-card px-3 py-2"
-                >
-                  <div>
-                    <p className="text-sm font-medium">{t.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(t.created_at), "MMM d, yyyy • HH:mm")}
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="text-xs capitalize">
-                    {t.status.replace("_", " ")}
-                  </Badge>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+        {/* SLA Funnel & Lifecycle Funnel */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 px-6 lg:px-8">
+        {slaFunnel.length > 0 && (
+          <SLAFunnel
+            data={slaFunnel}
+            onSegmentClick={(priority, breachedTickets) => {
+              toast.info(`${breachedTickets.length} breached tickets for ${priority}`)
+            }}
+          />
+        )}
+        {lifecycleData.length > 0 && (
+          <LifecycleFunnel
+            data={lifecycleData}
+            onStageClick={(stage, stageTickets) => {
+              toast.info(`${stageTickets.length} tickets in ${stage} stage`)
+            }}
+          />
+        )}
       </div>
 
-      {/* Last 15 days analysis & suggestions */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-base font-semibold">
-              Last 15 Days Analysis & Suggestions
-            </CardTitle>
-            <CardDescription>
-              Proactive recommendations based on recent ticket patterns.
-            </CardDescription>
+        {/* Top Issues */}
+        {topIssues.length > 0 && (
+          <div className="px-6 lg:px-8">
+          <TopIssuesTable
+            issues={topIssues}
+            onTicketClick={(ticketId) => {
+              const ticket = tickets.find((t) => t.id === ticketId)
+              if (ticket) setSelectedTicket(ticket)
+            }}
+            onOpenRelated={(issue) => {
+              toast.info(`Opening related tickets for: ${issue.issue}`)
+            }}
+            onCreateExternal={(issue) => {
+              toast.info(`Creating external incident for: ${issue.issue}`)
+            }}
+          />
+                  </div>
+      )}
+
+        {/* Team Performance */}
+        {teamPerformance.length > 0 && (
+          <div className="px-6 lg:px-8">
+          <TeamPerformanceComponent data={teamPerformance} />
+                </div>
+      )}
+
+        {/* Forecast & Access Request Analytics */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 px-6 lg:px-8">
+        {forecastData.length > 0 && (
+          <ForecastChart
+            data={forecastData}
+            onAnomalyAction={(anomaly) => {
+              toast.info(`Creating incident for anomaly: ${anomaly.anomalyReason}`)
+            }}
+          />
+        )}
+        {accessRequestAnalytics && (
+          <AccessRequestAnalytics
+            {...accessRequestAnalytics}
+            onSendReminder={(manager) => {
+              toast.success(`Reminder sent to ${manager}`)
+            }}
+          />
+        )}
+      </div>
+
+        {/* Live Activity Feed & Reports */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 px-6 lg:px-8">
+          <LiveActivityFeed
+            events={liveEvents}
+            onReplay={handleWebhookReplay}
+            lastUpdated={new Date()}
+          />
+          <div className="space-y-3 md:space-y-4">
+          <ReportBuilder
+            onGenerateReport={handleReportGenerate}
+            scheduledReports={scheduledReports}
+          />
+          <AlertRules />
           </div>
-          <Badge variant="secondary" className="text-xs">
-            {last15DaysTickets.length} tickets analysed
-          </Badge>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {suggestions.map((s) => (
-            <Card key={s.title} className="border-dashed">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium">{s.title}</CardTitle>
-                  <Badge variant="outline" className="text-xs">
-                    {s.badge}
-                  </Badge>
                 </div>
-                <CardDescription className="text-xs">{s.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  size="sm"
-                  className="w-full"
-                  onClick={() =>
-                    toast.info(`${s.cta} - workflow coming soon`, {
-                      description: "This is a placeholder action for now.",
-                    })
-                  }
-                >
-                  {s.cta}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </CardContent>
-      </Card>
 
-      {/* Filters and All Tickets table */}
-      <Card>
-        <CardHeader className="space-y-4">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        {/* All Tickets Table */}
+        <div className="px-6 lg:px-8">
+        <div className="border rounded-lg">
+          <div className="p-4 border-b">
+            <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-base font-semibold">All Tickets</CardTitle>
-              <CardDescription>
-                Full visibility into every ticket across the helpdesk.
-              </CardDescription>
+                <h2 className="text-lg font-semibold">All Tickets</h2>
+                <p className="text-sm text-muted-foreground">
+                  Full visibility into every ticket across the helpdesk
+                </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Select
-                value={teamFilter}
-                onValueChange={(val) => setTeamFilter(val)}
-              >
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="All Departments" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {uniqueTeams.map((team) => (
-                    <SelectItem key={team} value={team}>
-                      {team}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={statusFilter}
-                onValueChange={(val) => setStatusFilter(val)}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="new">New</SelectItem>
-                  <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={assigneeFilter} disabled>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="All Assignees" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Assignees</SelectItem>
-                </SelectContent>
-              </Select>
               {onRefresh && (
                 <Button variant="outline" size="sm" onClick={onRefresh}>
                   Refresh
@@ -610,27 +444,17 @@ export function AdminTicketsDashboard({
               )}
             </div>
           </div>
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <Input
-              className="max-w-sm"
-              placeholder="Search tickets (use table search)"
-              disabled
-            />
-            <p className="text-xs text-muted-foreground">
-              Use the table search to quickly filter by ID, title, or app.
-            </p>
-          </div>
-        </CardHeader>
-        <CardContent>
+          <div className="p-4">
           <TicketsTable
             data={filteredTickets}
             isLoading={isLoading}
             onRowClick={setSelectedTicket}
           />
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </div>
 
-      {/* Ticket detail sidebar */}
+      {/* Ticket Detail Sidebar */}
       <Sheet
         open={!!selectedTicket}
         onOpenChange={(open) => {
@@ -640,23 +464,19 @@ export function AdminTicketsDashboard({
           }
         }}
       >
-        <SheetContent side="right" className="sm:max-w-lg">
+        <SheetContent side="right" className="sm:max-w-2xl overflow-y-auto">
           {selectedTicket && (
             <>
               <SheetHeader>
                 <div className="flex items-start justify-between gap-2 pr-8">
-                  <SheetTitle className="flex-1">
-                    {selectedTicket.title}
-                  </SheetTitle>
+                  <SheetTitle className="flex-1">{selectedTicket.title}</SheetTitle>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="text-xs">
                     {selectedTicket.id}
                   </Badge>
                 </div>
-                <SheetDescription>
-                  {selectedTicket.description}
-                </SheetDescription>
+                <SheetDescription>{selectedTicket.description}</SheetDescription>
               </SheetHeader>
               <div className="flex flex-col gap-4 p-4 text-sm">
                 <div className="grid grid-cols-2 gap-3">
@@ -673,9 +493,7 @@ export function AdminTicketsDashboard({
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">
-                      Application / System
-                    </p>
+                    <p className="text-xs text-muted-foreground">Application / System</p>
                     <p className="font-medium">
                       {selectedTicket.app_or_system || "Not specified"}
                     </p>
@@ -696,6 +514,18 @@ export function AdminTicketsDashboard({
                       {selectedTicket.user_name || "Unknown"}
                     </p>
                   </div>
+                  {selectedTicket.assignee && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Assignee</p>
+                      <p className="font-medium">{selectedTicket.assignee}</p>
+                    </div>
+                  )}
+                  {selectedTicket.source && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Source</p>
+                      <p className="font-medium capitalize">{selectedTicket.source}</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -714,15 +544,57 @@ export function AdminTicketsDashboard({
                   <div>
                     <p className="text-xs text-muted-foreground">Time Open</p>
                     <p className="font-medium">
-                      {formatDurationMinutes(selectedTicket.created_at)}
+                      {formatDurationMinutes(
+                        selectedTicket.created_at,
+                        selectedTicket.resolved_at
+                      )}
                     </p>
                   </div>
+                  {selectedTicket.sla_due_at && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">SLA Due</p>
+                      <p className="font-medium">
+                        {format(new Date(selectedTicket.sla_due_at), "MMM d, yyyy • HH:mm")}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
+                {selectedTicket.external_ids && Object.keys(selectedTicket.external_ids).length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">External IDs</p>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(selectedTicket.external_ids).map(([key, value]) => (
+                        <Badge key={key} variant="outline" className="text-xs">
+                          {key}: {value}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {isSLABreached && (
+                  <SLABreachDiagnostics ticket={selectedTicket} />
+                )}
+
+                {selectedTicketAsset && (
+                  <AssetWidget
+                    asset={selectedTicketAsset}
+                    tickets={tickets}
+                    onMarkReplacement={(assetId) => {
+                      toast.info(`Marking asset ${assetId} for replacement`)
+                    }}
+                    onOpenCMDB={(assetId) => {
+                      toast.info(`Opening CMDB record for ${assetId}`)
+                    }}
+                    onCreateReplacementTicket={(assetId) => {
+                      toast.info(`Creating replacement ticket for asset ${assetId}`)
+                    }}
+                  />
+                )}
+
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">
-                    Collected Details
-                  </p>
+                  <p className="text-xs text-muted-foreground mb-1">Collected Details</p>
                   <pre className="rounded-md bg-muted p-3 text-xs whitespace-pre-wrap">
                     {JSON.stringify(selectedTicket.collected_details ?? {}, null, 2)}
                   </pre>
@@ -771,49 +643,6 @@ export function AdminTicketsDashboard({
         </SheetContent>
       </Sheet>
     </div>
-  )
-}
-
-interface AdminInsightCardProps {
-  title: string
-  description: string
-  value: string
-  impact: string
-  trend: "up" | "down" | "flat"
-}
-
-function AdminInsightCard({
-  title,
-  description,
-  value,
-  impact,
-  trend,
-}: AdminInsightCardProps) {
-  return (
-    <Card className="border-dashed">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <CardDescription className="text-xs">{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex items-center justify-between">
-        <div>
-          <p className="text-2xl font-semibold">{value}</p>
-          <p className="text-xs text-muted-foreground">{impact}</p>
         </div>
-        <Badge
-          variant="outline"
-          className="flex items-center gap-1 text-xs"
-        >
-          {trend === "up" && <ArrowUpRight className="h-3 w-3 text-amber-600" />}
-          {trend === "down" && (
-            <ArrowDownRight className="h-3 w-3 text-emerald-600" />
-          )}
-          {trend === "flat" && <Clock className="h-3 w-3 text-muted-foreground" />}
-          <span className="capitalize">{trend === "flat" ? "Stable" : "Changing"}</span>
-        </Badge>
-      </CardContent>
-    </Card>
   )
 }
-
-

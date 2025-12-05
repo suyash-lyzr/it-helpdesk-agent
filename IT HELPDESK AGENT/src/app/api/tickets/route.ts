@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           message:
-            "Invalid suggested_team. Must be 'IT Helpdesk', 'Network', 'Security', or 'DevOps'",
+            "Invalid suggested_team. Must be 'Network', 'Endpoint Support', 'Application Support', 'IAM', 'Security', or 'DevOps'",
         },
         { status: 400, headers: corsHeaders }
       )

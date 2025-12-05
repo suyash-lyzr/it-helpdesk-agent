@@ -77,6 +77,72 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/tickets">
 }
 
+// Validate ../../src/app/api/analytics/access-requests/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/analytics/access-requests/route.js")
+  handler satisfies RouteHandlerConfig<"/api/analytics/access-requests">
+}
+
+// Validate ../../src/app/api/analytics/assets/[assetId]/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/analytics/assets/[assetId]/route.js")
+  handler satisfies RouteHandlerConfig<"/api/analytics/assets/[assetId]">
+}
+
+// Validate ../../src/app/api/analytics/audit/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/analytics/audit/route.js")
+  handler satisfies RouteHandlerConfig<"/api/analytics/audit">
+}
+
+// Validate ../../src/app/api/analytics/forecast/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/analytics/forecast/route.js")
+  handler satisfies RouteHandlerConfig<"/api/analytics/forecast">
+}
+
+// Validate ../../src/app/api/analytics/kpis/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/analytics/kpis/route.js")
+  handler satisfies RouteHandlerConfig<"/api/analytics/kpis">
+}
+
+// Validate ../../src/app/api/analytics/lifecycle/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/analytics/lifecycle/route.js")
+  handler satisfies RouteHandlerConfig<"/api/analytics/lifecycle">
+}
+
+// Validate ../../src/app/api/analytics/live-events/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/analytics/live-events/route.js")
+  handler satisfies RouteHandlerConfig<"/api/analytics/live-events">
+}
+
+// Validate ../../src/app/api/analytics/reports/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/analytics/reports/route.js")
+  handler satisfies RouteHandlerConfig<"/api/analytics/reports">
+}
+
+// Validate ../../src/app/api/analytics/sla-funnel/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/analytics/sla-funnel/route.js")
+  handler satisfies RouteHandlerConfig<"/api/analytics/sla-funnel">
+}
+
+// Validate ../../src/app/api/analytics/team-performance/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/analytics/team-performance/route.js")
+  handler satisfies RouteHandlerConfig<"/api/analytics/team-performance">
+}
+
+// Validate ../../src/app/api/analytics/top-issues/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/analytics/top-issues/route.js")
+  handler satisfies RouteHandlerConfig<"/api/analytics/top-issues">
+}
+
 // Validate ../../src/app/api/chat/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/chat/route.js")

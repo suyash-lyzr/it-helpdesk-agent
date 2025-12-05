@@ -198,7 +198,7 @@ export default function IntegrationDetailPage() {
         return
       }
       const description = describeWebhookEvent(
-        res.event as unknown as any,
+        res.event as { provider: string; event: string; external_id?: string; [key: string]: unknown },
       )
       toast.success(description)
       const latest = await fetchIntegrationLogs(provider, 5)

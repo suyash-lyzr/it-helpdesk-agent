@@ -3,7 +3,9 @@
 export type TicketType = "incident" | "access_request" | "request"
 export type TicketPriority = "low" | "medium" | "high"
 export type TicketStatus = "new" | "open" | "in_progress" | "resolved" | "closed"
-export type SuggestedTeam = "IT Helpdesk" | "Network" | "Security" | "DevOps"
+export type SuggestedTeam = "Network" | "Endpoint Support" | "Application Support" | "IAM" | "Security" | "DevOps"
+export type TicketSource = "chat" | "email" | "integration" | "manual"
+export type LifecycleStage = "new" | "triage" | "in_progress" | "waiting_for_user" | "resolved" | "closed"
 
 // Input structure from Ticket Generator Agent
 export interface TicketGeneratorInput {
@@ -33,6 +35,17 @@ export interface Ticket {
   status: TicketStatus
   created_at: string
   updated_at: string
+  // Enterprise admin console fields
+  sla_due_at?: string // ISO timestamp
+  sla_breached_at?: string // ISO timestamp
+  asset_id?: string
+  external_ids?: Record<string, string> // e.g., { jira: "JRA-2031", servicenow: "INC-001234" }
+  source?: TicketSource
+  assignee?: string
+  first_response_at?: string // ISO timestamp
+  resolved_at?: string // ISO timestamp
+  reopened_count?: number
+  lifecycle_stage?: LifecycleStage
 }
 
 // Request body for creating a ticket
@@ -46,6 +59,11 @@ export interface CreateTicketRequest {
   collected_details?: Record<string, unknown>
   suggested_team?: SuggestedTeam
   status?: TicketStatus
+  // Enterprise fields
+  source?: TicketSource
+  assignee?: string
+  asset_id?: string
+  external_ids?: Record<string, string>
 }
 
 // Request body for updating a ticket
@@ -114,6 +132,86 @@ export function isValidStatus(status: string): status is TicketStatus {
 
 // Helper function to validate suggested team
 export function isValidTeam(team: string): team is SuggestedTeam {
-  return ["IT Helpdesk", "Network", "Security", "DevOps"].includes(team)
+  return ["Network", "Endpoint Support", "Application Support", "IAM", "Security", "DevOps"].includes(team)
+}
+
+// Helper function to calculate MTTR (Mean Time To Resolution) in hours
+export function calculateMTTR(tickets: Ticket[]): number {
+  const resolvedTickets = tickets.filter(
+    (t) => t.resolved_at && t.created_at
+  )
+  if (resolvedTickets.length === 0) return 0
+
+  const totalHours = resolvedTickets.reduce((sum, ticket) => {
+    const created = new Date(ticket.created_at).getTime()
+    const resolved = new Date(ticket.resolved_at!).getTime()
+    return sum + (resolved - created) / (1000 * 60 * 60)
+  }, 0)
+
+  return totalHours / resolvedTickets.length
+}
+
+// Helper function to calculate First Response Time in hours
+export function calculateFirstResponseTime(tickets: Ticket[]): number {
+  const respondedTickets = tickets.filter(
+    (t) => t.first_response_at && t.created_at
+  )
+  if (respondedTickets.length === 0) return 0
+
+  const totalHours = respondedTickets.reduce((sum, ticket) => {
+    const created = new Date(ticket.created_at).getTime()
+    const firstResponse = new Date(ticket.first_response_at!).getTime()
+    return sum + (firstResponse - created) / (1000 * 60 * 60)
+  }, 0)
+
+  return totalHours / respondedTickets.length
+}
+
+// Helper function to check if SLA is breached
+export function checkSLABreach(ticket: Ticket): boolean {
+  if (!ticket.sla_due_at) return false
+  const now = new Date().getTime()
+  const slaDue = new Date(ticket.sla_due_at).getTime()
+  return now > slaDue && ticket.status !== "resolved" && ticket.status !== "closed"
+}
+
+// Helper function to get lifecycle stage from status
+export function getLifecycleStage(ticket: Ticket): LifecycleStage {
+  if (ticket.lifecycle_stage) return ticket.lifecycle_stage
+
+  // Map status to lifecycle stage
+  switch (ticket.status) {
+    case "new":
+      return "new"
+    case "open":
+      return "triage"
+    case "in_progress":
+      return "in_progress"
+    case "resolved":
+      return "resolved"
+    case "closed":
+      return "closed"
+    default:
+      return "new"
+  }
+}
+
+// Helper function to calculate SLA compliance percentage
+export function calculateSLACompliance(tickets: Ticket[]): number {
+  if (tickets.length === 0) return 100
+  const ticketsWithSLA = tickets.filter((t) => t.sla_due_at)
+  if (ticketsWithSLA.length === 0) return 100
+
+  const compliant = ticketsWithSLA.filter((t) => {
+    if (t.status === "resolved" || t.status === "closed") {
+      if (!t.resolved_at) return true // Assume compliant if resolved without timestamp
+      const resolved = new Date(t.resolved_at).getTime()
+      const slaDue = new Date(t.sla_due_at!).getTime()
+      return resolved <= slaDue
+    }
+    return !checkSLABreach(t)
+  }).length
+
+  return (compliant / ticketsWithSLA.length) * 100
 }
 

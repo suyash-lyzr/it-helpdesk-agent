@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { appendLog } from "@/lib/integrations-store"
+import { addLiveEvent, appendAuditLog } from "@/lib/analytics-store"
+import { getTickets, updateTicket } from "@/lib/ticket-store"
 import type { IntegrationProvider, WebhookSampleEvent } from "@/lib/integrations-types"
 
 const corsHeaders = {
@@ -82,6 +84,36 @@ export async function POST(request: NextRequest) {
     },
   })
 
+  // Add live event to analytics store
+  const eventDescription = `${event.provider} ${event.event}: ${event.external_id}`
+  addLiveEvent({
+    type: "external_id_created",
+    actor: "System",
+    description: eventDescription,
+    externalId: event.external_id,
+  })
+
+  // Try to find and update related ticket if external_id matches
+  const { tickets } = getTickets()
+  const relatedTicket = tickets.find(
+    (t) => t.external_ids && Object.values(t.external_ids).includes(event.external_id)
+  )
+
+  if (relatedTicket && event.event === "ticket.updated") {
+    // Update ticket status if provided in changes
+    const changes = (event as { changes?: { status?: string } }).changes
+    if (changes?.status) {
+      const normalizedStatus = changes.status.toLowerCase().replace(" ", "_")
+      if (normalizedStatus === "in_progress" || normalizedStatus === "resolved" || normalizedStatus === "closed" || normalizedStatus === "open") {
+        updateTicket(relatedTicket.id, {
+          status: normalizedStatus as "in_progress" | "resolved" | "closed" | "open",
+        })
+      }
+    }
+  }
+
+  appendAuditLog("system", "webhook_replayed", `Replayed ${event.provider} webhook: ${sampleEventId}`)
+
   // For demo we simply return the event payload. In production this would
   // fan out to whatever internal webhook handlers would normally process it.
   return NextResponse.json(
@@ -89,6 +121,9 @@ export async function POST(request: NextRequest) {
       success: true,
       provider,
       event,
+      ticketId: relatedTicket?.id,
+      message: `Webhook replayed: ${eventDescription}`,
+      externalId: event.external_id,
     },
     { headers: corsHeaders },
   )

@@ -99,7 +99,7 @@ export default function TicketsPage() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset className="h-screen overflow-auto">
-        <div className="flex flex-col gap-6 p-6">
+        <div className="flex flex-col gap-4 md:gap-6 py-4 md:py-6 px-6 lg:px-8">
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">Support Tickets</h1>
