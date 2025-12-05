@@ -7,7 +7,7 @@
   "/api/analytics/lifecycle/route": "app/api/analytics/lifecycle/route.js",
   "/api/analytics/access-requests/route": "app/api/analytics/access-requests/route.js",
   "/api/analytics/live-events/route": "app/api/analytics/live-events/route.js",
-  "/api/tickets/route": "app/api/tickets/route.js",
-  "/tickets/page": "app/tickets/page.js",
-  "/page": "app/page.js"
+  "/page": "app/page.js",
+  "/integrations/page": "app/integrations/page.js",
+  "/tickets/page": "app/tickets/page.js"
 }

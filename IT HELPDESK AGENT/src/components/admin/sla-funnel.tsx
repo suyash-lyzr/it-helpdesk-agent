@@ -2,16 +2,16 @@
 
 import * as React from "react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
-import { AlertTriangle, CheckCircle2 } from "lucide-react"
+import { AlertTriangle, CheckCircle2, TrendingUp } from "lucide-react"
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -31,11 +31,11 @@ interface SLAFunnelProps {
 const chartConfig = {
   meetingSLA: {
     label: "Meeting SLA",
-    color: "hsl(142, 76%, 36%)",
+    color: "var(--color-primary)",
   },
   breached: {
     label: "Breached",
-    color: "hsl(0, 84%, 60%)",
+    color: "var(--color-destructive)",
   },
 } satisfies ChartConfig
 
@@ -58,56 +58,105 @@ export function SLAFunnel({ data, onSegmentClick }: SLAFunnelProps) {
     slaPercentage: item.slaPercentage,
   }))
 
+  const totalTickets = data.reduce((sum, item) => sum + item.total, 0)
+  const totalBreached = data.reduce((sum, item) => sum + item.breached, 0)
+  const overallCompliance = totalTickets > 0 
+    ? ((totalTickets - totalBreached) / totalTickets * 100).toFixed(1)
+    : "100.0"
+
   return (
     <>
-      <Card>
+      <Card className="@container/card">
         <CardHeader>
           <CardTitle>SLA & Priority Funnel</CardTitle>
           <CardDescription>
             Ticket distribution by priority and SLA compliance status
           </CardDescription>
+          <CardAction>
+            <Badge variant="outline" className="text-xs">
+              {overallCompliance}% overall
+            </Badge>
+          </CardAction>
         </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="h-[250px] w-full">
-            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="priority" />
-              <YAxis />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="meetingSLA" stackId="a" fill="var(--color-meetingSLA)" />
-              <Bar dataKey="breached" stackId="a" fill="var(--color-breached)" />
+        <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+          <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
+            <BarChart data={chartData} margin={{ top: 20, right: 20, left: 0, bottom: 0 }}>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="priority" 
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+              <YAxis 
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+              <ChartTooltip 
+                cursor={false}
+                content={<ChartTooltipContent indicator="dot" />} 
+              />
+              <Bar 
+                dataKey="meetingSLA" 
+                stackId="a" 
+                fill="var(--color-meetingSLA)"
+                radius={[0, 0, 4, 4]}
+              />
+              <Bar 
+                dataKey="breached" 
+                stackId="a" 
+                fill="var(--color-breached)"
+                radius={[4, 4, 0, 0]}
+              />
             </BarChart>
           </ChartContainer>
 
-          <div className="mt-6 space-y-3">
+          <div className="mt-6 space-y-2">
             {data.map((item) => (
               <div
                 key={item.priority}
-                className="flex items-center justify-between rounded-lg border p-3 hover:bg-accent cursor-pointer transition-colors"
+                className="group flex items-center justify-between rounded-lg border bg-muted/40 p-3 transition-all hover:bg-accent hover:shadow-sm cursor-pointer"
                 onClick={() => handleSegmentClick(item.priority, item.breachedTickets)}
               >
-                <div className="flex items-center gap-3">
-                  <div className="flex flex-col">
-                    <span className="font-semibold">{item.priority}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {item.total} tickets
-                    </span>
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm">{item.priority}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {item.total} {item.total === 1 ? 'ticket' : 'tickets'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1">
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-xs text-muted-foreground">
+                          {item.meetingSLA} meeting SLA
+                        </span>
+                      </div>
+                      {item.breached > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                          <Badge variant="destructive" className="text-xs px-1.5 py-0">
+                            {item.breached} breached
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">{item.meetingSLA} meeting SLA</span>
-                  </div>
-                  {item.breached > 0 && (
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-red-600" />
-                      <Badge variant="destructive">{item.breached} breached</Badge>
+                <div className="flex items-center gap-2 ml-4">
+                  <div className="text-right">
+                    <div className="text-sm font-semibold tabular-nums">
+                      {item.slaPercentage.toFixed(1)}%
                     </div>
-                  )}
-                  <div className="text-sm font-medium">
-                    {item.slaPercentage.toFixed(1)}% compliance
+                    <div className="text-xs text-muted-foreground">compliance</div>
                   </div>
+                  {item.slaPercentage >= 100 ? (
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                  )}
                 </div>
               </div>
             ))}
@@ -133,16 +182,16 @@ export function SLAFunnel({ data, onSegmentClick }: SLAFunnelProps) {
                 {breachedTickets.map((ticket) => (
                   <div
                     key={ticket.id}
-                    className="rounded-lg border p-3 hover:bg-accent"
+                    className="rounded-lg border p-3 hover:bg-accent transition-colors"
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="font-medium">{ticket.title}</div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="font-medium text-sm">{ticket.title}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
                           {ticket.id} • {ticket.user_name}
                         </div>
                       </div>
-                      <Badge variant="destructive">Breached</Badge>
+                      <Badge variant="destructive" className="text-xs">Breached</Badge>
                     </div>
                     {ticket.sla_due_at && (
                       <div className="mt-2 text-xs text-muted-foreground">
