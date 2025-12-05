@@ -22,14 +22,15 @@
     },
     "servicenow": {
       "provider": "servicenow",
-      "status": "disconnected",
+      "status": "connected",
       "mode": "demo",
       "meta": {
         "id": "servicenow",
         "name": "ServiceNow",
         "description": "Create and track incidents in your ServiceNow instance."
       },
-      "lastTestAt": "2025-12-04T10:38:11.258Z"
+      "lastTestAt": "2025-12-04T10:38:11.258Z",
+      "connectedAt": "2025-12-04T10:49:03.300Z"
     },
     "okta": {
       "provider": "okta",
@@ -150,6 +151,17 @@
       "provider": "servicenow",
       "action": "disconnect",
       "actor": "admin"
+    },
+    {
+      "id": "servicenow-connect-1764845343300",
+      "timestamp": "2025-12-04T10:49:03.300Z",
+      "provider": "servicenow",
+      "action": "connect",
+      "actor": "admin",
+      "details": {
+        "mode": "demo",
+        "demo": true
+      }
     }
   ]
 }
