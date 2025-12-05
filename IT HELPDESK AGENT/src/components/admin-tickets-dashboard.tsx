@@ -644,12 +644,16 @@ export function AdminTicketsDashboard({
           {selectedTicket && (
             <>
               <SheetHeader>
-                <SheetTitle className="flex items-center justify-between gap-2">
-                  <span>{selectedTicket.title}</span>
+                <div className="flex items-start justify-between gap-2 pr-8">
+                  <SheetTitle className="flex-1">
+                    {selectedTicket.title}
+                  </SheetTitle>
+                </div>
+                <div className="flex items-center gap-2">
                   <Badge variant="outline" className="text-xs">
                     {selectedTicket.id}
                   </Badge>
-                </SheetTitle>
+                </div>
                 <SheetDescription>
                   {selectedTicket.description}
                 </SheetDescription>

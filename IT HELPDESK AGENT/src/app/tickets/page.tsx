@@ -1,11 +1,20 @@
 "use client"
 
 import * as React from "react"
+import { format, differenceInMinutes } from "date-fns"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { TicketSummaryCards } from "@/components/ticket-summary-cards"
 import { TicketsTable } from "@/components/tickets-table"
 import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet"
 import { Ticket } from "@/lib/ticket-types"
 import { toast } from "sonner"
 import { AdminTicketsDashboard } from "@/components/admin-tickets-dashboard"
@@ -31,6 +40,7 @@ export default function TicketsPage() {
     closed: 0,
   })
   const [isLoading, setIsLoading] = React.useState(true)
+  const [selectedTicket, setSelectedTicket] = React.useState<Ticket | null>(null)
 
   const fetchTickets = React.useCallback(async () => {
     setIsLoading(true)
@@ -69,6 +79,15 @@ export default function TicketsPage() {
     toast.info("New ticket dialog - coming soon!")
   }
 
+  const formatDurationMinutes = (createdAt: string, resolvedAt?: string) => {
+    const start = new Date(createdAt)
+    const end = resolvedAt ? new Date(resolvedAt) : new Date()
+    const mins = differenceInMinutes(end, start)
+    if (mins < 60) return `${mins} min`
+    const hours = Math.round(mins / 60)
+    return `${hours} hr`
+  }
+
   return (
     <SidebarProvider
       style={
@@ -83,8 +102,8 @@ export default function TicketsPage() {
         <div className="flex flex-col gap-6 p-6">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Support Tickets</h1>
-              <p className="text-muted-foreground mt-1">Manage and track your support requests</p>
+              <h1 className="text-2xl font-semibold tracking-tight">Support Tickets</h1>
+              <p className="text-sm text-muted-foreground mt-1">Manage and track your support requests</p>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Admin Mode</span>
@@ -118,8 +137,113 @@ export default function TicketsPage() {
                 onRefresh={handleRefresh}
                 onNewTicket={handleNewTicket}
                 isLoading={isLoading}
+                onRowClick={setSelectedTicket}
               />
             </>
+          )}
+
+          {/* Read-only ticket detail sidebar for non-admin users */}
+          {!isAdmin && (
+            <Sheet
+              open={!!selectedTicket}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setSelectedTicket(null)
+                }
+              }}
+            >
+              <SheetContent side="right" className="sm:max-w-lg">
+                {selectedTicket && (
+                  <>
+                    <SheetHeader>
+                      <div className="flex items-start justify-between gap-2 pr-8">
+                        <SheetTitle className="flex-1">
+                          {selectedTicket.title}
+                        </SheetTitle>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {selectedTicket.id}
+                        </Badge>
+                      </div>
+                      <SheetDescription>
+                        {selectedTicket.description}
+                      </SheetDescription>
+                    </SheetHeader>
+                    <div className="flex flex-col gap-4 p-4 text-sm">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Type</p>
+                          <p className="font-medium capitalize">
+                            {selectedTicket.ticket_type.replace("_", " ")}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Priority</p>
+                          <p className="font-medium capitalize">
+                            {selectedTicket.priority || "Not set"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">
+                            Application / System
+                          </p>
+                          <p className="font-medium">
+                            {selectedTicket.app_or_system || "Not specified"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Team</p>
+                          <p className="font-medium">{selectedTicket.suggested_team}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Status</p>
+                          <p className="font-medium capitalize">
+                            {selectedTicket.status.replace("_", " ")}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Requester</p>
+                          <p className="font-medium">
+                            {selectedTicket.user_name || "Unknown"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Created</p>
+                          <p className="font-medium">
+                            {format(new Date(selectedTicket.created_at), "MMM d, yyyy • HH:mm")}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Last Updated</p>
+                          <p className="font-medium">
+                            {format(new Date(selectedTicket.updated_at), "MMM d, yyyy • HH:mm")}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Time Open</p>
+                          <p className="font-medium">
+                            {formatDurationMinutes(selectedTicket.created_at)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Collected Details
+                        </p>
+                        <pre className="rounded-md bg-muted p-3 text-xs whitespace-pre-wrap">
+                          {JSON.stringify(selectedTicket.collected_details ?? {}, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </SheetContent>
+            </Sheet>
           )}
         </div>
       </SidebarInset>

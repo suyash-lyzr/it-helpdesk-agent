@@ -82,7 +82,7 @@ const ticketTypeLabels: Record<string, string> = {
   request: "Request",
 }
 
-const columns: ColumnDef<TicketType>[] = [
+const createColumns = (onRowClick?: (ticket: TicketType) => void): ColumnDef<TicketType>[] => [
   {
     accessorKey: "id",
     header: ({ column }) => (
@@ -96,7 +96,15 @@ const columns: ColumnDef<TicketType>[] = [
       </Button>
     ),
     cell: ({ row }) => (
-      <span className="font-medium text-primary">{row.original.id}</span>
+      <span
+        className={`font-medium ${onRowClick ? "text-primary cursor-pointer hover:underline" : "text-primary"}`}
+        onClick={onRowClick ? (e) => {
+          e.stopPropagation()
+          onRowClick(row.original)
+        } : undefined}
+      >
+        {row.original.id}
+      </span>
     ),
   },
   {
@@ -202,6 +210,8 @@ export function TicketsTable({
     []
   )
   const [globalFilter, setGlobalFilter] = React.useState("")
+
+  const columns = React.useMemo(() => createColumns(onRowClick), [onRowClick])
 
   const table = useReactTable({
     data,
