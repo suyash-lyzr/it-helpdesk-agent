@@ -131,8 +131,9 @@ export default function IntegrationDetailPage() {
   const [apiTokenUrl, setApiTokenUrl] = useState("");
   const [apiTokenEmail, setApiTokenEmail] = useState("");
   const [apiToken, setApiToken] = useState("");
-  const [fieldMappingOpen, setFieldMappingOpen] = useState(false);
+  const [fieldMappingOpen, setFieldMappingOpen] = useState(true);
   const [securityOpen, setSecurityOpen] = useState(false);
+  const [automaticConfigOpen, setAutomaticConfigOpen] = useState(true);
   const [demoSeverity, setDemoSeverity] = useState("3");
   const [cmdbSyncEnabled, setCmdbSyncEnabled] = useState(true);
   const [servicenowApiTokenUrl, setServicenowApiTokenUrl] = useState("");
@@ -777,25 +778,18 @@ export default function IntegrationDetailPage() {
       >
         <AppSidebar variant="inset" />
         <SidebarInset className="h-screen overflow-auto">
-          <div className="flex h-full flex-col gap-6 p-6">
-            {/* Header Section */}
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <h1 className="text-3xl font-semibold tracking-tight">
+          <div className="flex h-full flex-col gap-4 p-6 max-w-[1400px] mx-auto">
+            {/* Compact Header Block */}
+            <div className="flex items-center justify-between py-3 px-4 bg-card border rounded-lg">
+              <div className="flex items-center gap-3">
+                <h1 className="text-xl font-semibold tracking-tight">
                   Jira Integration
                 </h1>
-                <p className="text-sm text-muted-foreground">
-                  Sync incidents and requests with Jira Software or Jira Service
-                  Management.
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge
-                  variant={statusBadgeVariant}
-                  className="text-sm px-3 py-1"
-                >
+                <Badge variant={statusBadgeVariant} className="text-xs">
                   {statusBadgeText}
                 </Badge>
+              </div>
+              <div className="flex items-center gap-2">
                 <Button
                   size="sm"
                   variant="outline"
@@ -823,440 +817,483 @@ export default function IntegrationDetailPage() {
                     Start OAuth Setup
                   </Button>
                 )}
+                <Button
+                  size="sm"
+                  disabled={busy || !isAdmin}
+                  onClick={handleSaveMappings}
+                >
+                  Save Settings
+                </Button>
               </div>
             </div>
 
-            {/* Overview / What This Integration Does */}
-            <Card>
-              <CardHeader>
-                <CardTitle>What this integration enables</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <ul className="space-y-2 list-disc list-inside text-sm text-muted-foreground">
-                  <li>
-                    Automatically create Jira tickets from incidents raised in
-                    Lyzr Helpdesk
-                  </li>
-                  <li>
-                    Sync Jira → Lyzr status updates (In Progress, Done,
-                    Reopened)
-                  </li>
-                  <li>Sync comments both ways between Lyzr and Jira</li>
-                  <li>
-                    Push critical incidents directly to the engineering Jira
-                    projects
-                  </li>
-                  <li>
-                    Trigger Jira workflows based on IT Helpdesk automation rules
-                  </li>
-                  <li>Replay Jira webhooks for debugging and demo</li>
-                </ul>
-                <div className="pt-2 border-t">
-                  <p className="text-xs text-muted-foreground flex items-center gap-2">
-                    <Shield className="h-3 w-3" />
+            {/* First Row: Two Cards Side by Side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Overview / What This Integration Does - Compact */}
+              <Card>
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base">
+                    What this integration enables
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 pb-5">
+                  <ul className="space-y-2.5 list-disc list-inside text-sm text-muted-foreground">
+                    <li>
+                      Automatically create Jira tickets from incidents raised in
+                      Lyzr Helpdesk
+                    </li>
+                    <li>
+                      Sync Jira → Lyzr status updates (In Progress, Done,
+                      Reopened)
+                    </li>
+                    <li>Sync comments both ways between Lyzr and Jira</li>
+                    <li>
+                      Push critical incidents directly to the engineering Jira
+                      projects
+                    </li>
+                    <li>
+                      Trigger Jira workflows based on IT Helpdesk automation
+                      rules
+                    </li>
+                    <li>Replay Jira webhooks for debugging and demo</li>
+                  </ul>
+                  <p className="text-xs text-muted-foreground mt-4 pt-3 border-t">
+                    <Shield className="h-3 w-3 inline mr-1.5" />
                     All mappings and sync logic are handled automatically by
                     Lyzr. No manual configuration required.
                   </p>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* Setup Instructions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Setup Steps (Required once)</CardTitle>
-                <CardDescription>
-                  Choose your preferred connection method
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="oauth" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="oauth">
-                      Option A — Recommended: OAuth Connect
-                    </TabsTrigger>
-                    <TabsTrigger value="api-token">
-                      Option B — Alternative: API Token
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="oauth" className="space-y-4 mt-4">
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
-                          1
+              {/* Setup Instructions - Compact Wizard Style */}
+              <Card>
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base">
+                    Setup Steps (Required once)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 pb-5">
+                  <Tabs defaultValue="oauth" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 h-9">
+                      <TabsTrigger value="oauth" className="text-xs">
+                        OAuth (Recommended)
+                      </TabsTrigger>
+                      <TabsTrigger value="api-token" className="text-xs">
+                        API Token (Advanced)
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="oauth" className="space-y-3 mt-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-[10px] mt-0.5 shrink-0">
+                            1
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium leading-tight">
+                              Click Start OAuth Setup
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Use the button in the header to begin the OAuth
+                              flow
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">
-                            Click Start OAuth Setup
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Use the button in the header above to begin the
-                            OAuth flow
-                          </p>
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-[10px] mt-0.5 shrink-0">
+                            2
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium leading-tight">
+                              Login with Jira admin account
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Authenticate using your Jira administrator
+                              credentials
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-[10px] mt-0.5 shrink-0">
+                            3
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium leading-tight">
+                              Grant app permissions
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Authorize Lyzr to access your Jira instance
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-[10px] mt-0.5 shrink-0">
+                            4
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium leading-tight">
+                              Setup complete
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              You'll be redirected back and the integration will
+                              be active
+                            </p>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
-                          2
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">
-                            Login with Jira admin account
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Authenticate using your Jira administrator
-                            credentials
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
-                          3
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">
-                            Grant app permissions
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Authorize Lyzr to access your Jira instance
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
-                          4
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Setup complete</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            You'll be redirected back and the integration will
-                            be active
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="pt-3 border-t">
-                      <p className="text-xs text-muted-foreground flex items-center gap-2">
-                        <Shield className="h-3 w-3" />
-                        OAuth ensures secure, rotating tokens and requires no
-                        manual API key handling.
-                      </p>
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="api-token" className="space-y-4 mt-4">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="jira-url">Jira Base URL</Label>
-                        <Input
-                          id="jira-url"
-                          placeholder="https://your-company.atlassian.net"
-                          value={apiTokenUrl}
-                          onChange={(e) => setApiTokenUrl(e.target.value)}
-                          disabled={!isAdmin || busy}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="jira-email">Admin Email</Label>
-                        <Input
-                          id="jira-email"
-                          type="email"
-                          placeholder="admin@company.com"
-                          value={apiTokenEmail}
-                          onChange={(e) => setApiTokenEmail(e.target.value)}
-                          disabled={!isAdmin || busy}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="jira-token">API Token</Label>
-                        <Input
-                          id="jira-token"
-                          type="password"
-                          placeholder="Enter your Jira API token"
-                          value={apiToken}
-                          onChange={(e) => setApiToken(e.target.value)}
-                          disabled={!isAdmin || busy}
-                        />
+                      <div className="pt-3 border-t mt-3">
                         <p className="text-xs text-muted-foreground">
-                          Generate an API token from your Jira account settings
+                          <Shield className="h-3 w-3 inline mr-1" />
+                          OAuth ensures secure, rotating tokens and requires no
+                          manual API key handling.
                         </p>
                       </div>
-                      <Button
-                        onClick={handleConnectApiToken}
-                        disabled={
-                          !isAdmin ||
-                          busy ||
-                          !apiTokenUrl ||
-                          !apiTokenEmail ||
-                          !apiToken
-                        }
-                        className="w-full"
-                      >
-                        Connect using API Token
-                      </Button>
-                    </div>
-                    <div className="pt-3 border-t">
-                      <p className="text-xs text-muted-foreground">
-                        This is only needed if your organization restricts
-                        OAuth.
-                      </p>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-
-            {/* What Lyzr Handles Automatically */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-4 w-4" />
-                  Automatic Configuration by Lyzr
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <ul className="space-y-2 list-disc list-inside text-sm text-muted-foreground">
-                  <li>Default ticket field mapping</li>
-                  <li>Project sync + component lookup</li>
-                  <li>SLA + priority sync</li>
-                  <li>Comment direction mapping</li>
-                  <li>Error retries and webhook validation</li>
-                  <li>Activity log + audit visibility</li>
-                  <li>Demo ticket generation</li>
-                  <li>Automatic fallback recovery</li>
-                </ul>
-                <div className="pt-2 border-t">
-                  <p className="text-xs text-muted-foreground">
-                    You do not need to configure field mapping unless your Jira
-                    setup is non-standard.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Optional: Field Mapping (Advanced) */}
-            <Collapsible
-              open={fieldMappingOpen}
-              onOpenChange={setFieldMappingOpen}
-            >
-              <Card>
-                <CollapsibleTrigger className="w-full">
-                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                    <CardTitle className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <Settings className="h-4 w-4" />
-                        Advanced Settings — Field Mapping
-                      </span>
-                      <ChevronDown
-                        className={`h-4 w-4 transition-transform ${
-                          fieldMappingOpen ? "rotate-180" : ""
-                        }`}
-                      />
-                    </CardTitle>
-                    <CardDescription>
-                      Modify field mappings for custom Jira configurations
-                    </CardDescription>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="space-y-4 pt-0">
-                    <div className="grid gap-4">
-                      <div className="grid grid-cols-2 gap-4 items-center">
-                        <div>
-                          <Label className="text-sm font-medium">Title</Label>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            ticket.title
-                          </p>
-                        </div>
-                        <Select
-                          value={mappings.title ?? "ticket.title"}
-                          onValueChange={(value) =>
-                            setMappings((prev) => ({ ...prev, title: value }))
-                          }
-                          disabled={!isAdmin}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {LOCAL_FIELDS.map((field) => (
-                              <SelectItem key={field} value={field}>
-                                {field}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 items-center">
-                        <div>
-                          <Label className="text-sm font-medium">
-                            Description
+                    </TabsContent>
+                    <TabsContent value="api-token" className="space-y-4 mt-4">
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="jira-url" className="text-xs">
+                            Jira Base URL
                           </Label>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            ticket.description
-                          </p>
+                          <Input
+                            id="jira-url"
+                            placeholder="https://your-company.atlassian.net"
+                            value={apiTokenUrl}
+                            onChange={(e) => setApiTokenUrl(e.target.value)}
+                            disabled={!isAdmin || busy}
+                            className="h-9"
+                          />
                         </div>
-                        <Select
-                          value={mappings.description ?? "ticket.description"}
-                          onValueChange={(value) =>
-                            setMappings((prev) => ({
-                              ...prev,
-                              description: value,
-                            }))
-                          }
-                          disabled={!isAdmin}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {LOCAL_FIELDS.map((field) => (
-                              <SelectItem key={field} value={field}>
-                                {field}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 items-center">
-                        <div>
-                          <Label className="text-sm font-medium">
-                            Priority
+                        <div className="space-y-2">
+                          <Label htmlFor="jira-email" className="text-xs">
+                            Admin Email
                           </Label>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            ticket.priority
-                          </p>
+                          <Input
+                            id="jira-email"
+                            type="email"
+                            placeholder="admin@company.com"
+                            value={apiTokenEmail}
+                            onChange={(e) => setApiTokenEmail(e.target.value)}
+                            disabled={!isAdmin || busy}
+                            className="h-9"
+                          />
                         </div>
-                        <Select
-                          value={mappings.priority ?? "ticket.priority"}
-                          onValueChange={(value) =>
-                            setMappings((prev) => ({
-                              ...prev,
-                              priority: value,
-                            }))
-                          }
-                          disabled={!isAdmin}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {LOCAL_FIELDS.map((field) => (
-                              <SelectItem key={field} value={field}>
-                                {field}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 items-center">
-                        <div>
-                          <Label className="text-sm font-medium">
-                            Assignee
+                        <div className="space-y-2">
+                          <Label htmlFor="jira-token" className="text-xs">
+                            API Token
                           </Label>
+                          <Input
+                            id="jira-token"
+                            type="password"
+                            placeholder="Enter your Jira API token"
+                            value={apiToken}
+                            onChange={(e) => setApiToken(e.target.value)}
+                            disabled={!isAdmin || busy}
+                            className="h-9"
+                          />
                           <p className="text-xs text-muted-foreground mt-1">
-                            ticket.assignee
+                            Generate an API token from your Jira account
+                            settings
                           </p>
                         </div>
-                        <Select
-                          value={mappings.assignee ?? "ticket.assignee"}
-                          onValueChange={(value) =>
-                            setMappings((prev) => ({
-                              ...prev,
-                              assignee: value,
-                            }))
+                        <Button
+                          onClick={handleConnectApiToken}
+                          disabled={
+                            !isAdmin ||
+                            busy ||
+                            !apiTokenUrl ||
+                            !apiTokenEmail ||
+                            !apiToken
                           }
-                          disabled={!isAdmin}
+                          className="w-full h-9"
                         >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {LOCAL_FIELDS.map((field) => (
-                              <SelectItem key={field} value={field}>
-                                {field}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          Connect using API Token
+                        </Button>
                       </div>
-                      <div className="grid grid-cols-2 gap-4 items-center">
-                        <div>
-                          <Label className="text-sm font-medium">Project</Label>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            ticket.component
-                          </p>
-                        </div>
-                        <Select
-                          value={mappings.project ?? "ticket.component"}
-                          onValueChange={(value) =>
-                            setMappings((prev) => ({ ...prev, project: value }))
-                          }
-                          disabled={!isAdmin}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {LOCAL_FIELDS.map((field) => (
-                              <SelectItem key={field} value={field}>
-                                {field}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div className="pt-3 border-t mt-3">
+                        <p className="text-xs text-muted-foreground">
+                          This is only needed if your organization restricts
+                          OAuth.
+                        </p>
                       </div>
-                    </div>
-                    <div className="pt-2 border-t">
-                      <p className="text-xs text-muted-foreground mb-3">
-                        These defaults work for 95% of Jira installations.
-                        Modify only if your Jira uses custom fields.
-                      </p>
-                      <Button
-                        size="sm"
-                        disabled={busy || !isAdmin}
-                        onClick={handleSaveMappings}
-                      >
-                        Save Mappings
-                      </Button>
-                    </div>
-                  </CardContent>
-                </CollapsibleContent>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
               </Card>
-            </Collapsible>
+            </div>
 
-            {/* Connection Test & Sample Actions */}
+            {/* Second Row: Two Collapsible Cards Side by Side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* What Lyzr Handles Automatically - Collapsible */}
+              <Collapsible
+                open={automaticConfigOpen}
+                onOpenChange={setAutomaticConfigOpen}
+              >
+                <Card>
+                  <CollapsibleTrigger className="w-full">
+                    <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                      <CardTitle className="flex items-center justify-between text-base">
+                        <span className="flex items-center gap-2">
+                          <Zap className="h-4 w-4" />
+                          Automatic Configuration by Lyzr
+                        </span>
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${
+                            automaticConfigOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </CardTitle>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-0 pb-4">
+                      <ul className="space-y-1.5 list-disc list-inside text-sm text-muted-foreground">
+                        <li>Default ticket field mapping</li>
+                        <li>Project sync + component lookup</li>
+                        <li>SLA + priority sync</li>
+                        <li>Comment direction mapping</li>
+                        <li>Error retries and webhook validation</li>
+                        <li>Activity log + audit visibility</li>
+                        <li>Demo ticket generation</li>
+                        <li>Automatic fallback recovery</li>
+                      </ul>
+                      <p className="text-xs text-muted-foreground mt-2.5 pt-2 border-t">
+                        You do not need to configure field mapping unless your
+                        Jira setup is non-standard.
+                      </p>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+
+              {/* Optional: Field Mapping (Advanced) - Compact */}
+              <Collapsible
+                open={fieldMappingOpen}
+                onOpenChange={setFieldMappingOpen}
+              >
+                <Card>
+                  <CollapsibleTrigger className="w-full">
+                    <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                      <CardTitle className="flex items-center justify-between text-base">
+                        <span className="flex items-center gap-2">
+                          <Settings className="h-4 w-4" />
+                          Advanced Settings — Field Mapping
+                        </span>
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${
+                            fieldMappingOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </CardTitle>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-0 pb-4">
+                      <div className="grid gap-3">
+                        <div className="grid grid-cols-2 gap-3 items-center">
+                          <div>
+                            <Label className="text-xs font-medium">Title</Label>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              ticket.title
+                            </p>
+                          </div>
+                          <Select
+                            value={mappings.title ?? "ticket.title"}
+                            onValueChange={(value) =>
+                              setMappings((prev) => ({ ...prev, title: value }))
+                            }
+                            disabled={!isAdmin}
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {LOCAL_FIELDS.map((field) => (
+                                <SelectItem key={field} value={field}>
+                                  {field}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 items-center">
+                          <div>
+                            <Label className="text-xs font-medium">
+                              Description
+                            </Label>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              ticket.description
+                            </p>
+                          </div>
+                          <Select
+                            value={mappings.description ?? "ticket.description"}
+                            onValueChange={(value) =>
+                              setMappings((prev) => ({
+                                ...prev,
+                                description: value,
+                              }))
+                            }
+                            disabled={!isAdmin}
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {LOCAL_FIELDS.map((field) => (
+                                <SelectItem key={field} value={field}>
+                                  {field}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 items-center">
+                          <div>
+                            <Label className="text-xs font-medium">
+                              Priority
+                            </Label>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              ticket.priority
+                            </p>
+                          </div>
+                          <Select
+                            value={mappings.priority ?? "ticket.priority"}
+                            onValueChange={(value) =>
+                              setMappings((prev) => ({
+                                ...prev,
+                                priority: value,
+                              }))
+                            }
+                            disabled={!isAdmin}
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {LOCAL_FIELDS.map((field) => (
+                                <SelectItem key={field} value={field}>
+                                  {field}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 items-center">
+                          <div>
+                            <Label className="text-xs font-medium">
+                              Assignee
+                            </Label>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              ticket.assignee
+                            </p>
+                          </div>
+                          <Select
+                            value={mappings.assignee ?? "ticket.assignee"}
+                            onValueChange={(value) =>
+                              setMappings((prev) => ({
+                                ...prev,
+                                assignee: value,
+                              }))
+                            }
+                            disabled={!isAdmin}
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {LOCAL_FIELDS.map((field) => (
+                                <SelectItem key={field} value={field}>
+                                  {field}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 items-center">
+                          <div>
+                            <Label className="text-xs font-medium">
+                              Project
+                            </Label>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              ticket.component
+                            </p>
+                          </div>
+                          <Select
+                            value={mappings.project ?? "ticket.component"}
+                            onValueChange={(value) =>
+                              setMappings((prev) => ({
+                                ...prev,
+                                project: value,
+                              }))
+                            }
+                            disabled={!isAdmin}
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {LOCAL_FIELDS.map((field) => (
+                                <SelectItem key={field} value={field}>
+                                  {field}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t mt-3">
+                        <p className="text-xs text-muted-foreground mb-2">
+                          These defaults work for 95% of Jira installations.
+                          Modify only if your Jira uses custom fields.
+                        </p>
+                        <Button
+                          size="sm"
+                          disabled={busy || !isAdmin}
+                          onClick={handleSaveMappings}
+                          className="h-8"
+                        >
+                          Save Mappings
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+            </div>
+
+            {/* Third Row: Test & Validate - Full Width */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
                   <RefreshCw className="h-4 w-4" />
                   Test & Validate Integration
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label className="text-sm">Demo Ticket Title</Label>
+              <CardContent className="pt-0 pb-4 space-y-3">
+                <div className="space-y-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Demo Ticket Title</Label>
                     <Input
                       value={demoTitle}
                       onChange={(e) => setDemoTitle(e.target.value)}
                       placeholder="Enter ticket title"
                       disabled={!isAdmin || busy}
+                      className="h-9"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">Demo Ticket Description</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Demo Ticket Description</Label>
                     <Textarea
                       value={demoDescription}
                       onChange={(e) => setDemoDescription(e.target.value)}
                       placeholder="Enter ticket description"
-                      className="min-h-[80px]"
+                      className="min-h-[60px] text-sm"
                       disabled={!isAdmin || busy}
                     />
                   </div>
                   <Button
                     onClick={handleDemoAction}
                     disabled={busy || !isAdmin}
-                    className="w-full"
+                    className="w-full h-9"
                   >
                     Create Sample Ticket in Jira (Demo)
                   </Button>
@@ -1264,14 +1301,14 @@ export default function IntegrationDetailPage() {
 
                 <Separator />
 
-                <div className="space-y-3">
-                  <Label className="text-sm">Webhook Replay Event</Label>
+                <div className="space-y-2">
+                  <Label className="text-xs">Webhook Replay Event</Label>
                   <Select
                     value={selectedEvent}
                     onValueChange={setSelectedEvent}
                     disabled={webhookBusy}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-9">
                       <SelectValue placeholder="Select webhook event" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1286,7 +1323,7 @@ export default function IntegrationDetailPage() {
                     variant="outline"
                     onClick={handleWebhookReplay}
                     disabled={webhookBusy || !selectedEvent}
-                    className="w-full"
+                    className="w-full h-9"
                   >
                     Replay Webhook (Demo)
                   </Button>
@@ -1294,31 +1331,38 @@ export default function IntegrationDetailPage() {
 
                 <Separator />
 
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">
                     Recent Integration Activity Log
                   </Label>
-                  <div className="rounded-md border bg-muted/30 max-h-[300px] overflow-y-auto">
+                  <div className="rounded-md border bg-muted/30 h-[200px] overflow-y-auto">
                     {logs.length > 0 ? (
                       <div className="divide-y">
                         {logs.map((log) => (
-                          <div key={log.id} className="p-3 text-xs">
+                          <div key={log.id} className="p-2 text-xs">
                             <div className="flex items-start justify-between gap-2 mb-1">
-                              <span className="font-medium">{log.action}</span>
-                              <span className="text-muted-foreground whitespace-nowrap">
+                              <span className="font-medium text-xs">
+                                {log.action}
+                              </span>
+                              <span className="text-muted-foreground whitespace-nowrap text-[10px]">
                                 {new Date(log.timestamp).toLocaleString()}
                               </span>
                             </div>
                             {log.details && (
-                              <pre className="mt-2 text-[10px] bg-background p-2 rounded border overflow-x-auto">
-                                {JSON.stringify(log.details, null, 2)}
-                              </pre>
+                              <details className="mt-1">
+                                <summary className="cursor-pointer text-[10px] text-muted-foreground hover:text-foreground">
+                                  View JSON
+                                </summary>
+                                <pre className="mt-1 text-[10px] bg-background p-1.5 rounded border overflow-x-auto">
+                                  {JSON.stringify(log.details, null, 2)}
+                                </pre>
+                              </details>
                             )}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="p-4 text-center text-sm text-muted-foreground">
+                      <div className="p-4 text-center text-xs text-muted-foreground">
                         No activity log entries yet. Connect and run a test to
                         see activity.
                       </div>
@@ -1327,22 +1371,6 @@ export default function IntegrationDetailPage() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Footer Actions */}
-            <div className="flex items-center justify-end gap-3 pt-2 border-t">
-              {integration.status === "connected" && (
-                <Button
-                  variant="destructive"
-                  onClick={handleDisconnect}
-                  disabled={busy || !isAdmin}
-                >
-                  Disconnect Integration
-                </Button>
-              )}
-              <Button onClick={handleSaveMappings} disabled={busy || !isAdmin}>
-                Save Settings
-              </Button>
-            </div>
           </div>
         </SidebarInset>
       </SidebarProvider>
@@ -2179,7 +2207,7 @@ export default function IntegrationDetailPage() {
             </Card>
 
             {/* Footer Actions */}
-            <div className="flex items-center justify-end gap-3 pt-2 border-t">
+            <div className="flex items-center justify-end gap-3 pt-2 border-t mb-6">
               {integration.status === "connected" && (
                 <Button
                   variant="destructive"
@@ -3007,7 +3035,7 @@ export default function IntegrationDetailPage() {
             </Card>
 
             {/* Footer Actions */}
-            <div className="flex items-center justify-end gap-3 pt-2 border-t">
+            <div className="flex items-center justify-end gap-3 pt-2 border-t mb-6">
               {integration.status === "connected" && (
                 <Button
                   variant="destructive"
@@ -3885,7 +3913,7 @@ export default function IntegrationDetailPage() {
             </Card>
 
             {/* Footer Actions */}
-            <div className="flex items-center justify-end gap-3 pt-2 border-t">
+            <div className="flex items-center justify-end gap-3 pt-2 border-t mb-6">
               {integration.status === "connected" && (
                 <Button
                   variant="destructive"

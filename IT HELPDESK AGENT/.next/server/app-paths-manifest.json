@@ -2,6 +2,7 @@
   "/api/integrations/route": "app/api/integrations/route.js",
   "/api/integrations/[provider]/mapping/route": "app/api/integrations/[provider]/mapping/route.js",
   "/api/integrations/[provider]/logs/route": "app/api/integrations/[provider]/logs/route.js",
+  "/api/oauth/jira/start/route": "app/api/oauth/jira/start/route.js",
   "/page": "app/page.js",
   "/integrations/page": "app/integrations/page.js",
   "/knowledge-base/page": "app/knowledge-base/page.js",
