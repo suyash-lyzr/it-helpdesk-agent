@@ -111,12 +111,17 @@ export interface ForecastData {
 // Live Event
 export interface LiveEvent {
   id: string
-  type: "ticket_created" | "ticket_updated" | "sla_breached" | "external_id_created" | "approval_pending"
+  type: "ticket_created" | "ticket_updated" | "ticket_assigned" | "ticket_resolved" | "sla_breached" | "sla_warning" | "external_id_created" | "approval_pending" | "access_request_submitted" | "access_request_approved" | "access_request_reminder" | "automation_fired" | "integration_event" | "ai_insight" | "ai_anomaly"
   timestamp: string
   ticketId?: string
+  requestId?: string // For access requests
   actor?: string
   description: string
+  headline?: string // Short bold headline
+  details?: string // Secondary details (2 lines max)
   externalId?: string
+  severity?: "low" | "medium" | "high" | "critical"
+  category?: "tickets" | "access" | "sla" | "automations" | "integrations" | "ai_insights"
 }
 
 // Audit Log Entry
@@ -873,6 +878,256 @@ export function getAccessRequestAnalytics(tickets: Ticket[], periodDays: number 
   }
 }
 
+// Seed initial demo events
+function seedDemoEvents() {
+  const now = new Date()
+  const seeded: LiveEvent[] = [
+    {
+      id: "event-seed-1",
+      type: "ticket_created",
+      timestamp: new Date(now.getTime() - 2 * 60 * 1000).toISOString(), // 2 minutes ago
+      ticketId: "TKT-567",
+      actor: "Sarah",
+      description: "New ticket created by Sarah: \"VPN disconnecting\"",
+      headline: "New ticket created by Sarah: \"VPN disconnecting\"",
+      details: "Ticket TKT-567 assigned to Network team",
+      category: "tickets",
+      severity: "medium",
+    },
+    {
+      id: "event-seed-2",
+      type: "ticket_assigned",
+      timestamp: new Date(now.getTime() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
+      ticketId: "TKT-567",
+      actor: "System",
+      description: "Ticket TKT-567 assigned to Network team",
+      headline: "Ticket TKT-567 assigned to Network team",
+      category: "tickets",
+      severity: "low",
+    },
+    {
+      id: "event-seed-3",
+      type: "sla_warning",
+      timestamp: new Date(now.getTime() - 8 * 60 * 1000).toISOString(), // 8 minutes ago
+      ticketId: "TKT-VPN-002",
+      actor: "System",
+      description: "SLA warning: TKT-VPN-002 nearing SLA in 30m",
+      headline: "SLA warning: TKT-VPN-002 nearing SLA in 30m",
+      details: "Ticket will breach SLA threshold if not resolved soon",
+      category: "sla",
+      severity: "high",
+    },
+    {
+      id: "event-seed-4",
+      type: "access_request_approved",
+      timestamp: new Date(now.getTime() - 12 * 60 * 1000).toISOString(), // 12 minutes ago
+      requestId: "AR-123",
+      actor: "John Manager",
+      description: "Access request AR-123 approved by John Manager",
+      headline: "Access request AR-123 approved by John Manager",
+      details: "Jira access granted for user@company.com",
+      category: "access",
+      severity: "low",
+    },
+    {
+      id: "event-seed-5",
+      type: "automation_fired",
+      timestamp: new Date(now.getTime() - 15 * 60 * 1000).toISOString(), // 15 minutes ago
+      requestId: "AR-010",
+      actor: "System",
+      description: "Automation: Reminder sent to approver Helen Mirren (AR-010)",
+      headline: "Automation: Reminder sent to approver Helen Mirren",
+      details: "Access request AR-010 pending for 24+ hours",
+      category: "automations",
+      severity: "low",
+    },
+    {
+      id: "event-seed-6",
+      type: "ai_anomaly",
+      timestamp: new Date(now.getTime() - 18 * 60 * 1000).toISOString(), // 18 minutes ago
+      actor: "AI System",
+      description: "AI detected anomaly: VPN surge +200% (Forecasted)",
+      headline: "AI detected anomaly: VPN surge +200% (Forecasted)",
+      details: "Historical pattern detected: VPN spikes on Fridays during WFH",
+      category: "ai_insights",
+      severity: "high",
+    },
+    {
+      id: "event-seed-7",
+      type: "integration_event",
+      timestamp: new Date(now.getTime() - 25 * 60 * 1000).toISOString(), // 25 minutes ago
+      actor: "Okta Integration",
+      description: "Integration (Okta): User added to Jira Developers group (demo)",
+      headline: "Integration (Okta): User added to Jira Developers group",
+      details: "User john.doe@company.com provisioned via Okta sync",
+      category: "integrations",
+      severity: "low",
+      externalId: "OKTA-12345",
+    },
+    {
+      id: "event-seed-8",
+      type: "ticket_resolved",
+      timestamp: new Date(now.getTime() - 40 * 60 * 1000).toISOString(), // 40 minutes ago
+      ticketId: "TKT-123",
+      actor: "Endpoint Support",
+      description: "Ticket TKT-123 resolved by Endpoint Support",
+      headline: "Ticket TKT-123 resolved by Endpoint Support",
+      details: "Issue resolved: Laptop connectivity restored",
+      category: "tickets",
+      severity: "low",
+    },
+    {
+      id: "event-seed-9",
+      type: "access_request_submitted",
+      timestamp: new Date(now.getTime() - 60 * 60 * 1000).toISOString(), // 1 hour ago
+      requestId: "AR-090",
+      actor: "System",
+      description: "Escalation: Access request AR-090 escalated to IAM team",
+      headline: "Escalation: Access request AR-090 escalated to IAM team",
+      details: "Request pending >48h, auto-escalated per policy",
+      category: "access",
+      severity: "medium",
+    },
+    {
+      id: "event-seed-10",
+      type: "automation_fired",
+      timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+      requestId: "AR-SEED-001",
+      actor: "System",
+      description: "Auto-approve demo event: AR-SEED-001 auto-approved",
+      headline: "Auto-approve: AR-SEED-001 auto-approved",
+      details: "Low-risk application request auto-approved after 72h",
+      category: "automations",
+      severity: "low",
+    },
+    {
+      id: "event-seed-11",
+      type: "ticket_created",
+      timestamp: subDays(now, 1).toISOString(),
+      ticketId: "TKT-456",
+      actor: "Mike Johnson",
+      description: "New ticket created by Mike Johnson: \"Email not syncing\"",
+      headline: "New ticket created by Mike Johnson: \"Email not syncing\"",
+      details: "Ticket TKT-456 assigned to IT Helpdesk team",
+      category: "tickets",
+      severity: "medium",
+    },
+    {
+      id: "event-seed-12",
+      type: "sla_breached",
+      timestamp: subDays(now, 1).toISOString(),
+      ticketId: "TKT-789",
+      actor: "System",
+      description: "SLA breached: TKT-789 exceeded SLA threshold",
+      headline: "SLA breached: TKT-789 exceeded SLA threshold",
+      details: "Ticket unresolved for 25 hours (SLA: 24h)",
+      category: "sla",
+      severity: "critical",
+    },
+    {
+      id: "event-seed-13",
+      type: "integration_event",
+      timestamp: subDays(now, 1).toISOString(),
+      actor: "Jira Integration",
+      description: "Integration (Jira): Issue JRA-2031 created externally",
+      headline: "Integration (Jira): Issue JRA-2031 created externally",
+      details: "Linked to ticket TKT-567",
+      category: "integrations",
+      severity: "low",
+      externalId: "JRA-2031",
+    },
+    {
+      id: "event-seed-14",
+      type: "ai_insight",
+      timestamp: subDays(now, 2).toISOString(),
+      actor: "AI System",
+      description: "AI Insight: Access request surge detected (+80%)",
+      headline: "AI Insight: Access request surge detected (+80%)",
+      details: "New joiner batch processed by HR yesterday",
+      category: "ai_insights",
+      severity: "medium",
+    },
+    {
+      id: "event-seed-15",
+      type: "access_request_reminder",
+      timestamp: subDays(now, 2).toISOString(),
+      requestId: "AR-045",
+      actor: "System",
+      description: "Reminder sent to approver Bob VP for AR-045",
+      headline: "Reminder sent to approver Bob VP",
+      details: "Access request AR-045 pending for 26 hours",
+      category: "access",
+      severity: "low",
+    },
+    {
+      id: "event-seed-16",
+      type: "ticket_updated",
+      timestamp: subDays(now, 3).toISOString(),
+      ticketId: "TKT-234",
+      actor: "Network Team",
+      description: "Ticket TKT-234 updated: Status changed to In Progress",
+      headline: "Ticket TKT-234 updated: Status changed to In Progress",
+      details: "Network team investigating connectivity issue",
+      category: "tickets",
+      severity: "low",
+    },
+    {
+      id: "event-seed-17",
+      type: "integration_event",
+      timestamp: subDays(now, 4).toISOString(),
+      actor: "ServiceNow Integration",
+      description: "Integration (ServiceNow): Incident INC-001234 created",
+      headline: "Integration (ServiceNow): Incident INC-001234 created",
+      details: "Linked to ticket TKT-567",
+      category: "integrations",
+      severity: "low",
+      externalId: "INC-001234",
+    },
+    {
+      id: "event-seed-18",
+      type: "automation_fired",
+      timestamp: subDays(now, 5).toISOString(),
+      actor: "System",
+      description: "Automation: Auto-escalation triggered for AR-078",
+      headline: "Automation: Auto-escalation triggered for AR-078",
+      details: "Request pending >48h, escalated to manager",
+      category: "automations",
+      severity: "medium",
+    },
+    {
+      id: "event-seed-19",
+      type: "ai_anomaly",
+      timestamp: subDays(now, 6).toISOString(),
+      actor: "AI System",
+      description: "AI detected anomaly: Access request surge detected (+80%)",
+      headline: "AI detected anomaly: Access request surge detected (+80%)",
+      details: "Approver delays observed in last 48h",
+      category: "ai_insights",
+      severity: "medium",
+    },
+    {
+      id: "event-seed-20",
+      type: "ticket_created",
+      timestamp: subDays(now, 7).toISOString(),
+      ticketId: "TKT-890",
+      actor: "Lisa Chen",
+      description: "New ticket created by Lisa Chen: \"Printer offline\"",
+      headline: "New ticket created by Lisa Chen: \"Printer offline\"",
+      details: "Ticket TKT-890 assigned to IT Helpdesk team",
+      category: "tickets",
+      severity: "low",
+    },
+  ]
+
+  // Only seed if events array is empty
+  if (liveEvents.length === 0) {
+    liveEvents = seeded
+  }
+}
+
+// Initialize seeded events
+seedDemoEvents()
+
 // Get Live Events
 export function getLiveEvents(since?: Date): LiveEvent[] {
   const cutoff = since || subDays(new Date(), 1)
@@ -914,5 +1169,342 @@ export function appendAuditLog(actor: string, action: string, details: string) {
     auditLogs = auditLogs.slice(0, 500)
   }
   return entry
+}
+
+// Replay Scenarios
+export interface ReplayScenario {
+  id: string
+  name: string
+  description: string
+  events: Array<Omit<LiveEvent, "id" | "timestamp">>
+}
+
+export const replayScenarios: ReplayScenario[] = [
+  {
+    id: "vpn-outage",
+    name: "Major VPN Outage",
+    description: "Simulates a major VPN outage with multiple tickets and escalations",
+    events: [
+      {
+        type: "ai_anomaly",
+        actor: "AI System",
+        description: "AI detected anomaly: VPN surge +200% (Forecasted)",
+        headline: "AI detected anomaly: VPN surge +200% (Forecasted)",
+        details: "Historical pattern detected: VPN spikes on Fridays during WFH",
+        category: "ai_insights",
+        severity: "high",
+      },
+      {
+        type: "ticket_created",
+        ticketId: "TKT-VPN-001",
+        actor: "Sarah",
+        description: "New ticket created by Sarah: \"VPN disconnecting\"",
+        headline: "New ticket created by Sarah: \"VPN disconnecting\"",
+        details: "Ticket TKT-VPN-001 assigned to Network team",
+        category: "tickets",
+        severity: "high",
+      },
+      {
+        type: "ticket_created",
+        ticketId: "TKT-VPN-002",
+        actor: "Mike",
+        description: "New ticket created by Mike: \"Cannot connect to VPN\"",
+        headline: "New ticket created by Mike: \"Cannot connect to VPN\"",
+        details: "Ticket TKT-VPN-002 assigned to Network team",
+        category: "tickets",
+        severity: "high",
+      },
+      {
+        type: "sla_warning",
+        ticketId: "TKT-VPN-001",
+        actor: "System",
+        description: "SLA warning: TKT-VPN-001 nearing SLA in 30m",
+        headline: "SLA warning: TKT-VPN-001 nearing SLA in 30m",
+        details: "Ticket will breach SLA threshold if not resolved soon",
+        category: "sla",
+        severity: "high",
+      },
+      {
+        type: "ticket_updated",
+        ticketId: "TKT-VPN-001",
+        actor: "Network Team",
+        description: "Ticket TKT-VPN-001 escalated to Network Lead",
+        headline: "Ticket TKT-VPN-001 escalated to Network Lead",
+        details: "Escalation due to multiple similar reports",
+        category: "tickets",
+        severity: "high",
+      },
+      {
+        type: "external_id_created",
+        ticketId: "TKT-VPN-001",
+        actor: "System",
+        description: "Incident created: INC-VPN-0001 (demo)",
+        headline: "Incident created: INC-VPN-0001 (demo)",
+        details: "Major incident created for VPN outage",
+        category: "tickets",
+        severity: "critical",
+        externalId: "INC-VPN-0001",
+      },
+    ],
+  },
+  {
+    id: "access-delay",
+    name: "Access Approval Delay",
+    description: "Simulates access request delays and auto-escalation",
+    events: [
+      {
+        type: "access_request_submitted",
+        requestId: "AR-DELAY-001",
+        actor: "System",
+        description: "Access request AR-DELAY-001 submitted for Jira",
+        headline: "Access request AR-DELAY-001 submitted for Jira",
+        details: "Requested by user@company.com",
+        category: "access",
+        severity: "low",
+      },
+      {
+        type: "access_request_submitted",
+        requestId: "AR-DELAY-002",
+        actor: "System",
+        description: "Access request AR-DELAY-002 submitted for Salesforce",
+        headline: "Access request AR-DELAY-002 submitted for Salesforce",
+        details: "Requested by user2@company.com",
+        category: "access",
+        severity: "low",
+      },
+      {
+        type: "access_request_reminder",
+        requestId: "AR-DELAY-001",
+        actor: "System",
+        description: "Reminder sent to approver John Manager for AR-DELAY-001",
+        headline: "Reminder sent to approver John Manager",
+        details: "Access request AR-DELAY-001 pending for 24+ hours",
+        category: "access",
+        severity: "low",
+      },
+      {
+        type: "automation_fired",
+        requestId: "AR-DELAY-001",
+        actor: "System",
+        description: "Auto-escalation: AR-DELAY-001 escalated to IAM team",
+        headline: "Auto-escalation: AR-DELAY-001 escalated to IAM team",
+        details: "Request pending >48h, auto-escalated per policy",
+        category: "automations",
+        severity: "medium",
+      },
+      {
+        type: "access_request_approved",
+        requestId: "AR-DELAY-001",
+        actor: "John Manager",
+        description: "Access request AR-DELAY-001 approved by John Manager",
+        headline: "Access request AR-DELAY-001 approved by John Manager",
+        details: "Jira access granted after escalation",
+        category: "access",
+        severity: "low",
+      },
+    ],
+  },
+  {
+    id: "onboarding-spike",
+    name: "Onboarding Spike",
+    description: "Simulates a spike in access requests during onboarding",
+    events: [
+      {
+        type: "access_request_submitted",
+        requestId: "AR-ONB-001",
+        actor: "System",
+        description: "Access request AR-ONB-001 submitted for Jira",
+        headline: "Access request AR-ONB-001 submitted for Jira",
+        details: "New joiner: john.new@company.com",
+        category: "access",
+        severity: "low",
+      },
+      {
+        type: "access_request_submitted",
+        requestId: "AR-ONB-002",
+        actor: "System",
+        description: "Access request AR-ONB-002 submitted for Google Workspace",
+        headline: "Access request AR-ONB-002 submitted for Google Workspace",
+        details: "New joiner: jane.new@company.com",
+        category: "access",
+        severity: "low",
+      },
+      {
+        type: "access_request_submitted",
+        requestId: "AR-ONB-003",
+        actor: "System",
+        description: "Access request AR-ONB-003 submitted for GitHub",
+        headline: "Access request AR-ONB-003 submitted for GitHub",
+        details: "New joiner: bob.new@company.com",
+        category: "access",
+        severity: "low",
+      },
+      {
+        type: "ai_insight",
+        actor: "AI System",
+        description: "AI Insight: Access request surge detected (+150%)",
+        headline: "AI Insight: Access request surge detected (+150%)",
+        details: "New joiner batch processed by HR yesterday",
+        category: "ai_insights",
+        severity: "medium",
+      },
+      {
+        type: "automation_fired",
+        actor: "System",
+        description: "Suggested action: Enable auto-remind for access requests",
+        headline: "Suggested action: Enable auto-remind for access requests",
+        details: "High volume detected, auto-remind recommended",
+        category: "automations",
+        severity: "low",
+      },
+    ],
+  },
+  {
+    id: "security-alert",
+    name: "Security Alert",
+    description: "Simulates a security alert with anomaly detection",
+    events: [
+      {
+        type: "ai_anomaly",
+        actor: "AI System",
+        description: "AI detected anomaly: Suspicious login patterns detected",
+        headline: "AI detected anomaly: Suspicious login patterns detected",
+        details: "Multiple failed login attempts from unusual locations",
+        category: "ai_insights",
+        severity: "critical",
+      },
+      {
+        type: "ticket_created",
+        ticketId: "TKT-SEC-001",
+        actor: "Security Team",
+        description: "Security ticket TKT-SEC-001 created",
+        headline: "Security ticket TKT-SEC-001 created",
+        details: "Suspicious activity flagged by AI system",
+        category: "tickets",
+        severity: "critical",
+      },
+      {
+        type: "ticket_assigned",
+        ticketId: "TKT-SEC-001",
+        actor: "System",
+        description: "Ticket TKT-SEC-001 assigned to Security team",
+        headline: "Ticket TKT-SEC-001 assigned to Security team",
+        details: "High priority security incident",
+        category: "tickets",
+        severity: "critical",
+      },
+      {
+        type: "external_id_created",
+        ticketId: "TKT-SEC-001",
+        actor: "System",
+        description: "Incident created: INC-SEC-0001 (demo)",
+        headline: "Incident created: INC-SEC-0001 (demo)",
+        details: "Security incident escalated",
+        category: "tickets",
+        severity: "critical",
+        externalId: "INC-SEC-0001",
+      },
+    ],
+  },
+  {
+    id: "integration-sync",
+    name: "Integration Sync",
+    description: "Simulates external integration events",
+    events: [
+      {
+        type: "integration_event",
+        actor: "Jira Integration",
+        description: "Integration (Jira): Issue JRA-2031 created externally",
+        headline: "Integration (Jira): Issue JRA-2031 created externally",
+        details: "External issue synced to ticket TKT-567",
+        category: "integrations",
+        severity: "low",
+        externalId: "JRA-2031",
+      },
+      {
+        type: "ticket_updated",
+        ticketId: "TKT-567",
+        actor: "Jira Integration",
+        description: "Ticket TKT-567 updated: Linked to Jira issue JRA-2031",
+        headline: "Ticket TKT-567 updated: Linked to Jira issue JRA-2031",
+        details: "External ID synchronized",
+        category: "integrations",
+        severity: "low",
+      },
+      {
+        type: "integration_event",
+        actor: "ServiceNow Integration",
+        description: "Integration (ServiceNow): Incident INC-001234 created",
+        headline: "Integration (ServiceNow): Incident INC-001234 created",
+        details: "Linked to ticket TKT-567",
+        category: "integrations",
+        severity: "low",
+        externalId: "INC-001234",
+      },
+    ],
+  },
+  {
+    id: "automation-demo",
+    name: "Automation Demo",
+    description: "Demonstrates automation capabilities",
+    events: [
+      {
+        type: "automation_fired",
+        requestId: "AR-AUTO-001",
+        actor: "System",
+        description: "Automation: Reminder sent to approver for AR-AUTO-001",
+        headline: "Automation: Reminder sent to approver",
+        details: "Access request pending for 24+ hours",
+        category: "automations",
+        severity: "low",
+      },
+      {
+        type: "automation_fired",
+        requestId: "AR-AUTO-002",
+        actor: "System",
+        description: "Auto-approve: AR-AUTO-002 auto-approved",
+        headline: "Auto-approve: AR-AUTO-002 auto-approved",
+        details: "Low-risk application request auto-approved after 72h",
+        category: "automations",
+        severity: "low",
+      },
+      {
+        type: "automation_fired",
+        requestId: "AR-AUTO-003",
+        actor: "System",
+        description: "Auto-escalation: AR-AUTO-003 escalated to manager",
+        headline: "Auto-escalation: AR-AUTO-003 escalated to manager",
+        details: "Request pending >48h, escalated per policy",
+        category: "automations",
+        severity: "medium",
+      },
+    ],
+  },
+]
+
+// Replay a scenario
+export function replayScenario(scenarioId: string, onEventAdded?: (event: LiveEvent) => void): Promise<void> {
+  return new Promise((resolve) => {
+    const scenario = replayScenarios.find((s) => s.id === scenarioId)
+    if (!scenario) {
+      resolve()
+      return
+    }
+
+    let index = 0
+    const interval = setInterval(() => {
+      if (index >= scenario.events.length) {
+        clearInterval(interval)
+        resolve()
+        return
+      }
+
+      const event = addLiveEvent(scenario.events[index])
+      if (onEventAdded) {
+        onEventAdded(event)
+      }
+      index++
+    }, 800) // 0.8s interval between events
+  })
 }
 

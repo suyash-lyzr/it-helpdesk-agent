@@ -495,20 +495,35 @@ export function AdminTicketsDashboard({
           )}
         </div>
 
-        {/* Live Activity Feed & Reports */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 px-6 lg:px-8">
+        {/* Live Activity Feed - Full Width */}
+        <div className="px-6 lg:px-8">
           <LiveActivityFeed
             events={liveEvents}
             onReplay={handleWebhookReplay}
             lastUpdated={new Date()}
+            onViewTicket={(ticketId) => {
+              const ticket = tickets.find((t) => t.id === ticketId);
+              if (ticket) setSelectedTicket(ticket);
+            }}
+            onViewAccessRequest={(requestId) => {
+              toast.info(`Viewing access request ${requestId} (demo)`);
+            }}
+            onRefresh={() => {
+              fetch("/api/analytics/live-events")
+                .then((res) => res.json())
+                .then((data) => setLiveEvents(data.data || []))
+                .catch(console.error);
+            }}
           />
-          <div className="space-y-3 md:space-y-4">
-            <ReportBuilder
-              onGenerateReport={handleReportGenerate}
-              scheduledReports={scheduledReports}
-            />
-            <AlertRules />
-          </div>
+        </div>
+
+        {/* Reports & Alerts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 px-6 lg:px-8">
+          <ReportBuilder
+            onGenerateReport={handleReportGenerate}
+            scheduledReports={scheduledReports}
+          />
+          <AlertRules />
         </div>
 
         {/* All Tickets Table */}
