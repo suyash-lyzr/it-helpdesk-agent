@@ -1,7 +1,8 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { usePathname } from "next/navigation"
+import * as React from "react";
+import { usePathname } from "next/navigation";
+import Image from "next/image";
 import {
   Bot,
   Ticket,
@@ -10,13 +11,9 @@ import {
   HelpCircle,
   LogOut,
   Puzzle,
-} from "lucide-react"
+} from "lucide-react";
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,7 +22,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -37,7 +34,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 const navMain = [
   {
@@ -60,7 +57,7 @@ const navMain = [
     icon: FileText,
     url: "/knowledge-base",
   },
-]
+];
 
 const navSecondary = [
   {
@@ -73,16 +70,16 @@ const navSecondary = [
     icon: HelpCircle,
     url: "#",
   },
-]
+];
 
 const user = {
   name: "Sample User",
   email: "sample@company.com",
   avatar: "",
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -94,8 +91,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#603BFC]">
-                  <Bot className="h-4 w-4 text-white" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden">
+                  <Image
+                    src="/lyzr_logo.png"
+                    alt="Lyzr Logo"
+                    width={32}
+                    height={32}
+                    className="object-contain"
+                  />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-sm font-semibold">IT Helpdesk</span>
@@ -113,8 +116,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupContent>
             <SidebarMenu>
               {navMain.map((item) => {
-                const isActive = pathname === item.url
-                const isDisabled = 'disabled' in item && item.disabled
+                const isActive = pathname === item.url;
+                const isDisabled = "disabled" in item && item.disabled;
 
                 return (
                   <SidebarMenuItem key={item.title}>
@@ -123,13 +126,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       isActive={isActive}
                       tooltip={item.title}
                       disabled={isDisabled}
-                      className={isDisabled ? "opacity-50 cursor-not-allowed" : ""}
+                      className={
+                        isDisabled ? "opacity-50 cursor-not-allowed" : ""
+                      }
                     >
                       {isDisabled ? (
                         <span className="flex items-center gap-2">
                           <item.icon className="h-4 w-4" />
                           <span>{item.title}</span>
-                          <span className="ml-auto text-xs text-muted-foreground">Soon</span>
+                          <span className="ml-auto text-xs text-muted-foreground">
+                            Soon
+                          </span>
                         </span>
                       ) : (
                         <a href={item.url}>
@@ -139,7 +146,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                )
+                );
               })}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -175,7 +182,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <Avatar className="h-8 w-8 rounded-lg">
                     <AvatarImage src={user.avatar} alt={user.name} />
                     <AvatarFallback className="rounded-lg bg-[#603BFC] text-white text-xs">
-                      {user.name.split(' ').map(n => n[0]).join('')}
+                      {user.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
@@ -197,7 +207,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <Avatar className="h-8 w-8 rounded-lg">
                       <AvatarImage src={user.avatar} alt={user.name} />
                       <AvatarFallback className="rounded-lg bg-gradient-to-r from-[#603BFC] to-[#A94FA1] text-white text-xs">
-                        {user.name.split(' ').map(n => n[0]).join('')}
+                        {user.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
                       </AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
@@ -226,5 +239,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

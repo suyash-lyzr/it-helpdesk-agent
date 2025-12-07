@@ -1,85 +1,90 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Bot, Send, Loader2 } from "lucide-react"
-import { toast } from "sonner"
+import * as React from "react";
+import Image from "next/image";
+import { Bot, Send, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { ChatMessage } from "@/components/chat-message"
-import { SuggestedQuestions } from "@/components/suggested-questions"
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ChatMessage } from "@/components/chat-message";
+import { SuggestedQuestions } from "@/components/suggested-questions";
 import {
   generateSessionId,
   generateMessageId,
   LYZR_CONFIG,
   type ChatMessage as ChatMessageType,
-} from "@/lib/lyzr-api"
+} from "@/lib/lyzr-api";
 
 export function ChatInterface() {
-  const [messages, setMessages] = React.useState<ChatMessageType[]>([])
-  const [inputValue, setInputValue] = React.useState("")
-  const [isLoading, setIsLoading] = React.useState(false)
-  const [sessionId, setSessionId] = React.useState<string>("")
-  const scrollAreaRef = React.useRef<HTMLDivElement>(null)
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+  const [messages, setMessages] = React.useState<ChatMessageType[]>([]);
+  const [inputValue, setInputValue] = React.useState("");
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [sessionId, setSessionId] = React.useState<string>("");
+  const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   // Initialize session ID on mount
   React.useEffect(() => {
-    const storedSessionId = localStorage.getItem("it-helpdesk-session-id")
-    const storedMessages = localStorage.getItem("it-helpdesk-messages")
-    
+    const storedSessionId = localStorage.getItem("it-helpdesk-session-id");
+    const storedMessages = localStorage.getItem("it-helpdesk-messages");
+
     if (storedSessionId) {
-      setSessionId(storedSessionId)
+      setSessionId(storedSessionId);
     } else {
-      const newSessionId = generateSessionId(LYZR_CONFIG.agentId)
-      setSessionId(newSessionId)
-      localStorage.setItem("it-helpdesk-session-id", newSessionId)
+      const newSessionId = generateSessionId(LYZR_CONFIG.agentId);
+      setSessionId(newSessionId);
+      localStorage.setItem("it-helpdesk-session-id", newSessionId);
     }
 
     if (storedMessages) {
       try {
-        const parsed = JSON.parse(storedMessages)
-        setMessages(parsed.map((m: ChatMessageType) => ({
-          ...m,
-          timestamp: new Date(m.timestamp)
-        })))
+        const parsed = JSON.parse(storedMessages);
+        setMessages(
+          parsed.map((m: ChatMessageType) => ({
+            ...m,
+            timestamp: new Date(m.timestamp),
+          }))
+        );
       } catch (e) {
-        console.error("Failed to parse stored messages:", e)
+        console.error("Failed to parse stored messages:", e);
       }
     }
-  }, [])
+  }, []);
 
   // Save messages to localStorage
   React.useEffect(() => {
     if (messages.length > 0) {
-      localStorage.setItem("it-helpdesk-messages", JSON.stringify(messages))
+      localStorage.setItem("it-helpdesk-messages", JSON.stringify(messages));
     }
-  }, [messages])
+  }, [messages]);
 
   // Auto-scroll to bottom when new messages arrive
   React.useEffect(() => {
     if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]')
+      const scrollContainer = scrollAreaRef.current.querySelector(
+        '[data-slot="scroll-area-viewport"]'
+      );
       if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }
     }
-  }, [messages])
+  }, [messages]);
 
   const sendMessage = async (content: string) => {
-    if (!content.trim() || isLoading) return
+    if (!content.trim() || isLoading) return;
 
     const userMessage: ChatMessageType = {
       id: generateMessageId(),
       role: "user",
       content: content.trim(),
       timestamp: new Date(),
-    }
+    };
 
-    setMessages((prev) => [...prev, userMessage])
-    setInputValue("")
-    setIsLoading(true)
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue("");
+    setIsLoading(true);
 
     try {
       const response = await fetch("/api/chat", {
@@ -91,62 +96,71 @@ export function ChatInterface() {
           message: content.trim(),
           session_id: sessionId,
         }),
-      })
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to get response")
+        throw new Error("Failed to get response");
       }
 
-      const data = await response.json()
-      
+      const data = await response.json();
+
       const assistantMessage: ChatMessageType = {
         id: generateMessageId(),
         role: "assistant",
-        content: data.response || data.message || "I apologize, but I couldn't process your request. Please try again.",
+        content:
+          data.response ||
+          data.message ||
+          "I apologize, but I couldn't process your request. Please try again.",
         timestamp: new Date(),
-      }
+      };
 
-      setMessages((prev) => [...prev, assistantMessage])
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      console.error("Error sending message:", error)
-      toast.error("Failed to send message. Please try again.")
-      
+      console.error("Error sending message:", error);
+      toast.error("Failed to send message. Please try again.");
+
       // Remove the user message if there was an error
-      setMessages((prev) => prev.filter((m) => m.id !== userMessage.id))
-      setInputValue(content)
+      setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
+      setInputValue(content);
     } finally {
-      setIsLoading(false)
-      textareaRef.current?.focus()
+      setIsLoading(false);
+      textareaRef.current?.focus();
     }
-  }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      sendMessage(inputValue)
+      e.preventDefault();
+      sendMessage(inputValue);
     }
-  }
+  };
 
   const handleSuggestedQuestion = (question: string) => {
-    sendMessage(question)
-  }
+    sendMessage(question);
+  };
 
   const clearChat = () => {
-    setMessages([])
-    localStorage.removeItem("it-helpdesk-messages")
-    const newSessionId = generateSessionId(LYZR_CONFIG.agentId)
-    setSessionId(newSessionId)
-    localStorage.setItem("it-helpdesk-session-id", newSessionId)
-    toast.success("Chat cleared")
-  }
+    setMessages([]);
+    localStorage.removeItem("it-helpdesk-messages");
+    const newSessionId = generateSessionId(LYZR_CONFIG.agentId);
+    setSessionId(newSessionId);
+    localStorage.setItem("it-helpdesk-session-id", newSessionId);
+    toast.success("Chat cleared");
+  };
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
       {/* Header - Fixed at top */}
       <div className="shrink-0 flex items-center justify-between border-b bg-background px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#603BFC]">
-            <Bot className="h-5 w-5 text-white" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden">
+            <Image
+              src="/lyzr_logo.png"
+              alt="Lyzr Logo"
+              width={40}
+              height={40}
+              className="object-contain"
+            />
           </div>
           <div>
             <h1 className="text-lg font-semibold">IT Helpdesk AI</h1>
@@ -170,11 +184,19 @@ export function ChatInterface() {
               {messages.length === 0 ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-12 py-12">
                   <div className="flex flex-col items-center gap-6">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#603BFC]">
-                      <Bot className="h-8 w-8 text-white" />
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl overflow-hidden">
+                      <Image
+                        src="/lyzr_logo.png"
+                        alt="Lyzr Logo"
+                        width={64}
+                        height={64}
+                        className="object-contain"
+                      />
                     </div>
                     <div className="text-center space-y-2">
-                      <h2 className="text-3xl font-semibold text-foreground">IT Helpdesk Agent</h2>
+                      <h2 className="text-3xl font-semibold text-foreground">
+                        IT Helpdesk Agent
+                      </h2>
                       <p className="text-base text-muted-foreground">
                         Your intelligent IT support assistant
                       </p>
@@ -239,6 +261,5 @@ export function ChatInterface() {
         </div>
       </div>
     </div>
-  )
+  );
 }
-

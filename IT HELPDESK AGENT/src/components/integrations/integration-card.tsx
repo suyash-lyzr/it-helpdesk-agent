@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +19,20 @@ interface IntegrationCardProps {
   onOpenSetupGuide: (provider: string) => void;
   onOpenConnectModal: (provider: string) => void;
 }
+
+// Logo URLs - using publicly available CDN URLs for company logos
+const getIntegrationLogo = (providerId: string): string | null => {
+  const logos: Record<string, string> = {
+    jira: "https://pbs.twimg.com/profile_images/1785701767357120512/d0vRt0Gk.png",
+    servicenow:
+      "https://logosandtypes.com/wp-content/uploads/2020/12/servicenow.svg",
+    okta: "https://logos-world.net/wp-content/uploads/2021/04/Okta-Emblem.png",
+    google:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png",
+  };
+
+  return logos[providerId] || null;
+};
 
 export function IntegrationCard({
   integration,
@@ -39,6 +54,8 @@ export function IntegrationCard({
     if (isConnected) return "Connected";
     return "Connect";
   };
+
+  const logoUrl = getIntegrationLogo(integration.meta.id);
 
   const handleClick = () => {
     if (!isAdmin) {
@@ -71,8 +88,21 @@ export function IntegrationCard({
     >
       <CardContent className="p-4 h-full flex flex-col">
         <div className="flex items-start justify-between mb-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted text-lg font-semibold shrink-0">
-            {integration.meta.name.charAt(0)}
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-background border shrink-0 overflow-hidden p-1.5">
+            {logoUrl ? (
+              <Image
+                src={logoUrl}
+                alt={`${integration.meta.name} logo`}
+                width={40}
+                height={40}
+                className="object-contain w-full h-full"
+                unoptimized
+              />
+            ) : (
+              <span className="text-lg font-semibold text-muted-foreground">
+                {integration.meta.name.charAt(0)}
+              </span>
+            )}
           </div>
           {isConnected ? (
             <Badge
