@@ -30,6 +30,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useAdminMode } from "@/contexts/admin-mode-context";
 import type {
@@ -62,6 +63,14 @@ import {
   CheckCircle2,
   AlertCircle,
   ExternalLink,
+  Info,
+  Database,
+  ArrowRightLeft,
+  FileText,
+  Webhook,
+  Link as LinkIcon,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 
 type ProviderParam = IntegrationProvider;
@@ -80,10 +89,10 @@ const DEMO_EVENTS: Record<
 > = {
   jira: [{ id: "jira.ticket.updated", label: "jira.ticket.updated" }],
   servicenow: [
-    {
-      id: "servicenow.incident.resolved",
-      label: "servicenow.incident.resolved",
-    },
+    { id: "servicenow.incident.updated", label: "incident.updated" },
+    { id: "servicenow.change.requested", label: "change.requested" },
+    { id: "servicenow.cmdb.ci.updated", label: "cmdb.ci.updated" },
+    { id: "servicenow.incident.resolved", label: "incident.resolved" },
   ],
   okta: [{ id: "okta.user.provisioned", label: "okta.user.provisioned" }],
   google: [{ id: "google.device.offline", label: "google.device.offline" }],
@@ -110,9 +119,17 @@ export default function IntegrationDetailPage() {
   const [apiTokenEmail, setApiTokenEmail] = useState("");
   const [apiToken, setApiToken] = useState("");
   const [fieldMappingOpen, setFieldMappingOpen] = useState(false);
+  const [securityOpen, setSecurityOpen] = useState(false);
+  const [demoSeverity, setDemoSeverity] = useState("3");
+  const [cmdbSyncEnabled, setCmdbSyncEnabled] = useState(true);
+  const [servicenowApiTokenUrl, setServicenowApiTokenUrl] = useState("");
+  const [servicenowApiTokenEmail, setServicenowApiTokenEmail] = useState("");
+  const [servicenowApiToken, setServicenowApiToken] = useState("");
+  const [servicenowInstanceScope, setServicenowInstanceScope] = useState("");
   const { isAdmin } = useAdminMode();
 
   const isJira = provider === "jira";
+  const isServiceNow = provider === "servicenow";
 
   useEffect(() => {
     void (async () => {
@@ -352,6 +369,89 @@ export default function IntegrationDetailPage() {
     } catch (error) {
       console.error(error);
       toast.error("Demo action failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCreateServiceNowChange = async () => {
+    if (!isAdmin || provider !== "servicenow") return;
+    setBusy(true);
+    try {
+      const res = await createDemoServiceNowIncident({
+        title: `Change Request: ${demoTitle}`,
+        description: demoDescription,
+        type: "change_request",
+      });
+      toast.success(
+        `Created ServiceNow change request ${res.external_id} (Demo)`
+      );
+      const latest = await fetchIntegrationLogs(provider, 10);
+      setLogs(latest);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to create change request");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCmdbDiscovery = async () => {
+    if (!isAdmin || provider !== "servicenow") return;
+    setBusy(true);
+    try {
+      // Simulate CMDB discovery
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      toast.success("CMDB discovery completed successfully (Demo)");
+      const latest = await fetchIntegrationLogs(provider, 10);
+      setLogs(latest);
+    } catch (error) {
+      console.error(error);
+      toast.error("CMDB discovery failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleServiceNowConnectApiToken = async () => {
+    if (
+      !isAdmin ||
+      !servicenowApiTokenUrl ||
+      !servicenowApiTokenEmail ||
+      !servicenowApiToken
+    ) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await connectIntegrationApi(provider, {
+        mode: "real",
+        baseUrl: servicenowApiTokenUrl,
+        email: servicenowApiTokenEmail,
+        token: servicenowApiToken,
+        instanceScope: servicenowInstanceScope,
+      });
+      toast.success("Connected using API token");
+      setIntegration(
+        (prev) =>
+          prev && {
+            ...prev,
+            status: "connected",
+            mode: "real",
+            maskedToken: "xxxx-xxxx-xxxx",
+          }
+      );
+      const latest = await fetchIntegrationLogs(provider, 10);
+      setLogs(latest);
+      // Clear form
+      setServicenowApiTokenUrl("");
+      setServicenowApiTokenEmail("");
+      setServicenowApiToken("");
+      setServicenowInstanceScope("");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to connect using API token");
     } finally {
       setBusy(false);
     }
@@ -964,6 +1064,861 @@ export default function IntegrationDetailPage() {
                   disabled={busy || !isAdmin}
                 >
                   Disconnect Integration
+                </Button>
+              )}
+              <Button onClick={handleSaveMappings} disabled={busy || !isAdmin}>
+                Save Settings
+              </Button>
+            </div>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    );
+  }
+
+  // Render new ServiceNow-specific design
+  if (isServiceNow) {
+    return (
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "18rem",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as React.CSSProperties
+        }
+      >
+        <AppSidebar variant="inset" />
+        <SidebarInset className="h-screen overflow-auto">
+          <div className="flex h-full flex-col gap-6 p-6">
+            {/* Header Section */}
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <h1 className="text-3xl font-semibold tracking-tight">
+                  ServiceNow Integration
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Create and track incidents, changes, and service requests in
+                  your ServiceNow instance.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge
+                  variant={statusBadgeVariant}
+                  className="text-sm px-3 py-1"
+                >
+                  {statusBadgeText}
+                </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy || !isAdmin}
+                  onClick={handleTest}
+                >
+                  Test Connection
+                </Button>
+                {integration.status === "connected" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy || !isAdmin}
+                    onClick={handleDisconnect}
+                  >
+                    Disconnect
+                  </Button>
+                )}
+                {integration.status !== "connected" && (
+                  <Button
+                    size="sm"
+                    disabled={busy || !isAdmin}
+                    onClick={handleConnectDemo}
+                  >
+                    Start OAuth Setup
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              Sync incidents, change requests, and CMDB data with ServiceNow for
+              end-to-end IT workflows.
+            </p>
+
+            {/* What this integration enables */}
+            <Card>
+              <CardHeader>
+                <CardTitle>What this integration enables</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <ul className="space-y-2 list-disc list-inside text-sm text-muted-foreground">
+                  <li>
+                    Create ServiceNow incidents automatically from helpdesk
+                    tickets
+                  </li>
+                  <li>
+                    Create / update change requests for scheduled maintenance
+                  </li>
+                  <li>Sync incident and change statuses bi-directionally</li>
+                  <li>
+                    Read CMDB device and CI relationships for faster triage
+                  </li>
+                  <li>Attach logs and comments to ServiceNow records</li>
+                  <li>
+                    Trigger ServiceNow workflows from Helpdesk automations
+                  </li>
+                </ul>
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    Lyzr handles mapping, retries and audit logging
+                    automatically.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Setup Steps */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Setup Steps (Required once)</CardTitle>
+                <CardDescription>
+                  Choose your preferred connection method
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="oauth" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="oauth">
+                      Option A — Recommended: OAuth Connect
+                    </TabsTrigger>
+                    <TabsTrigger value="api-token">
+                      Option B — Alternative: Integration User + MID/API Token
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="oauth" className="space-y-4 mt-4">
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                          1
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            Click Start OAuth Setup
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Use the button in the header above to begin the
+                            OAuth flow
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                          2
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            Authenticate with ServiceNow admin credentials
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Login using your ServiceNow administrator account
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                          3
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            Grant the requested scopes
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Authorize Lyzr to access your ServiceNow instance
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                          4
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            Integration active
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            You'll be redirected back and the integration will
+                            be active
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="pt-3 border-t">
+                      <p className="text-xs text-muted-foreground mb-3">
+                        OAuth is recommended for production — secure and
+                        supports token rotation.
+                      </p>
+                      <Button
+                        onClick={handleConnectDemo}
+                        disabled={busy || !isAdmin}
+                        className="w-full"
+                      >
+                        Start OAuth Setup
+                      </Button>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="api-token" className="space-y-4 mt-4">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="sn-url">ServiceNow Base URL</Label>
+                        <Input
+                          id="sn-url"
+                          placeholder="https://your-instance.service-now.com"
+                          value={servicenowApiTokenUrl}
+                          onChange={(e) =>
+                            setServicenowApiTokenUrl(e.target.value)
+                          }
+                          disabled={!isAdmin || busy}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="sn-email">
+                          Integration user (service account) email
+                        </Label>
+                        <Input
+                          id="sn-email"
+                          type="email"
+                          placeholder="integration.user@company.com"
+                          value={servicenowApiTokenEmail}
+                          onChange={(e) =>
+                            setServicenowApiTokenEmail(e.target.value)
+                          }
+                          disabled={!isAdmin || busy}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="sn-token">
+                          API token / password (masked)
+                        </Label>
+                        <Input
+                          id="sn-token"
+                          type="password"
+                          placeholder="Enter your ServiceNow API token"
+                          value={servicenowApiToken}
+                          onChange={(e) =>
+                            setServicenowApiToken(e.target.value)
+                          }
+                          disabled={!isAdmin || busy}
+                          required
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Generate an API token from your ServiceNow account
+                          settings
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="sn-scope">
+                          Instance scope (optional)
+                        </Label>
+                        <Input
+                          id="sn-scope"
+                          placeholder="global"
+                          value={servicenowInstanceScope}
+                          onChange={(e) =>
+                            setServicenowInstanceScope(e.target.value)
+                          }
+                          disabled={!isAdmin || busy}
+                        />
+                      </div>
+                      <Button
+                        onClick={handleServiceNowConnectApiToken}
+                        disabled={
+                          !isAdmin ||
+                          busy ||
+                          !servicenowApiTokenUrl ||
+                          !servicenowApiTokenEmail ||
+                          !servicenowApiToken
+                        }
+                        className="w-full"
+                      >
+                        Connect using API Token
+                      </Button>
+                    </div>
+                    <div className="pt-3 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        Use this if your org uses integration service accounts
+                        or restricts external OAuth.
+                      </p>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+
+            {/* Capabilities & Quick Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Capabilities & Quick Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "Create Incidents",
+                    "Create Changes",
+                    "CMDB Read",
+                    "Two-way Sync",
+                    "Webhooks",
+                    "Attachments",
+                  ].map((capability) => (
+                    <Badge
+                      key={capability}
+                      variant={
+                        integration.status === "connected"
+                          ? "default"
+                          : "secondary"
+                      }
+                      className="text-xs"
+                    >
+                      {capability}
+                    </Badge>
+                  ))}
+                </div>
+                <div className="pt-2 border-t">
+                  <p className="text-sm text-muted-foreground flex items-center gap-2">
+                    <ArrowRightLeft className="h-3 w-3" />
+                    Sync Direction:{" "}
+                    {integration.status === "connected"
+                      ? "Two-way"
+                      : "Not configured"}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Security & Required Scopes */}
+            <Collapsible open={securityOpen} onOpenChange={setSecurityOpen}>
+              <Card>
+                <CollapsibleTrigger className="w-full">
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Security & Permissions
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${
+                          securityOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </CardTitle>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-3 pt-0">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">
+                        Required permissions/scopes:
+                      </p>
+                      <ul className="space-y-1 list-disc list-inside text-sm text-muted-foreground ml-2">
+                        <li>
+                          <code className="text-xs bg-muted px-1 rounded">
+                            api.read
+                          </code>
+                          : read CMDB and incidents
+                        </li>
+                        <li>
+                          <code className="text-xs bg-muted px-1 rounded">
+                            api.write
+                          </code>
+                          : create/update incidents and change requests
+                        </li>
+                        <li>
+                          <code className="text-xs bg-muted px-1 rounded">
+                            webhooks.manage
+                          </code>
+                          : configure webhooks (if used)
+                        </li>
+                        <li>
+                          <code className="text-xs bg-muted px-1 rounded">
+                            attachment
+                          </code>
+                          : create attachments
+                        </li>
+                      </ul>
+                    </div>
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        We recommend using a dedicated integration service
+                        account with the minimum required roles. Tokens are
+                        stored encrypted.
+                      </p>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+
+            {/* Automatic configuration handled by Lyzr */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-4 w-4" />
+                  Automatic Configuration Handled by Lyzr
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <ul className="space-y-2 list-disc list-inside text-sm text-muted-foreground">
+                  <li>Default ticket → incident mapping</li>
+                  <li>Change request creation for maintenance windows</li>
+                  <li>CMDB lookup to auto-fill affected CI</li>
+                  <li>SLA, priority, and assignment suggestions</li>
+                  <li>Retry logic and webhook validation</li>
+                  <li>Audit logging for compliance</li>
+                </ul>
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    We auto-discover Projects / Assignment Groups during the
+                    first sync.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Advanced settings — Field mapping */}
+            <Collapsible
+              open={fieldMappingOpen}
+              onOpenChange={setFieldMappingOpen}
+            >
+              <Card>
+                <CollapsibleTrigger className="w-full">
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
+                        Advanced — Field Mapping
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${
+                          fieldMappingOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </CardTitle>
+                    <CardDescription>
+                      Modify field mappings for custom ServiceNow configurations
+                    </CardDescription>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-4 pt-0">
+                    <div className="grid gap-4">
+                      <div className="grid grid-cols-2 gap-4 items-center">
+                        <div>
+                          <Label className="text-sm font-medium">Title</Label>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            ticket.title
+                          </p>
+                        </div>
+                        <Select
+                          value={mappings.title ?? "ticket.title"}
+                          onValueChange={(value) =>
+                            setMappings((prev) => ({ ...prev, title: value }))
+                          }
+                          disabled={!isAdmin}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LOCAL_FIELDS.map((field) => (
+                              <SelectItem key={field} value={field}>
+                                {field}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 items-center">
+                        <div>
+                          <Label className="text-sm font-medium">
+                            Description
+                          </Label>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            ticket.description
+                          </p>
+                        </div>
+                        <Select
+                          value={mappings.description ?? "ticket.description"}
+                          onValueChange={(value) =>
+                            setMappings((prev) => ({
+                              ...prev,
+                              description: value,
+                            }))
+                          }
+                          disabled={!isAdmin}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LOCAL_FIELDS.map((field) => (
+                              <SelectItem key={field} value={field}>
+                                {field}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 items-center">
+                        <div>
+                          <Label className="text-sm font-medium">
+                            Priority
+                          </Label>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            ticket.priority
+                          </p>
+                        </div>
+                        <Select
+                          value={mappings.priority ?? "ticket.priority"}
+                          onValueChange={(value) =>
+                            setMappings((prev) => ({
+                              ...prev,
+                              priority: value,
+                            }))
+                          }
+                          disabled={!isAdmin}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LOCAL_FIELDS.map((field) => (
+                              <SelectItem key={field} value={field}>
+                                {field}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 items-center">
+                        <div>
+                          <Label className="text-sm font-medium">
+                            Assignment Group
+                          </Label>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            ticket.assignee
+                          </p>
+                        </div>
+                        <Select
+                          value={mappings.assignee ?? "ticket.assignee"}
+                          onValueChange={(value) =>
+                            setMappings((prev) => ({
+                              ...prev,
+                              assignee: value,
+                            }))
+                          }
+                          disabled={!isAdmin}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LOCAL_FIELDS.map((field) => (
+                              <SelectItem key={field} value={field}>
+                                {field}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 items-center">
+                        <div>
+                          <Label className="text-sm font-medium">CI</Label>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            ticket.ci (auto-resolved from CMDB)
+                          </p>
+                        </div>
+                        <Select
+                          value={mappings.ci ?? "ticket.component"}
+                          onValueChange={(value) =>
+                            setMappings((prev) => ({ ...prev, ci: value }))
+                          }
+                          disabled={!isAdmin}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LOCAL_FIELDS.map((field) => (
+                              <SelectItem key={field} value={field}>
+                                {field}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 items-center">
+                        <div>
+                          <Label className="text-sm font-medium">
+                            Category
+                          </Label>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            ticket.category
+                          </p>
+                        </div>
+                        <Select
+                          value={mappings.category ?? "ticket.category"}
+                          onValueChange={(value) =>
+                            setMappings((prev) => ({
+                              ...prev,
+                              category: value,
+                            }))
+                          }
+                          disabled={!isAdmin}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LOCAL_FIELDS.map((field) => (
+                              <SelectItem key={field} value={field}>
+                                {field}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Defaults work for most customers. Only edit if you use
+                        custom fields.
+                      </p>
+                      <Button
+                        size="sm"
+                        disabled={busy || !isAdmin}
+                        onClick={handleSaveMappings}
+                      >
+                        Save mappings
+                      </Button>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+
+            {/* CMDB Sync & Discovery */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  CMDB Sync & Discovery
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {integration.status === "connected" && (
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-md">
+                    <div>
+                      <p className="text-sm font-medium">Last CMDB sync</p>
+                      <p className="text-xs text-muted-foreground">
+                        {integration.lastTestAt
+                          ? new Date(integration.lastTestAt).toLocaleString()
+                          : "Never"}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      OK
+                    </Badge>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="cmdb-sync">Auto-sync CMDB</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Enable automatic CMDB sync to improve triage and automated
+                      routing.
+                    </p>
+                  </div>
+                  <Switch
+                    id="cmdb-sync"
+                    checked={cmdbSyncEnabled}
+                    onCheckedChange={setCmdbSyncEnabled}
+                    disabled={!isAdmin || integration.status !== "connected"}
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleCmdbDiscovery}
+                  disabled={busy || !isAdmin}
+                  className="w-full"
+                >
+                  Run CMDB Discovery (Demo)
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Test & Validate Integration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Test & Validate Integration
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm">Demo Incident Title</Label>
+                    <Input
+                      value={demoTitle}
+                      onChange={(e) => setDemoTitle(e.target.value)}
+                      placeholder="Enter incident title"
+                      disabled={!isAdmin || busy}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">Demo Incident Description</Label>
+                    <Textarea
+                      value={demoDescription}
+                      onChange={(e) => setDemoDescription(e.target.value)}
+                      placeholder="Enter incident description"
+                      className="min-h-[80px]"
+                      disabled={!isAdmin || busy}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">Severity / Priority</Label>
+                    <Select
+                      value={demoSeverity}
+                      onValueChange={setDemoSeverity}
+                      disabled={!isAdmin || busy}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 - Critical</SelectItem>
+                        <SelectItem value="2">2 - High</SelectItem>
+                        <SelectItem value="3">3 - Medium</SelectItem>
+                        <SelectItem value="4">4 - Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      onClick={handleDemoAction}
+                      disabled={busy || !isAdmin}
+                      className="w-full"
+                    >
+                      Create Sample Incident in ServiceNow (Demo)
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleCreateServiceNowChange}
+                      disabled={busy || !isAdmin}
+                      className="w-full"
+                    >
+                      Create Sample Change Request (Demo)
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <Label className="text-sm">Webhook Replay Event</Label>
+                  <Select
+                    value={selectedEvent}
+                    onValueChange={setSelectedEvent}
+                    disabled={webhookBusy}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select webhook event" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEMO_EVENTS[provider].map((event) => (
+                        <SelectItem key={event.id} value={event.id}>
+                          {event.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    onClick={handleWebhookReplay}
+                    disabled={webhookBusy || !selectedEvent}
+                    className="w-full"
+                  >
+                    Replay Webhook (Demo)
+                  </Button>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">
+                    Recent Integration Activity Log
+                  </Label>
+                  <div className="rounded-md border bg-muted/30 max-h-[300px] overflow-y-auto">
+                    {logs.length > 0 ? (
+                      <div className="divide-y">
+                        {logs.map((log) => (
+                          <div key={log.id} className="p-3 text-xs">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <div className="flex items-center gap-2">
+                                {log.action.includes("error") ||
+                                log.action.includes("fail") ? (
+                                  <XCircle className="h-3 w-3 text-destructive" />
+                                ) : log.action.includes("success") ||
+                                  log.action.includes("connect") ? (
+                                  <CheckCircle className="h-3 w-3 text-green-600" />
+                                ) : (
+                                  <Info className="h-3 w-3 text-muted-foreground" />
+                                )}
+                                <span className="font-medium">
+                                  {log.action}
+                                </span>
+                              </div>
+                              <span className="text-muted-foreground whitespace-nowrap">
+                                {new Date(log.timestamp).toLocaleString()}
+                              </span>
+                            </div>
+                            {log.details && (
+                              <details className="mt-2">
+                                <summary className="cursor-pointer text-[10px] text-muted-foreground hover:text-foreground">
+                                  View JSON details
+                                </summary>
+                                <pre className="mt-2 text-[10px] bg-background p-2 rounded border overflow-x-auto">
+                                  {JSON.stringify(log.details, null, 2)}
+                                </pre>
+                              </details>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        No activity log entries yet. Connect and run a test to
+                        see activity.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Footer Actions */}
+            <div className="flex items-center justify-end gap-3 pt-2 border-t">
+              {integration.status === "connected" && (
+                <Button
+                  variant="destructive"
+                  onClick={handleDisconnect}
+                  disabled={busy || !isAdmin}
+                >
+                  Disconnect Integration
+                </Button>
+              )}
+              {integration.status !== "connected" && (
+                <Button onClick={handleConnectDemo} disabled={busy || !isAdmin}>
+                  Start OAuth Setup
                 </Button>
               )}
               <Button onClick={handleSaveMappings} disabled={busy || !isAdmin}>

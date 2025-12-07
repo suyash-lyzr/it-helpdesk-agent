@@ -48,8 +48,11 @@ export function IntegrationCard({
     if (isConnected) {
       onDisconnect(integration.meta.id);
     } else {
-      // For JIRA, navigate to detail page instead of connecting directly
-      if (integration.meta.id === "jira") {
+      // For JIRA and ServiceNow, navigate to detail page instead of connecting directly
+      if (
+        integration.meta.id === "jira" ||
+        integration.meta.id === "servicenow"
+      ) {
         router.push(`/integrations/${integration.meta.id}`);
       } else if (demoMode) {
         onConnect(integration.meta.id);
