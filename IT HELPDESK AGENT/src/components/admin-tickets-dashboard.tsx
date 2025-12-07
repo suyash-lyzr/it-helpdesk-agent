@@ -399,8 +399,28 @@ export function AdminTicketsDashboard({
         {forecastData.length > 0 && (
           <ForecastChart
             data={forecastData}
-            onAnomalyAction={(anomaly) => {
-              toast.info(`Creating incident for anomaly: ${anomaly.anomalyReason}`)
+            onAnomalyAction={(anomaly, action) => {
+              if (action === "create_incident") {
+                // Already handled in ForecastChart component with toast
+                // Add event to live feed
+                const newEvent = addLiveEvent({
+                  type: "external_id_created",
+                  description: `Incident created for anomaly: ${anomaly.anomalyHeadline || anomaly.anomalyReason}`,
+                  actor: "system",
+                })
+                // Update local state
+                setLiveEvents((prev) => [newEvent, ...prev].slice(0, 50))
+              }
+            }}
+            onNotifyTeam={(team) => {
+              // Add event to live feed
+              const newEvent = addLiveEvent({
+                type: "ticket_updated",
+                description: `Notification sent to ${team} team`,
+                actor: "system",
+              })
+              // Update local state
+              setLiveEvents((prev) => [newEvent, ...prev].slice(0, 50))
             }}
           />
         )}

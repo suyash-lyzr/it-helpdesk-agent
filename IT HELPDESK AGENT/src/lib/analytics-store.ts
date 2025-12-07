@@ -98,6 +98,14 @@ export interface ForecastData {
   confidenceUpper: number
   anomalyFlag: boolean
   anomalyReason?: string
+  // Enhanced anomaly details
+  anomalyType?: "forecasted" | "detected" // forecasted = future risk, detected = historical/real-time
+  anomalyHeadline?: string // Short headline (1 line)
+  anomalyReasons?: string[] // 1-3 short reason bullets
+  anomalyConfidence?: "low" | "medium" | "high" // Model confidence
+  anomalyImpact?: "low" | "medium" | "high" // Impact level
+  anomalyActions?: Array<{ label: string; primary?: boolean }> // Suggested actions
+  anomalyProvenance?: string // Data sources used
 }
 
 // Live Event
@@ -403,20 +411,79 @@ export function getForecast(days: number = 7): ForecastData[] {
   const baseCount = 10
   const now = new Date()
 
+  // Seed example anomalies for demo
+  // VPN anomaly: forecasted (future) - appears 3 days from now
+  const vpnAnomalyDate = format(subDays(now, -3), "yyyy-MM-dd")
+  // Access anomaly: detected (recently discovered, still relevant) - appears on day 1
+  const accessAnomalyDate = format(subDays(now, -1), "yyyy-MM-dd") // Tomorrow (detected today, relevant for forecast)
+
   for (let i = 0; i < days; i++) {
     const date = format(subDays(now, -i - 1), "yyyy-MM-dd")
-    const predicted = baseCount + Math.random() * 5
+    let predicted = baseCount + Math.random() * 5
     const confidence = 2
-    const anomalyFlag = i === 3 && Math.random() > 0.5 // Randomly flag one day
+    
+    // Check if this date matches our seeded anomalies
+    const isVpnAnomaly = date === vpnAnomalyDate
+    const isAccessAnomaly = date === accessAnomalyDate
 
-    forecast.push({
-      date,
-      predictedCount: Math.round(predicted),
-      confidenceLower: Math.round(predicted - confidence),
-      confidenceUpper: Math.round(predicted + confidence),
-      anomalyFlag,
-      anomalyReason: anomalyFlag ? "VPN surge +200% vs baseline" : undefined,
-    })
+    if (isVpnAnomaly) {
+      // VPN surge forecasted anomaly
+      predicted = baseCount * 3 // 200% increase
+      forecast.push({
+        date,
+        predictedCount: Math.round(predicted),
+        confidenceLower: Math.round(predicted - confidence * 2),
+        confidenceUpper: Math.round(predicted + confidence * 2),
+        anomalyFlag: true,
+        anomalyType: "forecasted",
+        anomalyReason: "VPN surge +200% vs baseline",
+        anomalyHeadline: "VPN surge expected (+200% vs baseline)",
+        anomalyReasons: [
+          "Historical pattern: VPN spikes on Fridays during WFH (last 12 weeks).",
+          "Planned VPN gateway update scheduled on Dec 11.",
+        ],
+        anomalyConfidence: "high",
+        anomalyImpact: "high",
+        anomalyActions: [
+          { label: "Create Incident", primary: true },
+          { label: "Notify Network Team" },
+        ],
+        anomalyProvenance: "Based on 90 days of ticket history + scheduled change calendar + integration events",
+      })
+    } else if (isAccessAnomaly) {
+      // Access request detected anomaly
+      predicted = baseCount * 1.8 // 80% increase
+      forecast.push({
+        date,
+        predictedCount: Math.round(predicted),
+        confidenceLower: Math.round(predicted - confidence * 1.5),
+        confidenceUpper: Math.round(predicted + confidence * 1.5),
+        anomalyFlag: true,
+        anomalyType: "detected",
+        anomalyReason: "Access request surge detected (+80%)",
+        anomalyHeadline: "Access request surge detected (+80%)",
+        anomalyReasons: [
+          "New joiner batch processed by HR yesterday.",
+          "Approver delays observed in last 48h.",
+        ],
+        anomalyConfidence: "medium",
+        anomalyImpact: "medium",
+        anomalyActions: [
+          { label: "Send Reminder to Approvers", primary: true },
+          { label: "Create Incident" },
+        ],
+        anomalyProvenance: "Based on 90 days of ticket history + scheduled change calendar + integration events",
+      })
+    } else {
+      // Normal forecast
+      forecast.push({
+        date,
+        predictedCount: Math.round(predicted),
+        confidenceLower: Math.round(predicted - confidence),
+        confidenceUpper: Math.round(predicted + confidence),
+        anomalyFlag: false,
+      })
+    }
   }
 
   return forecast

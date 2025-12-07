@@ -1,26 +1,5 @@
 {
   "pages": {
-    "/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/layout.css",
-      "static/chunks/app/layout.js"
-    ],
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
-    ],
-    "/tickets/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/tickets/page.js"
-    ],
-    "/api/tickets/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/tickets/route.js"
-    ],
     "/api/analytics/kpis/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -41,15 +20,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/analytics/team-performance/route.js"
     ],
-    "/api/analytics/forecast/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/analytics/forecast/route.js"
-    ],
     "/api/analytics/lifecycle/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/analytics/lifecycle/route.js"
+    ],
+    "/api/analytics/forecast/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/analytics/forecast/route.js"
     ],
     "/api/analytics/access-requests/route": [
       "static/chunks/webpack.js",
@@ -61,20 +40,21 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/analytics/live-events/route.js"
     ],
-    "/integrations/page": [
+    "/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/integrations/page.js"
+      "static/css/app/layout.css",
+      "static/chunks/app/layout.js"
     ],
-    "/api/integrations/route": [
+    "/tickets/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/integrations/route.js"
+      "static/chunks/app/tickets/page.js"
     ],
-    "/knowledge-base/page": [
+    "/api/tickets/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/knowledge-base/page.js"
+      "static/chunks/app/api/tickets/route.js"
     ]
   }
 }
