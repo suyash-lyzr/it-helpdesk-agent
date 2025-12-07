@@ -8,7 +8,6 @@ import {
   FileText, 
   Search, 
   Settings, 
-  Hourglass, 
   CheckCircle2, 
   Lock 
 } from "lucide-react"
@@ -34,7 +33,6 @@ const stageLabels: Record<string, string> = {
   new: "New",
   triage: "Triage",
   in_progress: "In Progress",
-  waiting_for_user: "Waiting for User",
   resolved: "Resolved",
   closed: "Closed",
 }
@@ -43,14 +41,15 @@ const stageIcons: Record<string, React.ComponentType<{ className?: string }>> = 
   new: FileText,
   triage: Search,
   in_progress: Settings,
-  waiting_for_user: Hourglass,
   resolved: CheckCircle2,
   closed: Lock,
 }
 
 export function LifecycleFunnel({ data, onStageClick }: LifecycleFunnelProps) {
-  const totalTickets = data.reduce((sum, stage) => sum + stage.count, 0)
-  const maxCount = Math.max(...data.map((s) => s.count), 1)
+  // Filter out "waiting_for_user" stage
+  const filteredData = data.filter((stage) => stage.stage !== "waiting_for_user")
+  const totalTickets = filteredData.reduce((sum, stage) => sum + stage.count, 0)
+  const maxCount = Math.max(...filteredData.map((s) => s.count), 1)
 
   return (
     <Card className="@container/card">
@@ -67,12 +66,12 @@ export function LifecycleFunnel({ data, onStageClick }: LifecycleFunnelProps) {
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
         <div className="space-y-3">
-          {data.map((stage, index) => {
-            const isLast = index === data.length - 1
+          {filteredData.map((stage, index) => {
+            const isLast = index === filteredData.length - 1
             const widthPercentage = stage.count > 0 
               ? Math.max((stage.count / maxCount) * 100, 8)
               : 0
-            const prevStage = index > 0 ? data[index - 1] : null
+            const prevStage = index > 0 ? filteredData[index - 1] : null
             const conversionFromPrev = prevStage && prevStage.count > 0
               ? (stage.count / prevStage.count) * 100
               : 0

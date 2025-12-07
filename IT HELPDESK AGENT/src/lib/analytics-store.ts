@@ -365,11 +365,10 @@ export function getTeamPerformance(tickets: Ticket[]): TeamPerformance[] {
 // Get Lifecycle Funnel
 export function getLifecycleFunnel(tickets: Ticket[]): LifecycleStageData[] {
   const stages: LifecycleStageData[] = []
-  const stageOrder: Array<"new" | "triage" | "in_progress" | "waiting_for_user" | "resolved" | "closed"> = [
+  const stageOrder: Array<"new" | "triage" | "in_progress" | "resolved" | "closed"> = [
     "new",
     "triage",
     "in_progress",
-    "waiting_for_user",
     "resolved",
     "closed",
   ]

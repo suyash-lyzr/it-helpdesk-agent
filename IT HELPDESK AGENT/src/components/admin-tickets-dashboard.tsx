@@ -386,9 +386,13 @@ export function AdminTicketsDashboard({
         {/* Team Performance */}
         {teamPerformance.length > 0 && (
           <div className="px-6 lg:px-8">
-          <TeamPerformanceComponent data={teamPerformance} />
+            <TeamPerformanceComponent 
+              data={teamPerformance} 
+              tickets={tickets}
+              filters={filters}
+            />
                 </div>
-      )}
+        )}
 
         {/* Forecast & Access Request Analytics */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 px-6 lg:px-8">
