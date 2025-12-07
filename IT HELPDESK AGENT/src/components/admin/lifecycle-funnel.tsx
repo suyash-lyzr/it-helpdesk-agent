@@ -1,9 +1,20 @@
 "use client"
 
 import * as React from "react"
-import { ArrowRight, Clock } from "lucide-react"
+import { 
+  ArrowRight, 
+  Clock, 
+  TrendingUp, 
+  FileText, 
+  Search, 
+  Settings, 
+  Hourglass, 
+  CheckCircle2, 
+  Lock 
+} from "lucide-react"
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -28,73 +39,124 @@ const stageLabels: Record<string, string> = {
   closed: "Closed",
 }
 
+const stageIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  new: FileText,
+  triage: Search,
+  in_progress: Settings,
+  waiting_for_user: Hourglass,
+  resolved: CheckCircle2,
+  closed: Lock,
+}
+
 export function LifecycleFunnel({ data, onStageClick }: LifecycleFunnelProps) {
+  const totalTickets = data.reduce((sum, stage) => sum + stage.count, 0)
+  const maxCount = Math.max(...data.map((s) => s.count), 1)
+
   return (
-    <Card>
+    <Card className="@container/card">
       <CardHeader>
         <CardTitle>Ticket Lifecycle Funnel</CardTitle>
         <CardDescription>
           Ticket flow through stages with conversion rates and median times
         </CardDescription>
+        <CardAction>
+          <Badge variant="outline" className="text-xs">
+            {totalTickets} total
+          </Badge>
+        </CardAction>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+        <div className="space-y-3">
           {data.map((stage, index) => {
             const isLast = index === data.length - 1
             const widthPercentage = stage.count > 0 
-              ? Math.max((stage.count / data[0]?.count || 1) * 100, 10)
+              ? Math.max((stage.count / maxCount) * 100, 8)
+              : 0
+            const prevStage = index > 0 ? data[index - 1] : null
+            const conversionFromPrev = prevStage && prevStage.count > 0
+              ? (stage.count / prevStage.count) * 100
               : 0
 
             return (
-              <div key={stage.stage}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="min-w-[100px]">
-                      {stageLabels[stage.stage] || stage.stage}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {stage.count} tickets
-                    </span>
-                    {stage.conversionRate > 0 && (
-                      <span className="text-sm text-muted-foreground">
-                        ({stage.conversionRate.toFixed(1)}% conversion)
-                      </span>
-                    )}
-                    {stage.medianTime > 0 && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {stage.medianTime.toFixed(1)}h median
+              <React.Fragment key={stage.stage}>
+                <div
+                  className="group rounded-lg border bg-muted/40 p-3 transition-all hover:bg-accent hover:shadow-sm cursor-pointer"
+                  onClick={() => stage.tickets.length > 0 && onStageClick?.(stage.stage, stage.tickets)}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="flex-shrink-0 mt-0.5">
+                        {(() => {
+                          const IconComponent = stageIcons[stage.stage] || FileText
+                          return (
+                            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
+                              <IconComponent className="h-4 w-4 text-primary" />
+                            </div>
+                          )
+                        })()}
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="font-semibold text-sm">
+                            {stageLabels[stage.stage] || stage.stage}
+                          </span>
+                          <Badge variant="outline" className="text-xs px-1.5 py-0">
+                            {stage.count} {stage.count === 1 ? 'ticket' : 'tickets'}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                          {prevStage && prevStage.count > 0 && (
+                            <div className="flex items-center gap-1">
+                              <TrendingUp className="h-3 w-3" />
+                              <span>{conversionFromPrev.toFixed(1)}% from {stageLabels[prevStage.stage]}</span>
+                            </div>
+                          )}
+                          {stage.medianTime > 0 && (
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              <span className="tabular-nums">{stage.medianTime.toFixed(1)}h median</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {stage.tickets.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0 text-xs h-7"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onStageClick?.(stage.stage, stage.tickets)
+                        }}
+                      >
+                        View ({stage.tickets.length})
+                      </Button>
                     )}
                   </div>
-                  {stage.tickets.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onStageClick?.(stage.stage, stage.tickets)}
-                    >
-                      View Tickets ({stage.tickets.length})
-                    </Button>
-                  )}
-                </div>
-                <div className="relative h-8 bg-muted rounded-md overflow-hidden">
-                  <div
-                    className="h-full bg-primary transition-all duration-500 flex items-center justify-center"
-                    style={{ width: `${widthPercentage}%` }}
-                  >
-                    {stage.count > 0 && (
-                      <span className="text-xs font-medium text-primary-foreground">
-                        {stage.count}
-                      </span>
+                  <div className="mt-3 relative h-6 bg-muted rounded-md overflow-hidden">
+                    {stage.count > 0 ? (
+                      <div
+                        className="h-full bg-primary/80 transition-all duration-500 flex items-center justify-end pr-2"
+                        style={{ width: `${widthPercentage}%` }}
+                      >
+                        <span className="text-[10px] font-medium text-primary-foreground tabular-nums">
+                          {stage.count}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="h-full flex items-center justify-center">
+                        <span className="text-[10px] text-muted-foreground">No tickets</span>
+                      </div>
                     )}
                   </div>
                 </div>
                 {!isLast && (
-                  <div className="flex justify-center my-2">
+                  <div className="flex justify-center -my-1">
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </div>
                 )}
-              </div>
+              </React.Fragment>
             )
           })}
         </div>
