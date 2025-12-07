@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -11,8 +11,8 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-} from "@tanstack/react-table"
-import { format } from "date-fns"
+} from "@tanstack/react-table";
+import { format } from "date-fns";
 import {
   RefreshCw,
   Search,
@@ -21,11 +21,11 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowUpDown,
-} from "lucide-react"
+} from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -33,24 +33,27 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Ticket as TicketType } from "@/lib/ticket-types"
+} from "@/components/ui/select";
+import { Ticket as TicketType } from "@/lib/ticket-types";
 
 // Status color mapping for the new status values
 const statusColors: Record<string, string> = {
   new: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 border-blue-200 dark:border-blue-500/30",
   open: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 border-red-200 dark:border-red-500/30",
-  in_progress: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border-amber-200 dark:border-amber-500/30",
-  resolved: "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 border-green-200 dark:border-green-500/30",
-  closed: "bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-400 border-gray-200 dark:border-gray-500/30",
-}
+  in_progress:
+    "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border-amber-200 dark:border-amber-500/30",
+  resolved:
+    "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 border-green-200 dark:border-green-500/30",
+  closed:
+    "bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-400 border-gray-200 dark:border-gray-500/30",
+};
 
 // Status display labels
 const statusLabels: Record<string, string> = {
@@ -59,30 +62,36 @@ const statusLabels: Record<string, string> = {
   in_progress: "In Progress",
   resolved: "Resolved",
   closed: "Closed",
-}
+};
 
 // Priority color mapping
 const priorityColors: Record<string, string> = {
   high: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 border-red-200 dark:border-red-500/30",
-  medium: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border-amber-200 dark:border-amber-500/30",
+  medium:
+    "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border-amber-200 dark:border-amber-500/30",
   low: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 border-blue-200 dark:border-blue-500/30",
-}
+};
 
 // Ticket type color mapping
 const ticketTypeColors: Record<string, string> = {
-  incident: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 border-red-200 dark:border-red-500/30",
-  access_request: "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400 border-purple-200 dark:border-purple-500/30",
-  request: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 border-blue-200 dark:border-blue-500/30",
-}
+  incident:
+    "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 border-red-200 dark:border-red-500/30",
+  access_request:
+    "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400 border-purple-200 dark:border-purple-500/30",
+  request:
+    "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 border-blue-200 dark:border-blue-500/30",
+};
 
 // Ticket type display labels
 const ticketTypeLabels: Record<string, string> = {
   incident: "Incident",
   access_request: "Access Request",
   request: "Request",
-}
+};
 
-const createColumns = (onRowClick?: (ticket: TicketType) => void): ColumnDef<TicketType>[] => [
+const createColumns = (
+  onRowClick?: (ticket: TicketType) => void
+): ColumnDef<TicketType>[] => [
   {
     accessorKey: "id",
     header: ({ column }) => (
@@ -97,11 +106,19 @@ const createColumns = (onRowClick?: (ticket: TicketType) => void): ColumnDef<Tic
     ),
     cell: ({ row }) => (
       <span
-        className={`font-medium ${onRowClick ? "text-primary cursor-pointer hover:underline" : "text-primary"}`}
-        onClick={onRowClick ? (e) => {
-          e.stopPropagation()
-          onRowClick(row.original)
-        } : undefined}
+        className={`font-medium ${
+          onRowClick
+            ? "text-primary cursor-pointer hover:underline"
+            : "text-primary"
+        }`}
+        onClick={
+          onRowClick
+            ? (e) => {
+                e.stopPropagation();
+                onRowClick(row.original);
+              }
+            : undefined
+        }
       >
         {row.original.id}
       </span>
@@ -120,7 +137,9 @@ const createColumns = (onRowClick?: (ticket: TicketType) => void): ColumnDef<Tic
       </Button>
     ),
     cell: ({ row }) => (
-      <span className="max-w-[200px] truncate block">{row.original.title}</span>
+      <span className="max-w-[300px] truncate block font-medium">
+        {row.original.title}
+      </span>
     ),
   },
   {
@@ -139,7 +158,9 @@ const createColumns = (onRowClick?: (ticket: TicketType) => void): ColumnDef<Tic
     accessorKey: "app_or_system",
     header: "APP/SYSTEM",
     cell: ({ row }) => (
-      <span className="text-muted-foreground capitalize">{row.original.app_or_system}</span>
+      <span className="text-muted-foreground capitalize">
+        {row.original.app_or_system}
+      </span>
     ),
   },
   {
@@ -150,7 +171,8 @@ const createColumns = (onRowClick?: (ticket: TicketType) => void): ColumnDef<Tic
         variant="outline"
         className={priorityColors[row.original.priority]}
       >
-        {row.original.priority.charAt(0).toUpperCase() + row.original.priority.slice(1)}
+        {row.original.priority.charAt(0).toUpperCase() +
+          row.original.priority.slice(1)}
       </Badge>
     ),
   },
@@ -167,7 +189,9 @@ const createColumns = (onRowClick?: (ticket: TicketType) => void): ColumnDef<Tic
     accessorKey: "suggested_team",
     header: "TEAM",
     cell: ({ row }) => (
-      <span className="text-muted-foreground">{row.original.suggested_team}</span>
+      <span className="text-muted-foreground">
+        {row.original.suggested_team}
+      </span>
     ),
   },
   {
@@ -188,14 +212,14 @@ const createColumns = (onRowClick?: (ticket: TicketType) => void): ColumnDef<Tic
       </span>
     ),
   },
-]
+];
 
 interface TicketsTableProps {
-  data: TicketType[]
-  onRefresh?: () => void
-  onNewTicket?: () => void
-  isLoading?: boolean
-  onRowClick?: (ticket: TicketType) => void
+  data: TicketType[];
+  onRefresh?: () => void;
+  onNewTicket?: () => void;
+  isLoading?: boolean;
+  onRowClick?: (ticket: TicketType) => void;
 }
 
 export function TicketsTable({
@@ -205,13 +229,13 @@ export function TicketsTable({
   isLoading = false,
   onRowClick,
 }: TicketsTableProps) {
-  const [sorting, setSorting] = React.useState<SortingState>([])
+  const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
-  )
-  const [globalFilter, setGlobalFilter] = React.useState("")
+  );
+  const [globalFilter, setGlobalFilter] = React.useState("");
 
-  const columns = React.useMemo(() => createColumns(onRowClick), [onRowClick])
+  const columns = React.useMemo(() => createColumns(onRowClick), [onRowClick]);
 
   const table = useReactTable({
     data,
@@ -234,7 +258,7 @@ export function TicketsTable({
         pageSize: 10,
       },
     },
-  })
+  });
 
   return (
     <div className="space-y-4">
@@ -249,7 +273,9 @@ export function TicketsTable({
             disabled={isLoading}
             className="gap-2"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
           <div className="relative">
@@ -269,13 +295,16 @@ export function TicketsTable({
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border">
+      <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader className="bg-muted/50">
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="text-xs font-medium text-muted-foreground">
+                  <TableHead
+                    key={header.id}
+                    className="h-12 text-xs font-semibold text-muted-foreground uppercase tracking-wide"
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -305,15 +334,17 @@ export function TicketsTable({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className={onRowClick ? "cursor-pointer" : undefined}
-                  onClick={
+                  className={
                     onRowClick
-                      ? () => onRowClick(row.original)
-                      : undefined
+                      ? "cursor-pointer hover:bg-muted/50 transition-colors"
+                      : "hover:bg-muted/50 transition-colors"
+                  }
+                  onClick={
+                    onRowClick ? () => onRowClick(row.original) : undefined
                   }
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="py-4">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -347,13 +378,19 @@ export function TicketsTable({
         <div className="text-sm text-muted-foreground">
           {table.getFilteredRowModel().rows.length > 0 ? (
             <>
-              Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{" "}
+              Showing{" "}
+              {table.getState().pagination.pageIndex *
+                table.getState().pagination.pageSize +
+                1}{" "}
+              to{" "}
               {Math.min(
-                (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                (table.getState().pagination.pageIndex + 1) *
+                  table.getState().pagination.pageSize,
                 table.getFilteredRowModel().rows.length
               )}{" "}
               of {table.getFilteredRowModel().rows.length} tickets • Page{" "}
-              {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+              {table.getState().pagination.pageIndex + 1} of{" "}
+              {table.getPageCount()}
             </>
           ) : (
             "No tickets"
@@ -399,5 +436,5 @@ export function TicketsTable({
         </div>
       </div>
     </div>
-  )
+  );
 }

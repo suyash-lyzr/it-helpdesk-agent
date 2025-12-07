@@ -1,76 +1,77 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { AppSidebar } from "@/components/app-sidebar"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Switch } from "@/components/ui/switch"
-import { toast } from "sonner"
-import { useAdminMode } from "@/contexts/admin-mode-context"
-import type { IntegrationConfig } from "@/lib/integrations-types"
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { useAdminMode } from "@/contexts/admin-mode-context";
+import type {
+  IntegrationConfig,
+  IntegrationProvider,
+} from "@/lib/integrations-types";
 import {
   connectIntegrationApi,
   disconnectIntegrationApi,
   fetchIntegrations,
   testIntegrationApi,
-} from "@/lib/integrations-api"
-
-function statusVariant(integration: IntegrationConfig): "default" | "secondary" | "outline" {
-  if (integration.status === "connected" && integration.mode === "demo") {
-    return "secondary"
-  }
-  if (integration.status === "connected") {
-    return "default"
-  }
-  return "outline"
-}
-
-function statusLabel(integration: IntegrationConfig): string {
-  if (integration.status === "connected" && integration.mode === "demo") {
-    return "Demo connected"
-  }
-  if (integration.status === "connected") {
-    return "Connected"
-  }
-  return "Not connected"
-}
+} from "@/lib/integrations-api";
+import { IntegrationCard } from "@/components/integrations/integration-card";
+import { ConnectModal } from "@/components/integrations/connect-modal";
+import { SetupGuidePanel } from "@/components/integrations/setup-guide-panel";
 
 export default function IntegrationsPage() {
-  const [integrations, setIntegrations] = useState<IntegrationConfig[]>([])
-  const [loading, setLoading] = useState(true)
-  const [demoMode, setDemoMode] = useState(true)
-  const [busyProvider, setBusyProvider] = useState<string | null>(null)
-  const { isAdmin } = useAdminMode()
-  const router = useRouter()
+  const [integrations, setIntegrations] = useState<IntegrationConfig[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [demoMode, setDemoMode] = useState(true);
+  const [busyProvider, setBusyProvider] = useState<string | null>(null);
+  const [connectModalOpen, setConnectModalOpen] = useState(false);
+  const [connectModalProvider, setConnectModalProvider] =
+    useState<IntegrationProvider | null>(null);
+  const [setupGuideOpen, setSetupGuideOpen] = useState(false);
+  const [setupGuideProvider, setSetupGuideProvider] =
+    useState<IntegrationProvider | null>(null);
+  const [disconnectProvider, setDisconnectProvider] =
+    useState<IntegrationProvider | null>(null);
+  const { isAdmin } = useAdminMode();
+  const router = useRouter();
 
   useEffect(() => {
     void (async () => {
       try {
-        const data = await fetchIntegrations()
-        setIntegrations(data)
+        const data = await fetchIntegrations();
+        setIntegrations(data);
       } catch (error) {
-        console.error(error)
-        toast.error("Failed to load integrations")
+        console.error(error);
+        toast.error("Failed to load integrations");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    })()
-  }, [])
+    })();
+  }, []);
 
   const handleConnect = async (provider: IntegrationConfig["meta"]["id"]) => {
-    if (!isAdmin) return
-    setBusyProvider(provider)
+    if (!isAdmin) return;
+    setBusyProvider(provider);
     try {
-      const mode = demoMode ? "demo" : "real"
-      const res = await connectIntegrationApi(provider, { mode })
+      const mode = demoMode ? "demo" : "real";
+      const res = await connectIntegrationApi(provider, { mode });
       toast.success(
         provider === "jira"
           ? `Connected Jira (${mode === "demo" ? "Demo" : "Real"})`
-          : "Integration connected (demo)",
-      )
+          : "Integration connected (demo)"
+      );
       setIntegrations((prev) =>
         prev.map((i) =>
           i.meta.id === provider
@@ -79,26 +80,28 @@ export default function IntegrationsPage() {
                 status: "connected",
                 mode: mode === "demo" ? "demo" : "real",
               }
-            : i,
-        ),
-      )
+            : i
+        )
+      );
       if ("sample_issue" in res || "sample_incident" in res) {
         // no-op; response is primarily for demo payloads
       }
     } catch (error) {
-      console.error(error)
-      toast.error("Failed to connect integration")
+      console.error(error);
+      toast.error("Failed to connect integration");
     } finally {
-      setBusyProvider(null)
+      setBusyProvider(null);
     }
-  }
+  };
 
-  const handleDisconnect = async (provider: IntegrationConfig["meta"]["id"]) => {
-    if (!isAdmin) return
-    setBusyProvider(provider)
+  const handleDisconnect = async (
+    provider: IntegrationConfig["meta"]["id"]
+  ) => {
+    if (!isAdmin) return;
+    setBusyProvider(provider);
     try {
-      await disconnectIntegrationApi(provider)
-      toast.success("Integration disconnected")
+      await disconnectIntegrationApi(provider);
+      toast.success("Integration disconnected");
       setIntegrations((prev) =>
         prev.map((i) =>
           i.meta.id === provider
@@ -108,202 +111,180 @@ export default function IntegrationsPage() {
                 maskedToken: undefined,
                 connectedAt: undefined,
               }
-            : i,
-        ),
-      )
+            : i
+        )
+      );
     } catch (error) {
-      console.error(error)
-      toast.error("Failed to disconnect integration")
+      console.error(error);
+      toast.error("Failed to disconnect integration");
     } finally {
-      setBusyProvider(null)
+      setBusyProvider(null);
     }
-  }
+  };
 
-  const handleTest = async (provider: IntegrationConfig["meta"]["id"]) => {
-    setBusyProvider(provider)
+  const handleTest = async (provider: IntegrationProvider) => {
+    setBusyProvider(provider);
     try {
-      const res = await testIntegrationApi(provider)
+      const res = await testIntegrationApi(provider);
       const message =
         (res as { message?: string }).message ??
-        "Test executed successfully (demo)"
-      toast.success(message)
+        "Test executed successfully (demo)";
+      toast.success(message);
     } catch (error) {
-      console.error(error)
-      toast.error("Test failed")
+      console.error(error);
+      toast.error("Test failed");
     } finally {
-      setBusyProvider(null)
+      setBusyProvider(null);
     }
-  }
+  };
 
-  const primaryActionLabel = (integration: IntegrationConfig): string => {
-    if (integration.status === "connected") {
-      return "Disconnect"
-    }
-    return "Connect"
-  }
+  const handleOpenConnectModal = (provider: IntegrationProvider) => {
+    setConnectModalProvider(provider);
+    setConnectModalOpen(true);
+  };
 
-  const handlePrimaryAction = (integration: IntegrationConfig) => {
-    if (!isAdmin) {
-      router.push(`/integrations/${integration.meta.id}`)
-      return
+  const handleConnectSuccess = async () => {
+    if (!connectModalProvider) return;
+    try {
+      const data = await fetchIntegrations();
+      setIntegrations(data);
+    } catch (error) {
+      console.error(error);
     }
-    if (integration.status === "connected") {
-      void handleDisconnect(integration.meta.id)
-    } else {
-      void handleConnect(integration.meta.id)
+  };
+
+  const handleOpenSetupGuide = (provider: IntegrationProvider) => {
+    setSetupGuideProvider(provider);
+    setSetupGuideOpen(true);
+  };
+
+  const handleStartQuickConnect = () => {
+    setSetupGuideOpen(false);
+    if (setupGuideProvider) {
+      handleOpenConnectModal(setupGuideProvider);
     }
-  }
+  };
+
+  const handleCreateDemoTicket = (provider: IntegrationProvider) => {
+    router.push(`/integrations/${provider}`);
+  };
+
+  const handleRequestDisconnect = (provider: IntegrationProvider) => {
+    setDisconnectProvider(provider);
+  };
+
+  const handleConfirmDisconnect = async () => {
+    if (!disconnectProvider) return;
+    await handleDisconnect(disconnectProvider);
+    setDisconnectProvider(null);
+  };
 
   const sidebarStyle = {
     "--sidebar-width": "18rem",
     "--header-height": "calc(var(--spacing) * 12)",
-  } as React.CSSProperties
+  } as React.CSSProperties;
+
+  const currentConnectProvider = integrations.find(
+    (i) => i.meta.id === connectModalProvider
+  );
+  const currentSetupProvider = integrations.find(
+    (i) => i.meta.id === setupGuideProvider
+  );
 
   return (
     <SidebarProvider style={sidebarStyle}>
       <AppSidebar variant="inset" />
       <SidebarInset className="h-screen overflow-auto">
         <div className="flex h-full flex-col gap-4 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Integrations
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Connect Jira, ServiceNow, Okta, and Google Workspace Admin for end-to-end IT workflows.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Demo Mode</span>
-          <Switch
-            checked={demoMode}
-            onCheckedChange={setDemoMode}
-            aria-label="Toggle demo mode"
-          />
-        </div>
-      </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight">
+                Integrations
+              </h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Demo Mode</span>
+              <Switch
+                checked={demoMode}
+                onCheckedChange={setDemoMode}
+                aria-label="Toggle demo mode"
+              />
+            </div>
+          </div>
 
-      {loading ? (
-        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-          Loading integrations...
-        </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {integrations.map((integration) => (
-            <Card
-              key={integration.meta.id}
-              className="flex flex-col justify-between"
-            >
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between text-base">
-                  <span>{integration.meta.name}</span>
-                  <Badge variant={statusVariant(integration)}>
-                    {statusLabel(integration)}
-                  </Badge>
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  {integration.meta.description}
-                </p>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-2">
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    className="flex-1"
-                    variant={
-                      integration.status === "connected" ? "outline" : "default"
-                    }
-                    disabled={busyProvider === integration.meta.id || !isAdmin}
-                    onClick={() => handlePrimaryAction(integration)}
-                  >
-                    {isAdmin
-                      ? primaryActionLabel(integration)
-                      : "View"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={busyProvider === integration.meta.id}
-                    onClick={() =>
-                      router.push(`/integrations/${integration.meta.id}`)
-                    }
-                  >
-                    Details
-                  </Button>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    disabled={busyProvider === integration.meta.id}
-                    onClick={() => void handleTest(integration.meta.id)}
-                    className="text-xs"
-                  >
-                    Test connection
-                  </Button>
-                  {integration.meta.id === "jira" && (
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      className="text-xs"
-                      onClick={() =>
-                        router.push("/integrations/jira")
-                      }
-                    >
-                      Create demo ticket
-                    </Button>
-                  )}
-                  {integration.meta.id === "servicenow" && (
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      className="text-xs"
-                      onClick={() =>
-                        router.push("/integrations/servicenow")
-                      }
-                    >
-                      Create incident
-                    </Button>
-                  )}
-                  {integration.meta.id === "okta" && (
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      className="text-xs"
-                      onClick={() =>
-                        router.push("/integrations/okta")
-                      }
-                    >
-                      Run provisioning
-                    </Button>
-                  )}
-                  {integration.meta.id === "google" && (
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      className="text-xs"
-                      onClick={() =>
-                        router.push("/integrations/google")
-                      }
-                    >
-                      Fetch user / device
-                    </Button>
-                  )}
-                </div>
-                {!isAdmin && (
-                  <p className="mt-1 text-[10px] text-muted-foreground">
-                    Admin-only actions are hidden. Enable Admin Mode in the sidebar to manage connections.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+          <p className="text-sm text-muted-foreground">
+            Connect Jira, ServiceNow, Okta, and Google Workspace Admin for
+            end-to-end IT workflows.
+          </p>
+
+          {loading ? (
+            <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+              Loading integrations...
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {integrations.map((integration) => (
+                <IntegrationCard
+                  key={integration.meta.id}
+                  integration={integration}
+                  demoMode={demoMode}
+                  isAdmin={isAdmin}
+                  isBusy={busyProvider === integration.meta.id}
+                  onConnect={handleConnect}
+                  onDisconnect={handleRequestDisconnect}
+                  onTest={handleTest}
+                  onCreateDemoTicket={
+                    demoMode ? handleCreateDemoTicket : undefined
+                  }
+                  onOpenSetupGuide={handleOpenSetupGuide}
+                  onOpenConnectModal={handleOpenConnectModal}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </SidebarInset>
+
+      {connectModalProvider && currentConnectProvider && (
+        <ConnectModal
+          open={connectModalOpen}
+          onOpenChange={setConnectModalOpen}
+          provider={connectModalProvider}
+          providerName={currentConnectProvider.meta.name}
+          onSuccess={handleConnectSuccess}
+        />
+      )}
+
+      {setupGuideProvider && currentSetupProvider && (
+        <SetupGuidePanel
+          open={setupGuideOpen}
+          onOpenChange={setSetupGuideOpen}
+          provider={setupGuideProvider}
+          providerName={currentSetupProvider.meta.name}
+          onStartQuickConnect={handleStartQuickConnect}
+        />
+      )}
+
+      <AlertDialog
+        open={!!disconnectProvider}
+        onOpenChange={(open) => !open && setDisconnectProvider(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disconnect Integration</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to disconnect this integration? This will
+              stop all syncing and webhook processing.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDisconnect}>
+              Disconnect
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarProvider>
-  )
+  );
 }
-
-

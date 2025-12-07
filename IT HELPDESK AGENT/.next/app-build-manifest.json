@@ -6,6 +6,31 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
+    "/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/page.js"
+    ],
+    "/integrations/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/integrations/page.js"
+    ],
+    "/api/integrations/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/integrations/route.js"
+    ],
+    "/api/integrations/[provider]/disconnect/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/integrations/[provider]/disconnect/route.js"
+    ],
+    "/knowledge-base/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/knowledge-base/page.js"
+    ],
     "/tickets/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -16,45 +41,35 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/tickets/route.js"
     ],
-    "/api/analytics/kpis/route": [
+    "/integrations/[provider]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/analytics/kpis/route.js"
+      "static/chunks/app/integrations/[provider]/page.js"
     ],
-    "/api/analytics/sla-funnel/route": [
+    "/api/integrations/[provider]/mapping/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/analytics/sla-funnel/route.js"
+      "static/chunks/app/api/integrations/[provider]/mapping/route.js"
     ],
-    "/api/analytics/top-issues/route": [
+    "/api/integrations/[provider]/logs/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/analytics/top-issues/route.js"
+      "static/chunks/app/api/integrations/[provider]/logs/route.js"
     ],
-    "/api/analytics/team-performance/route": [
+    "/api/integrations/[provider]/test/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/analytics/team-performance/route.js"
+      "static/chunks/app/api/integrations/[provider]/test/route.js"
     ],
-    "/api/analytics/lifecycle/route": [
+    "/api/oauth/jira/start/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/analytics/lifecycle/route.js"
+      "static/chunks/app/api/oauth/jira/start/route.js"
     ],
-    "/api/analytics/forecast/route": [
+    "/api/integrations/[provider]/connect/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/analytics/forecast/route.js"
-    ],
-    "/api/analytics/access-requests/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/analytics/access-requests/route.js"
-    ],
-    "/api/analytics/live-events/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/analytics/live-events/route.js"
+      "static/chunks/app/api/integrations/[provider]/connect/route.js"
     ]
   }
 }

@@ -2,16 +2,14 @@
   "integrations": {
     "jira": {
       "provider": "jira",
-      "status": "connected",
+      "status": "disconnected",
       "mode": "demo",
       "meta": {
         "id": "jira",
         "name": "Jira",
         "description": "Sync incidents and requests with Jira Software or Jira Service Management."
       },
-      "maskedToken": "xxxx-xxxx-ABCD",
-      "connectedAt": "2025-12-04T10:33:26.582Z",
-      "lastTestAt": "2025-12-04T10:33:34.114Z",
+      "lastTestAt": "2025-12-07T20:41:32.939Z",
       "mapping": {
         "title": "ticket.title",
         "description": "ticket.description",
@@ -30,7 +28,7 @@
         "description": "Create and track incidents in your ServiceNow instance."
       },
       "lastTestAt": "2025-12-04T10:38:11.258Z",
-      "connectedAt": "2025-12-04T10:49:03.300Z"
+      "connectedAt": "2025-12-07T20:44:58.817Z"
     },
     "okta": {
       "provider": "okta",
@@ -155,6 +153,121 @@
     {
       "id": "servicenow-connect-1764845343300",
       "timestamp": "2025-12-04T10:49:03.300Z",
+      "provider": "servicenow",
+      "action": "connect",
+      "actor": "admin",
+      "details": {
+        "mode": "demo",
+        "demo": true
+      }
+    },
+    {
+      "id": "jira-disconnect-1765127127362",
+      "timestamp": "2025-12-07T17:05:27.362Z",
+      "provider": "jira",
+      "action": "disconnect",
+      "actor": "admin"
+    },
+    {
+      "id": "jira-connect-1765127189180",
+      "timestamp": "2025-12-07T17:06:29.180Z",
+      "provider": "jira",
+      "action": "connect",
+      "actor": "admin",
+      "details": {
+        "mode": "demo",
+        "demo": true
+      }
+    },
+    {
+      "id": "jira-disconnect-1765136324498",
+      "timestamp": "2025-12-07T19:38:44.498Z",
+      "provider": "jira",
+      "action": "disconnect",
+      "actor": "admin"
+    },
+    {
+      "id": "jira-connect-1765136326734",
+      "timestamp": "2025-12-07T19:38:46.734Z",
+      "provider": "jira",
+      "action": "connect",
+      "actor": "admin",
+      "details": {
+        "mode": "demo",
+        "demo": true
+      }
+    },
+    {
+      "id": "jira-disconnect-1765136338444",
+      "timestamp": "2025-12-07T19:38:58.444Z",
+      "provider": "jira",
+      "action": "disconnect",
+      "actor": "admin"
+    },
+    {
+      "id": "servicenow-disconnect-1765136340514",
+      "timestamp": "2025-12-07T19:39:00.514Z",
+      "provider": "servicenow",
+      "action": "disconnect",
+      "actor": "admin"
+    },
+    {
+      "id": "jira-connect-1765136357175",
+      "timestamp": "2025-12-07T19:39:17.175Z",
+      "provider": "jira",
+      "action": "connect",
+      "actor": "admin",
+      "details": {
+        "mode": "demo",
+        "demo": true
+      }
+    },
+    {
+      "id": "jira-disconnect-1765136361748",
+      "timestamp": "2025-12-07T19:39:21.748Z",
+      "provider": "jira",
+      "action": "disconnect",
+      "actor": "admin"
+    },
+    {
+      "id": "jira-connect-1765137185688",
+      "timestamp": "2025-12-07T19:53:05.688Z",
+      "provider": "jira",
+      "action": "connect",
+      "actor": "admin",
+      "details": {
+        "mode": "demo",
+        "demo": true
+      }
+    },
+    {
+      "id": "jira-disconnect-1765137188843",
+      "timestamp": "2025-12-07T19:53:08.843Z",
+      "provider": "jira",
+      "action": "disconnect",
+      "actor": "admin"
+    },
+    {
+      "id": "jira-connect-1765138464502",
+      "timestamp": "2025-12-07T20:14:24.502Z",
+      "provider": "jira",
+      "action": "connect",
+      "actor": "admin",
+      "details": {
+        "mode": "demo",
+        "demo": true
+      }
+    },
+    {
+      "id": "jira-disconnect-1765138656746",
+      "timestamp": "2025-12-07T20:17:36.746Z",
+      "provider": "jira",
+      "action": "disconnect",
+      "actor": "admin"
+    },
+    {
+      "id": "servicenow-connect-1765140298817",
+      "timestamp": "2025-12-07T20:44:58.817Z",
       "provider": "servicenow",
       "action": "connect",
       "actor": "admin",
