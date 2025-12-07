@@ -2,12 +2,11 @@
   "/api/analytics/kpis/route": "app/api/analytics/kpis/route.js",
   "/api/analytics/sla-funnel/route": "app/api/analytics/sla-funnel/route.js",
   "/api/analytics/top-issues/route": "app/api/analytics/top-issues/route.js",
-  "/api/analytics/forecast/route": "app/api/analytics/forecast/route.js",
   "/api/analytics/team-performance/route": "app/api/analytics/team-performance/route.js",
   "/api/analytics/lifecycle/route": "app/api/analytics/lifecycle/route.js",
+  "/api/analytics/forecast/route": "app/api/analytics/forecast/route.js",
   "/api/analytics/access-requests/route": "app/api/analytics/access-requests/route.js",
   "/api/analytics/live-events/route": "app/api/analytics/live-events/route.js",
-  "/tickets/page": "app/tickets/page.js",
-  "/page": "app/page.js",
-  "/integrations/page": "app/integrations/page.js"
+  "/api/tickets/route": "app/api/tickets/route.js",
+  "/tickets/page": "app/tickets/page.js"
 }

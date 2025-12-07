@@ -522,6 +522,17 @@ export function AdminTicketsDashboard({
           <ReportBuilder
             onGenerateReport={handleReportGenerate}
             scheduledReports={scheduledReports}
+            onReportsUpdated={() => {
+              // Refresh reports if needed
+              fetch("/api/analytics/reports/scheduled")
+                .then((res) => res.json())
+                .then((data) => {
+                  if (data.success) {
+                    setScheduledReports(data.data || []);
+                  }
+                })
+                .catch(console.error);
+            }}
           />
           <AlertRules />
         </div>
