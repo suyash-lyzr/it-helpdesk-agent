@@ -94,8 +94,21 @@ const DEMO_EVENTS: Record<
     { id: "servicenow.cmdb.ci.updated", label: "cmdb.ci.updated" },
     { id: "servicenow.incident.resolved", label: "incident.resolved" },
   ],
-  okta: [{ id: "okta.user.provisioned", label: "okta.user.provisioned" }],
-  google: [{ id: "google.device.offline", label: "google.device.offline" }],
+  okta: [
+    { id: "okta.user.lifecycle.created", label: "user.lifecycle.created" },
+    {
+      id: "okta.user.lifecycle.deactivated",
+      label: "user.lifecycle.deactivated",
+    },
+    { id: "okta.group.user_membership", label: "group.user_membership" },
+    { id: "okta.user.provisioned", label: "okta.user.provisioned" },
+  ],
+  google: [
+    { id: "google.user.create", label: "user.create" },
+    { id: "google.user.suspended", label: "user.suspended" },
+    { id: "google.device.enroll", label: "device.enroll" },
+    { id: "google.device.offline", label: "device.offline" },
+  ],
 };
 
 export default function IntegrationDetailPage() {
@@ -126,10 +139,38 @@ export default function IntegrationDetailPage() {
   const [servicenowApiTokenEmail, setServicenowApiTokenEmail] = useState("");
   const [servicenowApiToken, setServicenowApiToken] = useState("");
   const [servicenowInstanceScope, setServicenowInstanceScope] = useState("");
+  const [oktaApiTokenUrl, setOktaApiTokenUrl] = useState("");
+  const [oktaApiToken, setOktaApiToken] = useState("");
+  const [oktaIntegrationUser, setOktaIntegrationUser] = useState("");
+  const [provisioningEnabled, setProvisioningEnabled] = useState(false);
+  const [groupSyncEnabled, setGroupSyncEnabled] = useState(false);
+  const [autoApproveLowRisk, setAutoApproveLowRisk] = useState(false);
+  const [provisioningSettingsOpen, setProvisioningSettingsOpen] =
+    useState(false);
+  const [eventHooksOpen, setEventHooksOpen] = useState(false);
+  const [demoUserEmail, setDemoUserEmail] = useState("demo.user@company.com");
+  const [demoUserFirstName, setDemoUserFirstName] = useState("Demo");
+  const [demoUserLastName, setDemoUserLastName] = useState("User");
+  const [demoUserGroup, setDemoUserGroup] = useState("github-admins");
+  const [oktaEventHookUrl, setOktaEventHookUrl] = useState("");
+  const [googleServiceAccountJson, setGoogleServiceAccountJson] = useState("");
+  const [googleDomainName, setGoogleDomainName] = useState("");
+  const [devicePostureEnabled, setDevicePostureEnabled] = useState(false);
+  const [posturePolicy, setPosturePolicy] = useState("allow");
+  const [groupSyncEnabledGoogle, setGroupSyncEnabledGoogle] = useState(false);
+  const [autoProvisionUsers, setAutoProvisionUsers] = useState(false);
+  const [groupMappingOpen, setGroupMappingOpen] = useState(false);
+  const [demoGoogleEmail, setDemoGoogleEmail] = useState(
+    "demo.user@company.com"
+  );
+  const [demoGoogleGroup, setDemoGoogleGroup] = useState("developers");
+  const [activityLogFilter, setActivityLogFilter] = useState<string>("all");
   const { isAdmin } = useAdminMode();
 
   const isJira = provider === "jira";
   const isServiceNow = provider === "servicenow";
+  const isOkta = provider === "okta";
+  const isGoogle = provider === "google";
 
   useEffect(() => {
     void (async () => {
@@ -452,6 +493,238 @@ export default function IntegrationDetailPage() {
     } catch (error) {
       console.error(error);
       toast.error("Failed to connect using API token");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleOktaConnectApiToken = async () => {
+    if (!isAdmin || !oktaApiTokenUrl || !oktaApiToken) {
+      toast.error("Please fill in Okta Base URL and API token");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await connectIntegrationApi(provider, {
+        mode: "real",
+        baseUrl: oktaApiTokenUrl,
+        token: oktaApiToken,
+        integrationUser: oktaIntegrationUser,
+      });
+      toast.success("Connected using API token");
+      setIntegration(
+        (prev) =>
+          prev && {
+            ...prev,
+            status: "connected",
+            mode: "real",
+            maskedToken: "xxxx-xxxx-xxxx",
+          }
+      );
+      const latest = await fetchIntegrationLogs(provider, 10);
+      setLogs(latest);
+      // Clear form
+      setOktaApiTokenUrl("");
+      setOktaApiToken("");
+      setOktaIntegrationUser("");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to connect using API token");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleAssignOktaGroup = async () => {
+    if (!isAdmin || provider !== "okta") return;
+    setBusy(true);
+    try {
+      const res = await demoOktaProvision({
+        username: demoUserEmail,
+        groups: [demoUserGroup],
+        duration: "30 days",
+      });
+      toast.success(`Assigned group ${demoUserGroup} to user (Demo)`);
+      const latest = await fetchIntegrationLogs(provider, 10);
+      setLogs(latest);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to assign group");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDeactivateOktaUser = async () => {
+    if (!isAdmin || provider !== "okta") return;
+    setBusy(true);
+    try {
+      // Simulate deactivation
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      toast.success(`Deactivated user ${demoUserEmail} (Demo)`);
+      const latest = await fetchIntegrationLogs(provider, 10);
+      setLogs(latest);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to deactivate user");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRegisterEventHook = async () => {
+    if (!isAdmin || provider !== "okta") return;
+    setBusy(true);
+    try {
+      // Simulate event hook registration
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      toast.success("Event hook registered successfully (Demo)");
+      const latest = await fetchIntegrationLogs(provider, 10);
+      setLogs(latest);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to register event hook");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSaveProvisioningSettings = async () => {
+    if (!isAdmin) return;
+    setBusy(true);
+    try {
+      // In a real implementation, this would save to backend
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      toast.success("Provisioning settings saved");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save provisioning settings");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleGoogleConnectServiceAccount = async () => {
+    if (!isAdmin || !googleServiceAccountJson || !googleDomainName) {
+      toast.error("Please provide Service Account JSON and Domain name");
+      return;
+    }
+    try {
+      // Validate JSON
+      JSON.parse(googleServiceAccountJson);
+    } catch (error) {
+      toast.error(
+        "Invalid JSON format. Please check your service account file."
+      );
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await connectIntegrationApi(provider, {
+        mode: "real",
+        serviceAccountJson: googleServiceAccountJson,
+        domain: googleDomainName,
+      });
+      toast.success("Connected using Service Account");
+      setIntegration(
+        (prev) =>
+          prev && {
+            ...prev,
+            status: "connected",
+            mode: "real",
+            maskedToken: "xxxx-xxxx-xxxx",
+          }
+      );
+      const latest = await fetchIntegrationLogs(provider, 10);
+      setLogs(latest);
+      // Clear form
+      setGoogleServiceAccountJson("");
+      setGoogleDomainName("");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to connect using Service Account");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleFetchGoogleUser = async () => {
+    if (!isAdmin || provider !== "google") return;
+    setBusy(true);
+    try {
+      const res = await demoGoogleCheckDevice();
+      toast.success(
+        `User fetched: ${demoGoogleEmail} - Status: ${res.device_status}, OS: ${res.os} (Demo)`
+      );
+      const latest = await fetchIntegrationLogs(provider, 10);
+      setLogs(latest);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to fetch user");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleFetchGoogleGroups = async () => {
+    if (!isAdmin || provider !== "google") return;
+    setBusy(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      toast.success("Groups fetched successfully (Demo)");
+      const latest = await fetchIntegrationLogs(provider, 10);
+      setLogs(latest);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to fetch groups");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSuspendRestoreGoogleUser = async () => {
+    if (!isAdmin || provider !== "google") return;
+    setBusy(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      toast.success(`User ${demoGoogleEmail} status toggled (Demo)`);
+      const latest = await fetchIntegrationLogs(provider, 10);
+      setLogs(latest);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update user status");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRunDeviceSync = async () => {
+    if (!isAdmin || provider !== "google") return;
+    setBusy(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      toast.success("Device sync completed successfully (Demo)");
+      const latest = await fetchIntegrationLogs(provider, 10);
+      setLogs(latest);
+    } catch (error) {
+      console.error(error);
+      toast.error("Device sync failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleAutoDiscoverGroups = async () => {
+    if (!isAdmin || provider !== "google") return;
+    setBusy(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      toast.success("Groups auto-discovered successfully (Demo)");
+      const latest = await fetchIntegrationLogs(provider, 10);
+      setLogs(latest);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to auto-discover groups");
     } finally {
       setBusy(false);
     }
@@ -1869,6 +2142,1712 @@ export default function IntegrationDetailPage() {
                                   <XCircle className="h-3 w-3 text-destructive" />
                                 ) : log.action.includes("success") ||
                                   log.action.includes("connect") ? (
+                                  <CheckCircle className="h-3 w-3 text-green-600" />
+                                ) : (
+                                  <Info className="h-3 w-3 text-muted-foreground" />
+                                )}
+                                <span className="font-medium">
+                                  {log.action}
+                                </span>
+                              </div>
+                              <span className="text-muted-foreground whitespace-nowrap">
+                                {new Date(log.timestamp).toLocaleString()}
+                              </span>
+                            </div>
+                            {log.details && (
+                              <details className="mt-2">
+                                <summary className="cursor-pointer text-[10px] text-muted-foreground hover:text-foreground">
+                                  View JSON details
+                                </summary>
+                                <pre className="mt-2 text-[10px] bg-background p-2 rounded border overflow-x-auto">
+                                  {JSON.stringify(log.details, null, 2)}
+                                </pre>
+                              </details>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        No activity log entries yet. Connect and run a test to
+                        see activity.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Footer Actions */}
+            <div className="flex items-center justify-end gap-3 pt-2 border-t">
+              {integration.status === "connected" && (
+                <Button
+                  variant="destructive"
+                  onClick={handleDisconnect}
+                  disabled={busy || !isAdmin}
+                >
+                  Disconnect Integration
+                </Button>
+              )}
+              {integration.status !== "connected" && (
+                <Button onClick={handleConnectDemo} disabled={busy || !isAdmin}>
+                  Start OAuth Setup
+                </Button>
+              )}
+              <Button onClick={handleSaveMappings} disabled={busy || !isAdmin}>
+                Save Settings
+              </Button>
+            </div>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    );
+  }
+
+  // Render new Okta-specific design
+  if (isOkta) {
+    return (
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "18rem",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as React.CSSProperties
+        }
+      >
+        <AppSidebar variant="inset" />
+        <SidebarInset className="h-screen overflow-auto">
+          <div className="flex h-full flex-col gap-6 p-6">
+            {/* Header Section */}
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <h1 className="text-3xl font-semibold tracking-tight">
+                  Okta Integration
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Provision users, manage access requests, and sync groups using
+                  Okta.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge
+                  variant={statusBadgeVariant}
+                  className="text-sm px-3 py-1"
+                >
+                  {statusBadgeText}
+                </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy || !isAdmin}
+                  onClick={handleTest}
+                >
+                  Test Connection
+                </Button>
+                {integration.status === "connected" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy || !isAdmin}
+                    onClick={handleDisconnect}
+                  >
+                    Disconnect
+                  </Button>
+                )}
+                {integration.status !== "connected" && (
+                  <Button
+                    size="sm"
+                    disabled={busy || !isAdmin}
+                    onClick={handleConnectDemo}
+                  >
+                    Start OAuth / Connect
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              Use Okta for automated user provisioning, group sync, and access
+              lifecycle management.
+            </p>
+
+            {/* What this integration enables */}
+            <Card>
+              <CardHeader>
+                <CardTitle>What this integration enables</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <ul className="space-y-2 list-disc list-inside text-sm text-muted-foreground">
+                  <li>
+                    Provision and de-provision users in Okta automatically from
+                    access requests
+                  </li>
+                  <li>
+                    Push group assignments and roles from the helpdesk to Okta
+                  </li>
+                  <li>Trigger automated provisioning workflows on approval</li>
+                  <li>
+                    Fetch user status, device posture, and MFA state for access
+                    decisions
+                  </li>
+                  <li>
+                    Support Just-In-Time (JIT) provisioning or full SCIM
+                    provisioning
+                  </li>
+                  <li>
+                    Replay Okta events (user.lifecycle, group.user_membership)
+                    for demo and debugging
+                  </li>
+                </ul>
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    Lyzr handles mapping, retries and audit logging
+                    automatically; you only need to provide minimal credentials.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Setup Steps */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Setup Steps (Required once)</CardTitle>
+                <CardDescription>
+                  Choose your preferred connection method
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="api-token" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="api-token">
+                      Option A — Recommended: SCIM / API Token (Provisioning)
+                    </TabsTrigger>
+                    <TabsTrigger value="oauth">
+                      Option B — Alternative: OAuth / OIDC
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="api-token" className="space-y-4 mt-4">
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                          1
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            Create an Okta API token in your Okta Admin Console
+                            (one-time)
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Navigate to Security → API → Tokens in your Okta
+                            Admin Console
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                          2
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            Provide your Okta base URL and API token in the form
+                            below
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                          3
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            Grant the token a dedicated integration user with
+                            the minimum required permissions
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                          4
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            Click Connect using API Token
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="okta-url">Okta Base URL</Label>
+                        <Input
+                          id="okta-url"
+                          placeholder="https://your-company.okta.com"
+                          value={oktaApiTokenUrl}
+                          onChange={(e) => setOktaApiTokenUrl(e.target.value)}
+                          disabled={!isAdmin || busy}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="okta-token">API token</Label>
+                        <Input
+                          id="okta-token"
+                          type="password"
+                          placeholder="Enter your Okta API token"
+                          value={oktaApiToken}
+                          onChange={(e) => setOktaApiToken(e.target.value)}
+                          disabled={!isAdmin || busy}
+                          required
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Generate an API token from Security → API → Tokens in
+                          Okta Admin Console
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="okta-integration-user">
+                          Integration user (optional)
+                        </Label>
+                        <Input
+                          id="okta-integration-user"
+                          placeholder="integration.user@company.com"
+                          value={oktaIntegrationUser}
+                          onChange={(e) =>
+                            setOktaIntegrationUser(e.target.value)
+                          }
+                          disabled={!isAdmin || busy}
+                        />
+                      </div>
+                      <Button
+                        onClick={handleOktaConnectApiToken}
+                        disabled={
+                          !isAdmin || busy || !oktaApiTokenUrl || !oktaApiToken
+                        }
+                        className="w-full"
+                      >
+                        Connect using API Token
+                      </Button>
+                    </div>
+                    <div className="pt-3 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        SCIM/API token is recommended for provisioning because
+                        it allows granular provisioning and de-provisioning
+                        control.
+                      </p>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="oauth" className="space-y-4 mt-4">
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                          1
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            Click Start OAuth (opens Okta OAuth/OIDC flow)
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Use the button in the header above or below
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                          2
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            Sign in with an Okta admin account and grant
+                            read/event scopes
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Authorize Lyzr to access your Okta instance
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="pt-3 border-t">
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Use OAuth if you prefer delegated access without storing
+                        tokens.
+                      </p>
+                      <Button
+                        onClick={handleConnectDemo}
+                        disabled={busy || !isAdmin}
+                        className="w-full"
+                      >
+                        Start OAuth
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+
+            {/* Quick Capabilities & Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Capabilities & Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "Provisioning (SCIM)",
+                    "Group Sync",
+                    "Read user state",
+                    "Event Hooks",
+                    "MFA info",
+                    "De-provisioning",
+                  ].map((capability) => (
+                    <Badge
+                      key={capability}
+                      variant={
+                        integration.status === "connected"
+                          ? "default"
+                          : "secondary"
+                      }
+                      className="text-xs"
+                    >
+                      {capability}
+                    </Badge>
+                  ))}
+                </div>
+                <div className="pt-2 border-t">
+                  <p className="text-sm text-muted-foreground flex items-center gap-2">
+                    <ArrowRightLeft className="h-3 w-3" />
+                    Sync Direction:{" "}
+                    {integration.status === "connected"
+                      ? "Push provisioning (Lyzr → Okta) and Read-only fetch (Okta → Lyzr)"
+                      : "Not configured"}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Minimal client work */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Minimum required from your side</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <p className="text-sm">
+                      Create Okta API token OR start OAuth flow
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <p className="text-sm">
+                      Provide a dedicated integration service account
+                      (recommended)
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <p className="text-sm">
+                      Allow SCIM provisioning and group management to the token
+                      user
+                    </p>
+                  </div>
+                </div>
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    We will handle mapping, scheduling, and retries. If you
+                    want, we can do field mapping and onboarding during the POC.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Security & Required Scopes */}
+            <Collapsible open={securityOpen} onOpenChange={setSecurityOpen}>
+              <Card>
+                <CollapsibleTrigger className="w-full">
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Security & Required Scopes
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${
+                          securityOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </CardTitle>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-3 pt-0">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">
+                        Required scopes / permissions:
+                      </p>
+                      <ul className="space-y-1 list-disc list-inside text-sm text-muted-foreground ml-2">
+                        <li>
+                          <code className="text-xs bg-muted px-1 rounded">
+                            okta.users.manage
+                          </code>
+                          : create/update users for provisioning via API
+                        </li>
+                        <li>
+                          <code className="text-xs bg-muted px-1 rounded">
+                            okta.groups.manage
+                          </code>
+                          : manage group memberships
+                        </li>
+                        <li>
+                          <code className="text-xs bg-muted px-1 rounded">
+                            okta.events.read
+                          </code>
+                          : read events for webhook replay
+                        </li>
+                        <li>
+                          <code className="text-xs bg-muted px-1 rounded">
+                            okta.apps.read
+                          </code>
+                          : optional, for app assignment checks
+                        </li>
+                      </ul>
+                    </div>
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        We recommend a dedicated integration service account.
+                        Tokens are stored encrypted in the Lyzr backend.
+                      </p>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+
+            {/* Provisioning Settings */}
+            <Collapsible
+              open={provisioningSettingsOpen}
+              onOpenChange={setProvisioningSettingsOpen}
+            >
+              <Card>
+                <CollapsibleTrigger className="w-full">
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
+                        Provisioning & Group Sync
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${
+                          provisioningSettingsOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </CardTitle>
+                    <CardDescription>
+                      Configure user provisioning and group synchronization
+                    </CardDescription>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-4 pt-0">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="enable-provisioning">
+                          Enable provisioning
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Allow automatic user provisioning to Okta
+                        </p>
+                      </div>
+                      <Switch
+                        id="enable-provisioning"
+                        checked={provisioningEnabled}
+                        onCheckedChange={setProvisioningEnabled}
+                        disabled={
+                          !isAdmin || integration.status !== "connected"
+                        }
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="enable-group-sync">
+                          Enable group sync
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Sync group memberships between Lyzr and Okta
+                        </p>
+                      </div>
+                      <Switch
+                        id="enable-group-sync"
+                        checked={groupSyncEnabled}
+                        onCheckedChange={setGroupSyncEnabled}
+                        disabled={
+                          !isAdmin || integration.status !== "connected"
+                        }
+                      />
+                    </div>
+                    <Separator />
+                    <div className="space-y-4">
+                      <p className="text-sm font-medium">Field Mapping</p>
+                      <div className="grid gap-4">
+                        <div className="grid grid-cols-2 gap-4 items-center">
+                          <div>
+                            <Label className="text-sm">Username</Label>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              ticket.requester.email
+                            </p>
+                          </div>
+                          <Select disabled={!isAdmin}>
+                            <SelectTrigger>
+                              <SelectValue value="ticket.requester.email" />
+                            </SelectTrigger>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 items-center">
+                          <div>
+                            <Label className="text-sm">First name</Label>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              ticket.requester.firstName
+                            </p>
+                          </div>
+                          <Select disabled={!isAdmin}>
+                            <SelectTrigger>
+                              <SelectValue value="ticket.requester.firstName" />
+                            </SelectTrigger>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 items-center">
+                          <div>
+                            <Label className="text-sm">Last name</Label>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              ticket.requester.lastName
+                            </p>
+                          </div>
+                          <Select disabled={!isAdmin}>
+                            <SelectTrigger>
+                              <SelectValue value="ticket.requester.lastName" />
+                            </SelectTrigger>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 items-center">
+                          <div>
+                            <Label className="text-sm">Groups</Label>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              requested_role / project_group
+                            </p>
+                          </div>
+                          <Select disabled={!isAdmin}>
+                            <SelectTrigger>
+                              <SelectValue value="requested_role" />
+                            </SelectTrigger>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="auto-approve"
+                        checked={autoApproveLowRisk}
+                        onChange={(e) =>
+                          setAutoApproveLowRisk(e.target.checked)
+                        }
+                        disabled={!isAdmin}
+                        className="h-4 w-4"
+                      />
+                      <Label htmlFor="auto-approve" className="text-sm">
+                        Auto-approve low-risk requests
+                      </Label>
+                    </div>
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground mb-3">
+                        By default, provisioning is disabled; enable only when
+                        ready.
+                      </p>
+                      <Button
+                        size="sm"
+                        disabled={busy || !isAdmin}
+                        onClick={handleSaveProvisioningSettings}
+                      >
+                        Save provisioning settings
+                      </Button>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+
+            {/* Event Hooks & Webhooks */}
+            <Collapsible open={eventHooksOpen} onOpenChange={setEventHooksOpen}>
+              <Card>
+                <CollapsibleTrigger className="w-full">
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Webhook className="h-4 w-4" />
+                        Event Hooks
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${
+                          eventHooksOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </CardTitle>
+                    <CardDescription>
+                      Configure Okta event hooks for real-time event delivery
+                    </CardDescription>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-4 pt-0">
+                    <p className="text-sm text-muted-foreground">
+                      Okta event hooks allow us to receive real-time Okta events
+                      (user.lifecycle, group.user_membership).
+                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="event-hook-url">
+                        Okta event hook URL (optional)
+                      </Label>
+                      <Input
+                        id="event-hook-url"
+                        placeholder="https://your-instance.lyzr.ai/webhooks/okta"
+                        value={oktaEventHookUrl}
+                        onChange={(e) => setOktaEventHookUrl(e.target.value)}
+                        disabled={!isAdmin || busy}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        If you cannot register event hooks, periodic polling
+                        will be used.
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={handleRegisterEventHook}
+                      disabled={busy || !isAdmin}
+                      className="w-full"
+                    >
+                      Register Event Hook (Demo)
+                    </Button>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+
+            {/* Test & Validate Integration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Test & Validate Integration
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label className="text-sm">Demo user email</Label>
+                      <Input
+                        value={demoUserEmail}
+                        onChange={(e) => setDemoUserEmail(e.target.value)}
+                        placeholder="demo.user@company.com"
+                        disabled={!isAdmin || busy}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm">Group to assign</Label>
+                      <Select
+                        value={demoUserGroup}
+                        onValueChange={setDemoUserGroup}
+                        disabled={!isAdmin || busy}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="github-admins">
+                            github-admins
+                          </SelectItem>
+                          <SelectItem value="developers">developers</SelectItem>
+                          <SelectItem value="it-support">it-support</SelectItem>
+                          <SelectItem value="managers">managers</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label className="text-sm">First name</Label>
+                      <Input
+                        value={demoUserFirstName}
+                        onChange={(e) => setDemoUserFirstName(e.target.value)}
+                        placeholder="Demo"
+                        disabled={!isAdmin || busy}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm">Last name</Label>
+                      <Input
+                        value={demoUserLastName}
+                        onChange={(e) => setDemoUserLastName(e.target.value)}
+                        placeholder="User"
+                        disabled={!isAdmin || busy}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button
+                      onClick={handleDemoAction}
+                      disabled={busy || !isAdmin}
+                      className="w-full"
+                    >
+                      Create Sample User in Okta (Demo)
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleAssignOktaGroup}
+                      disabled={busy || !isAdmin}
+                      className="w-full"
+                    >
+                      Assign Group (Demo)
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleDeactivateOktaUser}
+                      disabled={busy || !isAdmin}
+                      className="w-full"
+                    >
+                      Deactivate Sample User (Demo)
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <Label className="text-sm">Webhook Replay Event</Label>
+                  <Select
+                    value={selectedEvent}
+                    onValueChange={setSelectedEvent}
+                    disabled={webhookBusy}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select webhook event" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEMO_EVENTS[provider].map((event) => (
+                        <SelectItem key={event.id} value={event.id}>
+                          {event.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    onClick={handleWebhookReplay}
+                    disabled={webhookBusy || !selectedEvent}
+                    className="w-full"
+                  >
+                    Replay Event (Demo)
+                  </Button>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">
+                    Recent Integration Activity Log
+                  </Label>
+                  <div className="rounded-md border bg-muted/30 max-h-[300px] overflow-y-auto">
+                    {logs.length > 0 ? (
+                      <div className="divide-y">
+                        {logs.map((log) => (
+                          <div key={log.id} className="p-3 text-xs">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <div className="flex items-center gap-2">
+                                {log.action.includes("error") ||
+                                log.action.includes("fail") ? (
+                                  <XCircle className="h-3 w-3 text-destructive" />
+                                ) : log.action.includes("success") ||
+                                  log.action.includes("connect") ||
+                                  log.action.includes("provision") ? (
+                                  <CheckCircle className="h-3 w-3 text-green-600" />
+                                ) : (
+                                  <Info className="h-3 w-3 text-muted-foreground" />
+                                )}
+                                <span className="font-medium">
+                                  {log.action}
+                                </span>
+                              </div>
+                              <span className="text-muted-foreground whitespace-nowrap">
+                                {new Date(log.timestamp).toLocaleString()}
+                              </span>
+                            </div>
+                            {log.details && (
+                              <details className="mt-2">
+                                <summary className="cursor-pointer text-[10px] text-muted-foreground hover:text-foreground">
+                                  View JSON details
+                                </summary>
+                                <pre className="mt-2 text-[10px] bg-background p-2 rounded border overflow-x-auto">
+                                  {JSON.stringify(log.details, null, 2)}
+                                </pre>
+                              </details>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        No activity log entries yet. Connect and run a test to
+                        see activity.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Footer Actions */}
+            <div className="flex items-center justify-end gap-3 pt-2 border-t">
+              {integration.status === "connected" && (
+                <Button
+                  variant="destructive"
+                  onClick={handleDisconnect}
+                  disabled={busy || !isAdmin}
+                >
+                  Disconnect Integration
+                </Button>
+              )}
+              {integration.status !== "connected" && (
+                <Button onClick={handleConnectDemo} disabled={busy || !isAdmin}>
+                  Connect / Start OAuth
+                </Button>
+              )}
+              <Button
+                onClick={handleSaveProvisioningSettings}
+                disabled={busy || !isAdmin}
+              >
+                Save Settings
+              </Button>
+            </div>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    );
+  }
+
+  // Render new Google Workspace-specific design
+  if (isGoogle) {
+    const filteredLogs =
+      activityLogFilter === "all"
+        ? logs
+        : logs.filter((log) =>
+            log.action.toLowerCase().includes(activityLogFilter)
+          );
+
+    return (
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "18rem",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as React.CSSProperties
+        }
+      >
+        <AppSidebar variant="inset" />
+        <SidebarInset className="h-screen overflow-auto">
+          <div className="flex h-full flex-col gap-6 p-6">
+            {/* Header Section */}
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <h1 className="text-3xl font-semibold tracking-tight">
+                  Google Workspace Admin
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Fetch users, devices and account posture from Google Workspace
+                  for access decisions and user lifecycle management.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge
+                  variant={statusBadgeVariant}
+                  className="text-sm px-3 py-1"
+                >
+                  {statusBadgeText}
+                </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy || !isAdmin}
+                  onClick={handleTest}
+                >
+                  Test Connection
+                </Button>
+                {integration.status === "connected" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy || !isAdmin}
+                    onClick={handleDisconnect}
+                  >
+                    Disconnect
+                  </Button>
+                )}
+                {integration.status !== "connected" && (
+                  <Button
+                    size="sm"
+                    disabled={busy || !isAdmin}
+                    onClick={handleConnectDemo}
+                  >
+                    Start OAuth Setup
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              Use Workspace Admin APIs to read user accounts, device posture,
+              group membership and to support access workflows.
+            </p>
+
+            {/* What this integration enables */}
+            <Card>
+              <CardHeader>
+                <CardTitle>What this integration enables</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <ul className="space-y-2 list-disc list-inside text-sm text-muted-foreground">
+                  <li>
+                    Read user accounts and group membership for access decisions
+                  </li>
+                  <li>
+                    Check device posture (managed device, last sync, OS) to
+                    enforce conditional access
+                  </li>
+                  <li>
+                    Suspend/restore users as part of de-provisioning (optional)
+                  </li>
+                  <li>Map Google groups to role assignments or app access</li>
+                  <li>Fetch MFA/enrollment state for risk-aware approvals</li>
+                  <li>Replay Workspace admin events for demo and debugging</li>
+                </ul>
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    Lyzr only requests the scopes needed to support access and
+                    lifecycle flows.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Setup Steps */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Setup Steps (Required once)</CardTitle>
+                <CardDescription>
+                  Choose your preferred connection method
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="oauth" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="oauth">
+                      Option A — Recommended: OAuth Consent
+                    </TabsTrigger>
+                    <TabsTrigger value="service-account">
+                      Option B — Alternative: Service Account
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="oauth" className="space-y-4 mt-4">
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                          1
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            Click Start OAuth Setup
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Use the button in the header above
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                          2
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            Sign in with a Google Workspace admin account
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Authenticate using your Google Workspace
+                            administrator credentials
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                          3
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            Grant the requested admin scopes (read users, read
+                            groups, device management)
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Authorize Lyzr to access your Google Workspace
+                            instance
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                          4
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            Integration active
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            You'll be redirected back and the integration will
+                            be active
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="pt-3 border-t">
+                      <p className="text-xs text-muted-foreground mb-3">
+                        OAuth is simplest for most customers and supports token
+                        rotation.
+                      </p>
+                      <Button
+                        onClick={handleConnectDemo}
+                        disabled={busy || !isAdmin}
+                        className="w-full"
+                      >
+                        Start OAuth Setup
+                      </Button>
+                    </div>
+                  </TabsContent>
+                  <TabsContent
+                    value="service-account"
+                    className="space-y-4 mt-4"
+                  >
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="service-account-json">
+                          Service account JSON
+                        </Label>
+                        <Textarea
+                          id="service-account-json"
+                          placeholder="Paste your service account JSON here (or upload file)"
+                          value={googleServiceAccountJson}
+                          onChange={(e) =>
+                            setGoogleServiceAccountJson(e.target.value)
+                          }
+                          disabled={!isAdmin || busy}
+                          className="min-h-[120px] font-mono text-xs"
+                          required
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Upload or paste the JSON key file from your Google
+                          service account
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="domain-name">
+                          Customer / Domain name
+                        </Label>
+                        <Input
+                          id="domain-name"
+                          placeholder="example.com"
+                          value={googleDomainName}
+                          onChange={(e) => setGoogleDomainName(e.target.value)}
+                          disabled={!isAdmin || busy}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Delegate scopes (recommended)</Label>
+                        <div className="space-y-2 pl-4">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="scope-users-read"
+                              defaultChecked
+                              className="h-4 w-4"
+                              disabled={!isAdmin}
+                            />
+                            <Label
+                              htmlFor="scope-users-read"
+                              className="text-xs font-normal cursor-pointer"
+                            >
+                              admin.directory.user.readonly
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="scope-groups-read"
+                              defaultChecked
+                              className="h-4 w-4"
+                              disabled={!isAdmin}
+                            />
+                            <Label
+                              htmlFor="scope-groups-read"
+                              className="text-xs font-normal cursor-pointer"
+                            >
+                              admin.directory.group.readonly
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="scope-audit-read"
+                              defaultChecked
+                              className="h-4 w-4"
+                              disabled={!isAdmin}
+                            />
+                            <Label
+                              htmlFor="scope-audit-read"
+                              className="text-xs font-normal cursor-pointer"
+                            >
+                              admin.reports.audit.readonly
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="scope-device-read"
+                              defaultChecked
+                              className="h-4 w-4"
+                              disabled={!isAdmin}
+                            />
+                            <Label
+                              htmlFor="scope-device-read"
+                              className="text-xs font-normal cursor-pointer"
+                            >
+                              admin.directory.device.chromeos.readonly
+                            </Label>
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={handleGoogleConnectServiceAccount}
+                        disabled={
+                          !isAdmin ||
+                          busy ||
+                          !googleServiceAccountJson ||
+                          !googleDomainName
+                        }
+                        className="w-full"
+                      >
+                        Connect using Service Account
+                      </Button>
+                    </div>
+                    <div className="pt-3 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        Use service accounts when domain-wide delegation is
+                        required by policy.
+                      </p>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+
+            {/* Minimal customer work */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Minimum required from your side</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <p className="text-sm">
+                      Google Workspace admin account for one-time OAuth OR
+                      service account + domain delegation file
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <p className="text-sm">(Optional) List of groups to map</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <p className="text-sm">
+                      (Optional) Approver(s) for provisioning workflows
+                    </p>
+                  </div>
+                </div>
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    We will handle mapping, scheduling, retries and storage of
+                    tokens.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Security & Required Scopes */}
+            <Collapsible open={securityOpen} onOpenChange={setSecurityOpen}>
+              <Card>
+                <CollapsibleTrigger className="w-full">
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Security & Required Scopes
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${
+                          securityOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </CardTitle>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-3 pt-0">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Required scopes:</p>
+                      <ul className="space-y-1 list-disc list-inside text-sm text-muted-foreground ml-2">
+                        <li>
+                          <code className="text-xs bg-muted px-1 rounded">
+                            https://www.googleapis.com/auth/admin.directory.user.readonly
+                          </code>{" "}
+                          (read users)
+                        </li>
+                        <li>
+                          <code className="text-xs bg-muted px-1 rounded">
+                            https://www.googleapis.com/auth/admin.directory.group.readonly
+                          </code>{" "}
+                          (read groups)
+                        </li>
+                        <li>
+                          <code className="text-xs bg-muted px-1 rounded">
+                            https://www.googleapis.com/auth/admin.reports.audit.readonly
+                          </code>{" "}
+                          (audit/events)
+                        </li>
+                        <li>
+                          <code className="text-xs bg-muted px-1 rounded">
+                            https://www.googleapis.com/auth/admin.directory.user
+                          </code>{" "}
+                          (optional — create/suspend users)
+                        </li>
+                        <li>
+                          <code className="text-xs bg-muted px-1 rounded">
+                            https://www.googleapis.com/auth/admin.directory.device.chromeos.readonly
+                          </code>{" "}
+                          (device posture)
+                        </li>
+                      </ul>
+                    </div>
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        We recommend a dedicated integration account. Tokens and
+                        keys are stored encrypted. Use domain-wide delegation
+                        only if required.
+                      </p>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+
+            {/* Capabilities & Quick Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Capabilities & Quick Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "Read users",
+                    "Group sync",
+                    "Device posture",
+                    "MFA state",
+                    "Suspend users (optional)",
+                    "Webhook/event replay",
+                  ].map((capability) => (
+                    <Badge
+                      key={capability}
+                      variant={
+                        integration.status === "connected"
+                          ? "default"
+                          : "secondary"
+                      }
+                      className="text-xs"
+                    >
+                      {capability}
+                    </Badge>
+                  ))}
+                </div>
+                <div className="pt-2 border-t">
+                  <p className="text-sm text-muted-foreground">
+                    Current sync behavior:{" "}
+                    {integration.status === "connected"
+                      ? "Polling interval: 15 minutes"
+                      : "Not configured"}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Device Posture & Risk */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Device Posture & Risk</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Use device posture to block or require approvals for risky
+                  access.
+                </p>
+                {integration.status === "connected" ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-3 bg-muted/30 rounded-md">
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        Managed devices
+                      </p>
+                      <p className="text-2xl font-semibold">124</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        Unmanaged devices
+                      </p>
+                      <p className="text-2xl font-semibold">8</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        Avg last sync
+                      </p>
+                      <p className="text-sm font-medium">2h ago</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        Outdated OS
+                      </p>
+                      <p className="text-2xl font-semibold">3</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-sm text-muted-foreground border border-dashed rounded-md">
+                    Connect to view device posture data
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="enable-device-posture">
+                      Enable device posture checks
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Use device status for access decisions
+                    </p>
+                  </div>
+                  <Switch
+                    id="enable-device-posture"
+                    checked={devicePostureEnabled}
+                    onCheckedChange={setDevicePostureEnabled}
+                    disabled={!isAdmin || integration.status !== "connected"}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="posture-policy">Posture policy mapping</Label>
+                  <Select
+                    value={posturePolicy}
+                    onValueChange={setPosturePolicy}
+                    disabled={!isAdmin || !devicePostureEnabled}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="block">Block</SelectItem>
+                      <SelectItem value="require-approval">
+                        Require approval
+                      </SelectItem>
+                      <SelectItem value="allow">Allow</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleRunDeviceSync}
+                  disabled={busy || !isAdmin}
+                  className="w-full"
+                >
+                  Run Device Sync (Demo)
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Device posture requires the device APIs to be accessible in
+                  your Workspace Admin console.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Group Mapping & Provisioning */}
+            <Collapsible
+              open={groupMappingOpen}
+              onOpenChange={setGroupMappingOpen}
+            >
+              <Card>
+                <CollapsibleTrigger className="w-full">
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
+                        Group Mapping & Provisioning
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${
+                          groupMappingOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </CardTitle>
+                    <CardDescription>
+                      Map Google Groups to Lyzr roles and configure provisioning
+                    </CardDescription>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-4 pt-0">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="enable-group-sync-google">
+                          Enable group sync
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Sync group memberships between Google Workspace and
+                          Lyzr
+                        </p>
+                      </div>
+                      <Switch
+                        id="enable-group-sync-google"
+                        checked={groupSyncEnabledGoogle}
+                        onCheckedChange={setGroupSyncEnabledGoogle}
+                        disabled={
+                          !isAdmin || integration.status !== "connected"
+                        }
+                      />
+                    </div>
+                    <Separator />
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">
+                          Map Google Group → Lyzr Role / Ticket assignment
+                        </Label>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleAutoDiscoverGroups}
+                          disabled={busy || !isAdmin}
+                        >
+                          Auto-discover groups (Demo)
+                        </Button>
+                      </div>
+                      <div className="rounded-md border">
+                        <div className="grid grid-cols-3 gap-4 p-3 bg-muted/30 text-xs font-medium border-b">
+                          <div>Google Group</div>
+                          <div>Lyzr Role</div>
+                          <div>Ticket Assignment</div>
+                        </div>
+                        <div className="divide-y">
+                          {[
+                            {
+                              group: "developers@company.com",
+                              role: "Developer",
+                              assignment: "Engineering Team",
+                            },
+                            {
+                              group: "managers@company.com",
+                              role: "Manager",
+                              assignment: "Management",
+                            },
+                          ].map((mapping, idx) => (
+                            <div
+                              key={idx}
+                              className="grid grid-cols-3 gap-4 p-3 text-xs"
+                            >
+                              <div>{mapping.group}</div>
+                              <div>{mapping.role}</div>
+                              <div>{mapping.assignment}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="auto-provision"
+                        checked={autoProvisionUsers}
+                        onChange={(e) =>
+                          setAutoProvisionUsers(e.target.checked)
+                        }
+                        disabled={!isAdmin}
+                        className="h-4 w-4"
+                      />
+                      <Label htmlFor="auto-provision" className="text-sm">
+                        Auto-provision users into mapped groups after approval
+                      </Label>
+                    </div>
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        Defaults are safe; modify only if you use custom group
+                        naming.
+                      </p>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+
+            {/* Test & Validate Integration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Test & Validate Integration
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label className="text-sm">Email</Label>
+                      <Input
+                        value={demoGoogleEmail}
+                        onChange={(e) => setDemoGoogleEmail(e.target.value)}
+                        placeholder="demo.user@company.com"
+                        disabled={!isAdmin || busy}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm">Group to check</Label>
+                      <Select
+                        value={demoGoogleGroup}
+                        onValueChange={setDemoGoogleGroup}
+                        disabled={!isAdmin || busy}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="developers">developers</SelectItem>
+                          <SelectItem value="managers">managers</SelectItem>
+                          <SelectItem value="it-support">it-support</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      onClick={handleFetchGoogleUser}
+                      disabled={busy || !isAdmin}
+                      className="w-full"
+                    >
+                      Fetch User (Demo)
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleFetchGoogleGroups}
+                      disabled={busy || !isAdmin}
+                      className="w-full"
+                    >
+                      Fetch Groups (Demo)
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={handleSuspendRestoreGoogleUser}
+                      disabled={busy || !isAdmin}
+                      className="w-full"
+                    >
+                      Suspend / Restore User (Demo)
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleRunDeviceSync}
+                      disabled={busy || !isAdmin}
+                      className="w-full"
+                    >
+                      Run Device Sync (Demo)
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <Label className="text-sm">Webhook / Event Replay</Label>
+                  <Select
+                    value={selectedEvent}
+                    onValueChange={setSelectedEvent}
+                    disabled={webhookBusy}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select webhook event" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEMO_EVENTS[provider].map((event) => (
+                        <SelectItem key={event.id} value={event.id}>
+                          {event.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    onClick={handleWebhookReplay}
+                    disabled={webhookBusy || !selectedEvent}
+                    className="w-full"
+                  >
+                    Replay Event (Demo)
+                  </Button>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">
+                      Recent Integration Activity Log
+                    </Label>
+                    <Select
+                      value={activityLogFilter}
+                      onValueChange={setActivityLogFilter}
+                    >
+                      <SelectTrigger className="w-[140px] h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All events</SelectItem>
+                        <SelectItem value="user">User</SelectItem>
+                        <SelectItem value="device">Device</SelectItem>
+                        <SelectItem value="group">Group</SelectItem>
+                        <SelectItem value="webhook">Webhook</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="rounded-md border bg-muted/30 max-h-[300px] overflow-y-auto">
+                    {filteredLogs.length > 0 ? (
+                      <div className="divide-y">
+                        {filteredLogs.map((log) => (
+                          <div key={log.id} className="p-3 text-xs">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <div className="flex items-center gap-2">
+                                {log.action.includes("error") ||
+                                log.action.includes("fail") ? (
+                                  <XCircle className="h-3 w-3 text-destructive" />
+                                ) : log.action.includes("success") ||
+                                  log.action.includes("connect") ||
+                                  log.action.includes("fetch") ||
+                                  log.action.includes("sync") ? (
                                   <CheckCircle className="h-3 w-3 text-green-600" />
                                 ) : (
                                   <Info className="h-3 w-3 text-muted-foreground" />
