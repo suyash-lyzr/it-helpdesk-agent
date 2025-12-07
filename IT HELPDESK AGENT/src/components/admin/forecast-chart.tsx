@@ -49,7 +49,7 @@ function ConfidenceBadge({ confidence }: { confidence: "low" | "medium" | "high"
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Badge variant="outline" className={`text-xs px-2 py-0.5 ${colors[confidence]}`}>
+        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 ${colors[confidence]}`}>
           {confidence.charAt(0).toUpperCase() + confidence.slice(1)}
         </Badge>
       </TooltipTrigger>
@@ -68,8 +68,8 @@ function ImpactBadge({ impact }: { impact: "low" | "medium" | "high" }) {
   }
 
   return (
-    <Badge variant="outline" className={`text-xs px-2 py-0.5 ${colors[impact]}`}>
-      {impact.charAt(0).toUpperCase() + impact.slice(1)} Impact
+    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 ${colors[impact]}`}>
+      {impact.charAt(0).toUpperCase() + impact.slice(1)}
     </Badge>
   )
 }
@@ -200,8 +200,8 @@ export function ForecastChart({ data, onAnomalyAction, onNotifyTeam }: ForecastC
         </ChartContainer>
 
         {anomalies.length > 0 && (
-          <div className="mt-6 space-y-4">
-            <div className="flex items-center gap-2">
+          <div className="mt-5 space-y-3">
+            <div className="flex items-center gap-1.5">
               <h4 className="text-sm font-semibold">Reason / Context</h4>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -232,34 +232,30 @@ export function ForecastChart({ data, onAnomalyAction, onNotifyTeam }: ForecastC
                 return (
                   <div
                     key={index}
-                    className={`rounded-lg border p-4 ${
+                    className={`rounded-md border p-3 ${
                       isDetected
-                        ? "border-destructive/30 bg-destructive/5 dark:border-destructive/30 dark:bg-destructive/10"
-                        : "border-purple-500/30 bg-purple-500/5 dark:border-purple-500/30 dark:bg-purple-500/10"
+                        ? "border-destructive/20 bg-destructive/5 dark:border-destructive/20 dark:bg-destructive/10"
+                        : "border-purple-500/20 bg-purple-500/5 dark:border-purple-500/20 dark:bg-purple-500/10"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-4 mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge
-                            variant={isDetected ? "destructive" : "outline"}
-                            className={`text-xs ${
-                              isForecasted
-                                ? "bg-purple-500/10 text-purple-700 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-400"
-                                : ""
-                            }`}
-                          >
-                            {isForecasted ? "Forecasted" : "Detected"}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {format(new Date(anomaly.date), "MMM d, yyyy")}
-                          </span>
-                        </div>
-                        <h5 className="font-semibold text-sm mt-1">
-                          {anomaly.anomalyHeadline || anomaly.anomalyReason || "Anomaly detected"}
-                        </h5>
+                    {/* Header: Badge, Date, Confidence, Impact */}
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <Badge
+                          variant={isDetected ? "destructive" : "outline"}
+                          className={`text-[10px] px-1.5 py-0 h-4 ${
+                            isForecasted
+                              ? "bg-purple-500/10 text-purple-700 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-400"
+                              : ""
+                          }`}
+                        >
+                          {isForecasted ? "Forecasted" : "Detected"}
+                        </Badge>
+                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                          {format(new Date(anomaly.date), "MMM d, yyyy")}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
                         {anomaly.anomalyConfidence && (
                           <ConfidenceBadge confidence={anomaly.anomalyConfidence} />
                         )}
@@ -269,19 +265,26 @@ export function ForecastChart({ data, onAnomalyAction, onNotifyTeam }: ForecastC
                       </div>
                     </div>
 
+                    {/* Headline */}
+                    <h5 className="font-semibold text-sm mb-2 leading-tight">
+                      {anomaly.anomalyHeadline || anomaly.anomalyReason || "Anomaly detected"}
+                    </h5>
+
+                    {/* Reasons */}
                     {anomaly.anomalyReasons && anomaly.anomalyReasons.length > 0 && (
-                      <ul className="space-y-1 mb-3 text-xs text-muted-foreground">
+                      <ul className="space-y-0.5 mb-2.5 text-xs text-muted-foreground">
                         {anomaly.anomalyReasons.map((reason, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="mt-0.5">•</span>
-                            <span>{reason}</span>
+                          <li key={idx} className="flex items-start gap-1.5">
+                            <span className="mt-0.5 text-[10px]">•</span>
+                            <span className="leading-relaxed">{reason}</span>
                           </li>
                         ))}
                       </ul>
                     )}
 
+                    {/* Actions */}
                     {anomaly.anomalyActions && anomaly.anomalyActions.length > 0 && (
-                      <div className="flex items-center gap-2 flex-wrap mt-3">
+                      <div className="flex items-center gap-1.5 flex-wrap mt-2.5 pt-2 border-t border-border/50">
                         {anomaly.anomalyActions.map((action, idx) => {
                           if (action.label === "Create Incident") {
                             return (
@@ -289,10 +292,10 @@ export function ForecastChart({ data, onAnomalyAction, onNotifyTeam }: ForecastC
                                 key={idx}
                                 variant={action.primary ? "default" : "outline"}
                                 size="sm"
-                                className="text-xs h-7"
+                                className="text-[11px] h-6 px-2"
                                 onClick={() => handleCreateIncident(anomaly)}
                               >
-                                <Bell className="h-3 w-3 mr-1" />
+                                <Bell className="h-2.5 w-2.5 mr-1" />
                                 {action.label}
                               </Button>
                             )
@@ -304,10 +307,10 @@ export function ForecastChart({ data, onAnomalyAction, onNotifyTeam }: ForecastC
                                 key={idx}
                                 variant={action.primary ? "default" : "outline"}
                                 size="sm"
-                                className="text-xs h-7"
+                                className="text-[11px] h-6 px-2"
                                 onClick={() => handleNotifyTeam(team, anomaly)}
                               >
-                                <Send className="h-3 w-3 mr-1" />
+                                <Send className="h-2.5 w-2.5 mr-1" />
                                 {action.label}
                               </Button>
                             )
@@ -317,7 +320,7 @@ export function ForecastChart({ data, onAnomalyAction, onNotifyTeam }: ForecastC
                               key={idx}
                               variant={action.primary ? "default" : "outline"}
                               size="sm"
-                              className="text-xs h-7"
+                              className="text-[11px] h-6 px-2"
                               onClick={() => onAnomalyAction?.(anomaly, action.label.toLowerCase().replace(/\s+/g, "_"))}
                             >
                               {action.label}
@@ -327,8 +330,9 @@ export function ForecastChart({ data, onAnomalyAction, onNotifyTeam }: ForecastC
                       </div>
                     )}
 
+                    {/* Provenance */}
                     {anomaly.anomalyProvenance && (
-                      <p className="text-[10px] text-muted-foreground mt-2">
+                      <p className="text-[10px] text-muted-foreground/70 mt-2 leading-tight">
                         {anomaly.anomalyProvenance}
                       </p>
                     )}

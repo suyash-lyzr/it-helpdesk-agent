@@ -4,8 +4,11 @@ import { getAccessRequestAnalytics } from "@/lib/analytics-store"
 
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const periodDays = parseInt(searchParams.get("period") || "30", 10)
+    
     const { tickets } = getTickets()
-    const analytics = getAccessRequestAnalytics(tickets)
+    const analytics = getAccessRequestAnalytics(tickets, periodDays)
 
     return NextResponse.json({
       success: true,

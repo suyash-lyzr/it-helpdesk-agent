@@ -9,7 +9,7 @@ import {
   checkSLABreach,
   getLifecycleStage,
 } from "./ticket-types"
-import { subDays, format } from "date-fns"
+import { subDays, format, differenceInHours, addHours, isAfter, isBefore } from "date-fns"
 
 // KPI Metrics
 export interface KPIMetrics {
@@ -498,34 +498,378 @@ export function getAssetData(assetId: string, tickets: Ticket[]) {
   }
 }
 
-// Get Access Request Analytics
-export function getAccessRequestAnalytics(tickets: Ticket[]) {
-  const accessRequests = tickets.filter((t) => t.ticket_type === "access_request")
-  const pending = accessRequests.filter((t) => t.status !== "resolved" && t.status !== "closed").length
+// Access Request Analytics Data Structures
+export interface AccessRequestKPI {
+  pending: number
+  avgApprovalTime: number
+  slaCompliance: number
+  overdue: number
+  // Deltas vs previous period
+  pendingDelta: number
+  avgApprovalTimeDelta: number
+  slaComplianceDelta: number
+  overdueDelta: number
+  // Trend data for sparklines (last 7 days)
+  pendingTrend: number[]
+  avgApprovalTimeTrend: number[]
+  slaComplianceTrend: number[]
+  overdueTrend: number[]
+}
 
-  // Mock approval time
-  const avgApprovalTime = 24 + Math.random() * 48 // 24-72 hours
+export interface AccessRequestTrendData {
+  date: string
+  volume: number
+  movingAverage: number
+  isAnomaly: boolean
+}
 
-  // Volume by application (mock)
-  const volumeByApp = {
-    Okta: Math.floor(accessRequests.length * 0.4),
-    "Google Workspace": Math.floor(accessRequests.length * 0.35),
-    Other: accessRequests.length - Math.floor(accessRequests.length * 0.75),
+export interface TopApplication {
+  name: string
+  requests: number
+  avgApprovalTime: number
+  slaCompliance: number
+}
+
+export interface ManagerPerformance {
+  manager: string
+  avgApprovalTime: number
+  requestCount: number
+  overdueCount: number
+  overduePercentage: number
+  lastReminderSent?: string
+}
+
+export interface PendingApproval {
+  requestId: string
+  ticketId: string
+  requester: string
+  department?: string
+  application: string
+  requestedAt: string
+  approver: string
+  slaDueAt: string
+  status: "pending" | "overdue" | "breached"
+  timeRemaining?: number // hours
+  timeOverdue?: number // hours
+  lastReminderSent?: string
+}
+
+export interface AccessRequestInsight {
+  id: string
+  title: string
+  description: string
+  severity: "low" | "medium" | "high"
+  actions: Array<{ label: string; primary?: boolean }>
+}
+
+export interface AccessRequestAnalytics {
+  kpis: AccessRequestKPI
+  trendData: AccessRequestTrendData[]
+  topApplications: TopApplication[]
+  slowestApprovers: ManagerPerformance[]
+  fastestApprovers: ManagerPerformance[]
+  pendingApprovals: PendingApproval[]
+  insights: AccessRequestInsight[]
+}
+
+// Seeded demo data for access requests
+const seededManagers: ManagerPerformance[] = [
+  { manager: "John Manager", avgApprovalTime: 72, requestCount: 11, overdueCount: 6, overduePercentage: 54.5 },
+  { manager: "Jane Director", avgApprovalTime: 6, requestCount: 8, overdueCount: 0, overduePercentage: 0 },
+  { manager: "Bob VP", avgApprovalTime: 48, requestCount: 15, overdueCount: 3, overduePercentage: 20 },
+  { manager: "Alice Smith", avgApprovalTime: 36, requestCount: 12, overdueCount: 2, overduePercentage: 16.7 },
+  { manager: "Charlie Brown", avgApprovalTime: 24, requestCount: 9, overdueCount: 1, overduePercentage: 11.1 },
+  { manager: "Diana Prince", avgApprovalTime: 12, requestCount: 7, overdueCount: 0, overduePercentage: 0 },
+  { manager: "Edward Norton", avgApprovalTime: 60, requestCount: 10, overdueCount: 4, overduePercentage: 40 },
+  { manager: "Fiona Apple", avgApprovalTime: 18, requestCount: 6, overdueCount: 0, overduePercentage: 0 },
+  { manager: "George Lucas", avgApprovalTime: 42, requestCount: 13, overdueCount: 2, overduePercentage: 15.4 },
+  { manager: "Helen Mirren", avgApprovalTime: 30, requestCount: 8, overdueCount: 1, overduePercentage: 12.5 },
+]
+
+const seededApplications = ["Jira", "Salesforce", "GitHub", "Google Workspace", "Slack", "Okta"]
+const seededDepartments = ["Engineering", "Sales", "Marketing", "Operations", "HR", "Finance"]
+
+// Generate seeded pending approvals
+function generateSeededPendingApprovals(tickets: Ticket[]): PendingApproval[] {
+  const accessRequests = tickets.filter((t) => t.ticket_type === "access_request" && t.status !== "resolved" && t.status !== "closed")
+  const now = new Date()
+  const pending: PendingApproval[] = []
+
+  accessRequests.forEach((ticket, idx) => {
+    const requestedAt = new Date(ticket.created_at)
+    const slaHours = 24 // Default SLA: 24 hours
+    const slaDueAt = addHours(requestedAt, slaHours)
+    const isOverdue = isAfter(now, slaDueAt)
+    const timeOverdue = isOverdue ? differenceInHours(now, slaDueAt) : 0
+    const timeRemaining = !isOverdue ? differenceInHours(slaDueAt, now) : undefined
+
+    // Assign approver based on ticket data or seeded managers
+    const approver = seededManagers[idx % seededManagers.length].manager
+    const application = ticket.app_or_system || seededApplications[idx % seededApplications.length]
+
+    pending.push({
+      requestId: `AR-${ticket.id.slice(-6)}`,
+      ticketId: ticket.id,
+      requester: ticket.user_name || `User ${idx + 1}`,
+      department: seededDepartments[idx % seededDepartments.length],
+      application,
+      requestedAt: ticket.created_at,
+      approver,
+      slaDueAt: slaDueAt.toISOString(),
+      status: timeOverdue > 48 ? "breached" : isOverdue ? "overdue" : "pending",
+      timeRemaining,
+      timeOverdue: isOverdue ? timeOverdue : undefined,
+    })
+  })
+
+  // Add some additional seeded pending approvals if we don't have enough
+  if (pending.length < 20) {
+    for (let i = pending.length; i < 20; i++) {
+      const requestedAt = subDays(now, Math.floor(Math.random() * 7))
+      const slaHours = 24
+      const slaDueAt = addHours(requestedAt, slaHours)
+      const isOverdue = isAfter(now, slaDueAt)
+      const timeOverdue = isOverdue ? differenceInHours(now, slaDueAt) : 0
+      const approver = seededManagers[i % seededManagers.length].manager
+      const application = seededApplications[i % seededApplications.length]
+
+      pending.push({
+        requestId: `AR-SEED-${String(i + 1).padStart(4, "0")}`,
+        ticketId: `TKT-SEED-${String(i + 1).padStart(4, "0")}`,
+        requester: `User ${i + 1}`,
+        department: seededDepartments[i % seededDepartments.length],
+        application,
+        requestedAt: requestedAt.toISOString(),
+        approver,
+        slaDueAt: slaDueAt.toISOString(),
+        status: timeOverdue > 48 ? "breached" : isOverdue ? "overdue" : "pending",
+        timeRemaining: !isOverdue ? differenceInHours(slaDueAt, now) : undefined,
+        timeOverdue: isOverdue ? timeOverdue : undefined,
+      })
+    }
   }
 
-  // Requests by manager (mock)
-  const requestsByManager = [
-    { manager: "John Manager", count: Math.floor(accessRequests.length * 0.3) },
-    { manager: "Jane Director", count: Math.floor(accessRequests.length * 0.25) },
-    { manager: "Bob VP", count: Math.floor(accessRequests.length * 0.2) },
-  ]
+  return pending.sort((a, b) => {
+    // Sort by status (breached first, then overdue, then pending)
+    const statusOrder = { breached: 3, overdue: 2, pending: 1 }
+    if (statusOrder[a.status] !== statusOrder[b.status]) {
+      return statusOrder[b.status] - statusOrder[a.status]
+    }
+    return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
+  })
+}
+
+// Get Access Request Analytics (Enterprise-ready)
+export function getAccessRequestAnalytics(tickets: Ticket[], periodDays: number = 30): AccessRequestAnalytics {
+  const accessRequests = tickets.filter((t) => t.ticket_type === "access_request")
+  const now = new Date()
+  const periodStart = subDays(now, periodDays)
+  const previousPeriodStart = subDays(periodStart, periodDays)
+
+  // Filter requests by period
+  const periodRequests = accessRequests.filter((t) => new Date(t.created_at) >= periodStart)
+  const previousPeriodRequests = accessRequests.filter(
+    (t) => new Date(t.created_at) >= previousPeriodStart && new Date(t.created_at) < periodStart
+  )
+
+  // Calculate KPIs
+  const pending = accessRequests.filter((t) => t.status !== "resolved" && t.status !== "closed").length
+  const previousPending = previousPeriodRequests.filter((t) => t.status !== "resolved" && t.status !== "closed").length
+
+  // Calculate average approval time (for resolved requests)
+  const resolvedRequests = periodRequests.filter((t) => t.status === "resolved" || t.status === "closed")
+  let totalApprovalTime = 0
+  let approvedCount = 0
+  resolvedRequests.forEach((t) => {
+    if (t.resolved_at && t.created_at) {
+      const hours = differenceInHours(new Date(t.resolved_at), new Date(t.created_at))
+      totalApprovalTime += hours
+      approvedCount++
+    }
+  })
+  const avgApprovalTime = approvedCount > 0 ? totalApprovalTime / approvedCount : 25.2
+
+  // Previous period avg approval time
+  const prevResolved = previousPeriodRequests.filter((t) => t.status === "resolved" || t.status === "closed")
+  let prevTotalTime = 0
+  let prevApprovedCount = 0
+  prevResolved.forEach((t) => {
+    if (t.resolved_at && t.created_at) {
+      prevTotalTime += differenceInHours(new Date(t.resolved_at), new Date(t.created_at))
+      prevApprovedCount++
+    }
+  })
+  const prevAvgApprovalTime = prevApprovedCount > 0 ? prevTotalTime / prevApprovedCount : 24
+
+  // SLA Compliance (24 hour target)
+  const slaTargetHours = 24
+  const slaCompliant = resolvedRequests.filter((t) => {
+    if (!t.resolved_at || !t.created_at) return false
+    return differenceInHours(new Date(t.resolved_at), new Date(t.created_at)) <= slaTargetHours
+  }).length
+  const slaCompliance = resolvedRequests.length > 0 ? (slaCompliant / resolvedRequests.length) * 100 : 85
+
+  const prevSlaCompliant = prevResolved.filter((t) => {
+    if (!t.resolved_at || !t.created_at) return false
+    return differenceInHours(new Date(t.resolved_at), new Date(t.created_at)) <= slaTargetHours
+  }).length
+  const prevSlaCompliance = prevResolved.length > 0 ? (prevSlaCompliant / prevResolved.length) * 100 : 80
+
+  // Overdue approvals
+  const pendingApprovals = generateSeededPendingApprovals(tickets)
+  const overdue = pendingApprovals.filter((a) => a.status === "overdue" || a.status === "breached").length
+  const prevOverdue = Math.max(0, overdue - 2) // Mock previous period
+
+  // Generate trend data (last 30 days)
+  const trendData: AccessRequestTrendData[] = []
+  const dailyVolumes: number[] = []
+  for (let i = 29; i >= 0; i--) {
+    const date = subDays(now, i)
+    const dayRequests = accessRequests.filter((t) => {
+      const reqDate = new Date(t.created_at)
+      return format(reqDate, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
+    })
+    const volume = dayRequests.length
+    dailyVolumes.push(volume)
+    
+    // Calculate 7-day moving average
+    const startIdx = Math.max(0, dailyVolumes.length - 7)
+    const window = dailyVolumes.slice(startIdx)
+    const movingAvg = window.reduce((a, b) => a + b, 0) / window.length
+
+    // Mark anomalies (spikes > 2x average)
+    const isAnomaly = volume > movingAvg * 2 && volume > 5
+
+    trendData.push({
+      date: format(date, "MMM d"),
+      volume,
+      movingAverage: Math.round(movingAvg * 10) / 10,
+      isAnomaly,
+    })
+  }
+
+  // Top Applications
+  const appStats = new Map<string, { count: number; totalTime: number; compliant: number; total: number }>()
+  periodRequests.forEach((t) => {
+    const app = t.app_or_system || "Other"
+    const stats = appStats.get(app) || { count: 0, totalTime: 0, compliant: 0, total: 0 }
+    stats.count++
+    stats.total++
+    if (t.resolved_at && t.created_at) {
+      const hours = differenceInHours(new Date(t.resolved_at), new Date(t.created_at))
+      stats.totalTime += hours
+      if (hours <= slaTargetHours) stats.compliant++
+    }
+    appStats.set(app, stats)
+  })
+
+  const topApplications: TopApplication[] = Array.from(appStats.entries())
+    .map(([name, stats]) => ({
+      name,
+      requests: stats.count,
+      avgApprovalTime: stats.total > 0 ? stats.totalTime / stats.total : 0,
+      slaCompliance: stats.total > 0 ? (stats.compliant / stats.total) * 100 : 0,
+    }))
+    .sort((a, b) => b.requests - a.requests)
+    .slice(0, 6)
+
+  // Manager Performance (use seeded data with some real calculations)
+  const managerStats = new Map<string, { times: number[]; count: number; overdue: number }>()
+  pendingApprovals.forEach((approval) => {
+    const stats = managerStats.get(approval.approver) || { times: [], count: 0, overdue: 0 }
+    stats.count++
+    if (approval.status === "overdue" || approval.status === "breached") {
+      stats.overdue++
+    }
+    managerStats.set(approval.approver, stats)
+  })
+
+  // Merge seeded manager data with calculated stats
+  const managerPerformance: ManagerPerformance[] = seededManagers.map((seeded) => {
+    const stats = managerStats.get(seeded.manager)
+    return {
+      ...seeded,
+      requestCount: stats?.count || seeded.requestCount,
+      overdueCount: stats?.overdue || seeded.overdueCount,
+      overduePercentage: stats?.count ? (stats.overdue / stats.count) * 100 : seeded.overduePercentage,
+    }
+  })
+
+  const slowestApprovers = [...managerPerformance].sort((a, b) => b.avgApprovalTime - a.avgApprovalTime).slice(0, 5)
+  const fastestApprovers = [...managerPerformance].sort((a, b) => a.avgApprovalTime - b.avgApprovalTime).slice(0, 5)
+
+  // Generate insights
+  const insights: AccessRequestInsight[] = []
+  if (overdue > 0) {
+    insights.push({
+      id: "overdue-alert",
+      title: `${overdue} approvals overdue >48h — risk of delayed onboarding`,
+      description: `${overdue} access requests have exceeded the 48-hour threshold, potentially delaying employee onboarding.`,
+      severity: overdue > 5 ? "high" : "medium",
+      actions: [
+        { label: "Notify Approvers", primary: true },
+        { label: "Create IAM Ticket" },
+      ],
+    })
+  }
+
+  const topSlowApprover = slowestApprovers[0]
+  if (topSlowApprover && topSlowApprover.avgApprovalTime > 48) {
+    insights.push({
+      id: "slow-approver",
+      title: `Top slow approver: ${topSlowApprover.manager} (avg ${topSlowApprover.avgApprovalTime}h) — suggest manager coaching`,
+      description: `${topSlowApprover.manager} has an average approval time of ${topSlowApprover.avgApprovalTime} hours with ${topSlowApprover.overdueCount} overdue requests.`,
+      severity: "medium",
+      actions: [
+        { label: "Send Reminder", primary: true },
+        { label: "Schedule Auto-Reminder" },
+      ],
+    })
+  }
+
+  // Check for trending apps
+  const topApp = topApplications[0]
+  if (topApp && topApp.requests > 15) {
+    insights.push({
+      id: "trending-app",
+      title: `${topApp.name} approvals trending +40% week-over-week`,
+      description: `${topApp.name} access requests increased significantly this week; ${pendingApprovals.filter((a) => a.application === topApp.name).length} requests pending >48h.`,
+      severity: "low",
+      actions: [
+        { label: "Notify Approvers", primary: true },
+        { label: "Create IAM Ticket" },
+      ],
+    })
+  }
+
+  // Generate trend arrays for sparklines (last 7 days)
+  const generateTrend = (data: AccessRequestTrendData[], key: keyof AccessRequestTrendData): number[] => {
+    return data.slice(-7).map((d) => (typeof d[key] === "number" ? d[key] : 0))
+  }
+
+  const kpis: AccessRequestKPI = {
+    pending,
+    avgApprovalTime: Math.round(avgApprovalTime * 10) / 10,
+    slaCompliance: Math.round(slaCompliance * 10) / 10,
+    overdue,
+    pendingDelta: pending - previousPending,
+    avgApprovalTimeDelta: Math.round((avgApprovalTime - prevAvgApprovalTime) * 10) / 10,
+    slaComplianceDelta: Math.round((slaCompliance - prevSlaCompliance) * 10) / 10,
+    overdueDelta: overdue - prevOverdue,
+    pendingTrend: generateTrend(trendData, "volume"),
+    avgApprovalTimeTrend: Array(7).fill(0).map((_, i) => avgApprovalTime + (Math.random() - 0.5) * 5),
+    slaComplianceTrend: Array(7).fill(0).map((_, i) => slaCompliance + (Math.random() - 0.5) * 3),
+    overdueTrend: generateTrend(trendData, "volume").map((v) => Math.floor(v * 0.3)),
+  }
 
   return {
-    pending,
-    avgApprovalTime,
-    volumeByApp,
-    requestsByManager,
-    total: accessRequests.length,
+    kpis,
+    trendData,
+    topApplications,
+    slowestApprovers,
+    fastestApprovers,
+    pendingApprovals,
+    insights,
   }
 }
 
