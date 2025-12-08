@@ -299,6 +299,24 @@
       "provider": "servicenow",
       "action": "disconnect",
       "actor": "admin"
+    },
+    {
+      "id": "servicenow-connect-1765201082304",
+      "timestamp": "2025-12-08T13:38:02.304Z",
+      "provider": "servicenow",
+      "action": "connect",
+      "actor": "admin",
+      "details": {
+        "mode": "demo",
+        "demo": true
+      }
+    },
+    {
+      "id": "servicenow-disconnect-1765201083832",
+      "timestamp": "2025-12-08T13:38:03.832Z",
+      "provider": "servicenow",
+      "action": "disconnect",
+      "actor": "admin"
     }
   ]
 }

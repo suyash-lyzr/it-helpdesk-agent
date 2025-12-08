@@ -1,15 +1,20 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { HelpCircle, TrendingUp, Users, Activity } from "lucide-react"
+import * as React from "react";
+import { HelpCircle, TrendingUp, Users, Activity } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-} from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Table,
   TableBody,
@@ -17,33 +22,34 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { TeamPerformance } from "@/lib/analytics-store"
-import { Ticket } from "@/lib/ticket-types"
-import { calculateSLACompliance } from "@/lib/ticket-types"
+} from "@/components/ui/table";
+import { TeamPerformance } from "@/lib/analytics-store";
+import { Ticket } from "@/lib/ticket-types";
+import { calculateSLACompliance } from "@/lib/ticket-types";
 
 interface TeamPerformanceProps {
-  data: TeamPerformance[]
-  tickets?: Ticket[] // Optional: for filter-responsive calculations
+  data: TeamPerformance[];
+  tickets?: Ticket[]; // Optional: for filter-responsive calculations
   filters?: {
-    startDate?: string
-    endDate?: string
-    team?: string
-    priority?: string
-    category?: string
-    assignee?: string
-    slaStatus?: string
-    source?: string
-  }
-  onReassign?: (team: string, agent: string) => void
+    startDate?: string;
+    endDate?: string;
+    team?: string;
+    priority?: string;
+    category?: string;
+    assignee?: string;
+    slaStatus?: string;
+    source?: string;
+  };
+  onReassign?: (team: string, agent: string) => void;
 }
 
 function LoadScoreBadge({ score }: { score: "low" | "medium" | "high" }) {
   const colors = {
     low: "bg-green-500/10 text-green-700 border-green-500/20 dark:bg-green-500/20 dark:text-green-400",
-    medium: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20 dark:bg-yellow-500/20 dark:text-yellow-400",
+    medium:
+      "bg-yellow-500/10 text-yellow-700 border-yellow-500/20 dark:bg-yellow-500/20 dark:text-yellow-400",
     high: "bg-destructive/10 text-destructive border-destructive/20 dark:bg-destructive/20 dark:text-destructive",
-  }
+  };
 
   return (
     <Badge
@@ -52,7 +58,7 @@ function LoadScoreBadge({ score }: { score: "low" | "medium" | "high" }) {
     >
       {score.charAt(0).toUpperCase() + score.slice(1)}
     </Badge>
-  )
+  );
 }
 
 function TeamSummaryCard({
@@ -61,16 +67,18 @@ function TeamSummaryCard({
   onToggle,
   tickets,
 }: {
-  team: TeamPerformance
-  isExpanded: boolean
-  onToggle: () => void
-  tickets?: Ticket[]
+  team: TeamPerformance;
+  isExpanded: boolean;
+  onToggle: () => void;
+  tickets?: Ticket[];
 }) {
   // Calculate SLA compliance for this team
-  const teamTickets = tickets?.filter((t) => t.suggested_team === team.team) || []
-  const slaCompliance = teamTickets.length > 0 
+  const teamTickets =
+    tickets?.filter((t) => t.suggested_team === team.team) || [];
+  const hasTeamTickets = teamTickets.length > 0;
+  const slaCompliance = hasTeamTickets
     ? calculateSLACompliance(teamTickets)
-    : 100
+    : 0;
 
   return (
     <Card className="transition-all hover:shadow-sm">
@@ -93,17 +101,23 @@ function TeamSummaryCard({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground">Queue Size</span>
+                <span className="text-xs text-muted-foreground">
+                  Queue Size
+                </span>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="max-w-xs text-xs">Active open tickets assigned to this team</p>
+                    <p className="max-w-xs text-xs">
+                      Active open tickets assigned to this team
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <span className="text-base font-semibold tabular-nums">{team.queueSize}</span>
+              <span className="text-base font-semibold tabular-nums">
+                {team.queueSize}
+              </span>
             </div>
 
             <div className="flex items-center justify-between">
@@ -114,38 +128,51 @@ function TeamSummaryCard({
                     <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="max-w-xs text-xs">Tickets pending beyond expected time or SLA threshold</p>
+                    <p className="max-w-xs text-xs">
+                      Tickets pending beyond expected time or SLA threshold
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <span className="text-base font-semibold tabular-nums">{team.backlog}</span>
+              <span className="text-base font-semibold tabular-nums">
+                {team.backlog}
+              </span>
             </div>
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground">SLA Compliance</span>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs text-xs">% of tickets resolved within SLA target for this team</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <span className="text-base font-semibold tabular-nums">{slaCompliance.toFixed(1)}%</span>
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground">Load Score</span>
+                <span className="text-xs text-muted-foreground">
+                  SLA Compliance
+                </span>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs text-xs">
-                      Overall workload health computed from queue size, backlog, and SLA trends.
+                      % of tickets resolved within SLA target for this team
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <span className="text-base font-semibold tabular-nums">
+                {hasTeamTickets ? `${slaCompliance.toFixed(1)}%` : "-"}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">
+                  Load Score
+                </span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs text-xs">
+                      Overall workload health computed from queue size, backlog,
+                      and SLA trends.
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -158,27 +185,29 @@ function TeamSummaryCard({
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function TeamDetailsPanel({
   team,
   tickets,
 }: {
-  team: TeamPerformance
-  tickets?: Ticket[]
+  team: TeamPerformance;
+  tickets?: Ticket[];
 }) {
-  const teamTickets = tickets?.filter((t) => t.suggested_team === team.team) || []
-  const slaCompliance = teamTickets.length > 0 
+  const teamTickets =
+    tickets?.filter((t) => t.suggested_team === team.team) || [];
+  const hasTeamTickets = teamTickets.length > 0;
+  const slaCompliance = hasTeamTickets
     ? calculateSLACompliance(teamTickets)
-    : 100
+    : 0;
 
   // Calculate ticket distribution by category
   const categoryCounts = teamTickets.reduce((acc, ticket) => {
-    const category = ticket.ticket_type || "unknown"
-    acc[category] = (acc[category] || 0) + 1
-    return acc
-  }, {} as Record<string, number>)
+    const category = ticket.ticket_type || "unknown";
+    acc[category] = (acc[category] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   // Get last 5 activity events (mock for now - in real app, this would come from activity log)
   const recentActivities = [
@@ -187,35 +216,35 @@ function TeamDetailsPanel({
     { time: "6h ago", action: "Ticket created", ticket: "TKT-003" },
     { time: "1d ago", action: "Ticket updated", ticket: "TKT-004" },
     { time: "1d ago", action: "Ticket resolved", ticket: "TKT-005" },
-  ]
+  ];
 
   // Backlog breakdown by age
   const backlogTickets = teamTickets.filter(
     (t) => t.status !== "resolved" && t.status !== "closed"
-  )
-  const now = new Date()
+  );
+  const now = new Date();
   const backlogBreakdown = {
     "0-24h": backlogTickets.filter((t) => {
-      const created = new Date(t.created_at)
-      const hours = (now.getTime() - created.getTime()) / (1000 * 60 * 60)
-      return hours <= 24
+      const created = new Date(t.created_at);
+      const hours = (now.getTime() - created.getTime()) / (1000 * 60 * 60);
+      return hours <= 24;
     }).length,
     "1-3d": backlogTickets.filter((t) => {
-      const created = new Date(t.created_at)
-      const hours = (now.getTime() - created.getTime()) / (1000 * 60 * 60)
-      return hours > 24 && hours <= 72
+      const created = new Date(t.created_at);
+      const hours = (now.getTime() - created.getTime()) / (1000 * 60 * 60);
+      return hours > 24 && hours <= 72;
     }).length,
     "3-7d": backlogTickets.filter((t) => {
-      const created = new Date(t.created_at)
-      const hours = (now.getTime() - created.getTime()) / (1000 * 60 * 60)
-      return hours > 72 && hours <= 168
+      const created = new Date(t.created_at);
+      const hours = (now.getTime() - created.getTime()) / (1000 * 60 * 60);
+      return hours > 72 && hours <= 168;
     }).length,
     "7d+": backlogTickets.filter((t) => {
-      const created = new Date(t.created_at)
-      const hours = (now.getTime() - created.getTime()) / (1000 * 60 * 60)
-      return hours > 168
+      const created = new Date(t.created_at);
+      const hours = (now.getTime() - created.getTime()) / (1000 * 60 * 60);
+      return hours > 168;
     }).length,
-  }
+  };
 
   return (
     <Card className="mt-2 border-t-0 rounded-t-none bg-muted/30">
@@ -224,38 +253,57 @@ function TeamDetailsPanel({
           {/* Left Column: Metrics */}
           <div className="space-y-6">
             <div>
-              <h4 className="font-semibold text-sm mb-3">Team Detailed Metrics</h4>
+              <h4 className="font-semibold text-sm mb-3">
+                Team Detailed Metrics
+              </h4>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-xs text-muted-foreground mb-1">Avg First Response</div>
+                  <div className="text-xs text-muted-foreground mb-1">
+                    Avg First Response
+                  </div>
                   <div className="text-lg font-semibold tabular-nums">
                     {team.avgFirstResponse.toFixed(1)}h
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-muted-foreground mb-1">Avg Resolution</div>
+                  <div className="text-xs text-muted-foreground mb-1">
+                    Avg Resolution
+                  </div>
                   <div className="text-lg font-semibold tabular-nums">
                     {team.avgResolution.toFixed(1)}h
                   </div>
                 </div>
                 <div className="col-span-2">
-                  <div className="text-xs text-muted-foreground mb-1">SLA Compliance</div>
+                  <div className="text-xs text-muted-foreground mb-1">
+                    SLA Compliance
+                  </div>
                   <div className="flex items-center gap-2">
                     <div className="text-lg font-semibold tabular-nums">
-                      {slaCompliance.toFixed(1)}%
+                      {hasTeamTickets ? `${slaCompliance.toFixed(1)}%` : "-"}
                     </div>
-                    <TrendingUp className="h-4 w-4 text-primary" />
-                    <span className="text-xs text-muted-foreground">Last 7 days</span>
+                    {hasTeamTickets && (
+                      <>
+                        <TrendingUp className="h-4 w-4 text-primary" />
+                        <span className="text-xs text-muted-foreground">
+                          Last 7 days
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
 
             <div>
-              <h4 className="font-semibold text-sm mb-3">Ticket Distribution</h4>
+              <h4 className="font-semibold text-sm mb-3">
+                Ticket Distribution
+              </h4>
               <div className="space-y-2">
                 {Object.entries(categoryCounts).map(([category, count]) => (
-                  <div key={category} className="flex items-center justify-between text-sm">
+                  <div
+                    key={category}
+                    className="flex items-center justify-between text-sm"
+                  >
                     <span className="text-muted-foreground capitalize">
                       {category.replace("_", " ")}
                     </span>
@@ -263,7 +311,9 @@ function TeamDetailsPanel({
                   </div>
                 ))}
                 {Object.keys(categoryCounts).length === 0 && (
-                  <div className="text-sm text-muted-foreground">No tickets</div>
+                  <div className="text-sm text-muted-foreground">
+                    No tickets
+                  </div>
                 )}
               </div>
             </div>
@@ -281,10 +331,14 @@ function TeamDetailsPanel({
                   >
                     <div className="flex items-center gap-2">
                       <Activity className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-muted-foreground">{activity.action}</span>
+                      <span className="text-muted-foreground">
+                        {activity.action}
+                      </span>
                       <span className="font-medium">{activity.ticket}</span>
                     </div>
-                    <span className="text-muted-foreground">{activity.time}</span>
+                    <span className="text-muted-foreground">
+                      {activity.time}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -294,7 +348,10 @@ function TeamDetailsPanel({
               <h4 className="font-semibold text-sm mb-3">Backlog Breakdown</h4>
               <div className="space-y-2">
                 {Object.entries(backlogBreakdown).map(([age, count]) => (
-                  <div key={age} className="flex items-center justify-between text-sm">
+                  <div
+                    key={age}
+                    className="flex items-center justify-between text-sm"
+                  >
                     <span className="text-muted-foreground">{age}</span>
                     <span className="font-medium">{count}</span>
                   </div>
@@ -326,9 +383,15 @@ function TeamDetailsPanel({
                 <TableBody>
                   {team.agents.map((agent, idx) => (
                     <TableRow key={idx}>
-                      <TableCell className="font-medium text-sm">{agent.name}</TableCell>
-                      <TableCell className="text-sm">{agent.ticketsAssigned}</TableCell>
-                      <TableCell className="text-sm">{agent.ticketsResolved}</TableCell>
+                      <TableCell className="font-medium text-sm">
+                        {agent.name}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {agent.ticketsAssigned}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {agent.ticketsResolved}
+                      </TableCell>
                       <TableCell className="text-sm tabular-nums">
                         {agent.avgHandleTime.toFixed(1)}h
                       </TableCell>
@@ -347,7 +410,7 @@ function TeamDetailsPanel({
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 export function TeamPerformanceComponent({
@@ -356,15 +419,14 @@ export function TeamPerformanceComponent({
   filters,
   onReassign,
 }: TeamPerformanceProps) {
-  const [expandedTeam, setExpandedTeam] = React.useState<string | null>(null)
+  const [expandedTeam, setExpandedTeam] = React.useState<string | null>(null);
 
   const handleToggle = (team: string) => {
-    setExpandedTeam(expandedTeam === team ? null : team)
-  }
+    setExpandedTeam(expandedTeam === team ? null : team);
+  };
 
-  const hasActiveFilters = filters && Object.values(filters).some(
-    (v) => v && v !== "all" && v !== ""
-  )
+  const hasActiveFilters =
+    filters && Object.values(filters).some((v) => v && v !== "all" && v !== "");
 
   return (
     <div className="space-y-4">
@@ -372,11 +434,10 @@ export function TeamPerformanceComponent({
       <div>
         <h2 className="text-xl font-semibold mb-1">Team Performance</h2>
         <p className="text-sm text-muted-foreground">
-          Overview of workload, backlog, and operational health across all IT teams.
+          Overview of workload, backlog, and operational health across all IT
+          teams.
           {hasActiveFilters && (
-            <span className="ml-2 text-xs">
-              (Filtered view)
-            </span>
+            <span className="ml-2 text-xs">(Filtered view)</span>
           )}
         </p>
       </div>
@@ -384,7 +445,7 @@ export function TeamPerformanceComponent({
       {/* Team Summary Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {data.map((team) => {
-          const isExpanded = expandedTeam === team.team
+          const isExpanded = expandedTeam === team.team;
 
           return (
             <Collapsible
@@ -405,9 +466,9 @@ export function TeamPerformanceComponent({
                 <TeamDetailsPanel team={team} tickets={tickets} />
               </CollapsibleContent>
             </Collapsible>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }

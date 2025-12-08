@@ -56,7 +56,11 @@ const metricDescriptions: Record<string, { trend: string; subtitle: string }> =
   };
 
 function formatValue(value: number, type: string): string {
+  // Show "-" when value is 0 for time-based metrics (no data to calculate)
   if (type === "mttr" || type === "firstResponseTime") {
+    if (value === 0) {
+      return "-";
+    }
     if (value < 1) {
       // Show minutes for sub-hour values to avoid 0.0h readout
       return `${Math.round(value * 60)}m`;
@@ -76,6 +80,7 @@ function KPICard({
   type,
   description,
   onClick,
+  totalTickets,
 }: {
   title: string;
   value: number;
@@ -83,9 +88,16 @@ function KPICard({
   type: string;
   description: { trend: string; subtitle: string };
   onClick?: () => void;
+  totalTickets?: number;
 }) {
   const isPositive = delta >= 0;
   const DeltaIcon = isPositive ? ArrowUpRight : ArrowDownRight;
+
+  // Show "-" for percentage metrics when there are no tickets
+  const shouldShowDash =
+    (type === "slaCompliance" || type === "csat") &&
+    totalTickets !== undefined &&
+    totalTickets === 0;
 
   return (
     <Card
@@ -95,7 +107,7 @@ function KPICard({
       <CardHeader>
         <CardDescription>{title}</CardDescription>
         <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-          {formatValue(value, type)}
+          {shouldShowDash ? "-" : formatValue(value, type)}
         </CardTitle>
         <CardAction>
           <Badge variant="outline">
@@ -234,6 +246,7 @@ export function KPICards({ metrics, onKpiClick }: KPICardsProps) {
           type="mttr"
           description={metricDescriptions.mttr}
           onClick={() => onKpiClick?.("metric:mttr")}
+          totalTickets={metrics.totalTickets}
         />
         <KPICard
           title="First Response Time"
@@ -242,6 +255,7 @@ export function KPICards({ metrics, onKpiClick }: KPICardsProps) {
           type="firstResponseTime"
           description={metricDescriptions.firstResponseTime}
           onClick={() => onKpiClick?.("metric:frt")}
+          totalTickets={metrics.totalTickets}
         />
         <KPICard
           title="SLA Compliance"
@@ -250,6 +264,7 @@ export function KPICards({ metrics, onKpiClick }: KPICardsProps) {
           type="slaCompliance"
           description={metricDescriptions.slaCompliance}
           onClick={() => onKpiClick?.("metric:sla")}
+          totalTickets={metrics.totalTickets}
         />
         <KPICard
           title="CSAT"
@@ -258,6 +273,7 @@ export function KPICards({ metrics, onKpiClick }: KPICardsProps) {
           type="csat"
           description={metricDescriptions.csat}
           onClick={() => onKpiClick?.("metric:csat")}
+          totalTickets={metrics.totalTickets}
         />
 
         {/* Ticket Status Summary - Compact Card */}
