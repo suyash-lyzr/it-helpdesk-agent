@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { format, differenceInMinutes } from "date-fns";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -86,6 +87,7 @@ interface TicketCounts {
 }
 
 export default function TicketsPage() {
+  const router = useRouter();
   const [isAdmin, setIsAdmin] = React.useState(false);
   const [tickets, setTickets] = React.useState<Ticket[]>([]);
   const [counts, setCounts] = React.useState<TicketCounts>({
@@ -138,6 +140,16 @@ export default function TicketsPage() {
     toast.info("New ticket dialog - coming soon!");
   };
 
+  const handleTicketClick = (ticket: Ticket) => {
+    // Admin mode: navigate to full-screen chat view
+    if (isAdmin) {
+      router.push(`/tickets/${ticket.id}`);
+    } else {
+      // Non-admin: show read-only sidebar
+      setSelectedTicket(ticket);
+    }
+  };
+
   const formatDurationMinutes = (createdAt: string, resolvedAt?: string) => {
     const start = new Date(createdAt);
     const end = resolvedAt ? new Date(resolvedAt) : new Date();
@@ -184,6 +196,7 @@ export default function TicketsPage() {
               onTicketsUpdated={setTickets}
               onRefresh={handleRefresh}
               isLoading={isLoading}
+              onTicketClick={(ticket) => router.push(`/tickets/${ticket.id}`)}
             />
           ) : (
             <>
@@ -200,7 +213,7 @@ export default function TicketsPage() {
                 onRefresh={handleRefresh}
                 onNewTicket={handleNewTicket}
                 isLoading={isLoading}
-                onRowClick={setSelectedTicket}
+                onRowClick={handleTicketClick}
               />
             </>
           )}

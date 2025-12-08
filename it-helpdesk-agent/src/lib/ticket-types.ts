@@ -84,6 +84,12 @@ export interface CreateTicketRequest {
   assignee?: string;
   asset_id?: string;
   external_ids?: Record<string, string>;
+  // Conversation history (optional, for preserving full chat)
+  conversation?: Array<{
+    role: "user" | "assistant" | "system";
+    content: string;
+    timestamp?: string;
+  }>;
 }
 
 // Request body for updating a ticket

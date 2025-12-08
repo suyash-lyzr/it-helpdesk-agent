@@ -50,6 +50,7 @@ interface AdminTicketsDashboardProps {
   onTicketsUpdated: (tickets: Ticket[]) => void;
   onRefresh?: () => void;
   isLoading?: boolean;
+  onTicketClick?: (ticket: Ticket) => void;
 }
 
 export function AdminTicketsDashboard({
@@ -57,6 +58,7 @@ export function AdminTicketsDashboard({
   onTicketsUpdated,
   onRefresh,
   isLoading,
+  onTicketClick,
 }: AdminTicketsDashboardProps) {
   const [selectedTicket, setSelectedTicket] = React.useState<Ticket | null>(
     null
@@ -445,7 +447,13 @@ export function AdminTicketsDashboard({
               issues={topIssues}
               onTicketClick={(ticketId) => {
                 const ticket = tickets.find((t) => t.id === ticketId);
-                if (ticket) setSelectedTicket(ticket);
+                if (ticket) {
+                  if (onTicketClick) {
+                    onTicketClick(ticket);
+                  } else {
+                    setSelectedTicket(ticket);
+                  }
+                }
               }}
               onOpenRelated={(issue) => {
                 toast.info(`Opening related tickets for: ${issue.issue}`);
@@ -530,7 +538,13 @@ export function AdminTicketsDashboard({
             lastUpdated={new Date()}
             onViewTicket={(ticketId) => {
               const ticket = tickets.find((t) => t.id === ticketId);
-              if (ticket) setSelectedTicket(ticket);
+              if (ticket) {
+                if (onTicketClick) {
+                  onTicketClick(ticket);
+                } else {
+                  setSelectedTicket(ticket);
+                }
+              }
             }}
             onViewAccessRequest={(requestId) => {
               toast.info(`Viewing access request ${requestId} (demo)`);
@@ -586,7 +600,7 @@ export function AdminTicketsDashboard({
               <TicketsTable
                 data={filteredTickets}
                 isLoading={isLoading}
-                onRowClick={setSelectedTicket}
+                onRowClick={onTicketClick || setSelectedTicket}
               />
             </div>
           </div>

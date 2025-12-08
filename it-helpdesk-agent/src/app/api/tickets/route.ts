@@ -5,6 +5,7 @@ import {
   getTicketCounts,
   searchTickets,
 } from "@/lib/ticket-store";
+import { createMessagesFromConversation } from "@/lib/ticket-message-store";
 import {
   CreateTicketRequest,
   TicketQueryParams,
@@ -210,6 +211,21 @@ export async function POST(request: NextRequest) {
 
     const newTicket = await createTicket(ticketData);
     console.log("✅ Ticket created successfully:", newTicket.id);
+
+    // If conversation history is provided, store it as messages
+    if (body.conversation && Array.isArray(body.conversation)) {
+      console.log(
+        `📝 Storing conversation history (${body.conversation.length} messages)`
+      );
+      try {
+        await createMessagesFromConversation(newTicket.id, body.conversation);
+        console.log("✅ Conversation history stored successfully");
+      } catch (convError) {
+        console.error("⚠️ Error storing conversation history:", convError);
+        // Don't fail the ticket creation if conversation storage fails
+      }
+    }
+
     console.log("=== END TICKET CREATION ===");
 
     return NextResponse.json(
