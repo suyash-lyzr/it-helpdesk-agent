@@ -52,7 +52,9 @@ import {
   replayWebhook,
   saveIntegrationMapping,
   startJiraOAuth,
+  startServiceNowOAuth,
   testIntegrationApi,
+  testServiceNowConnection,
 } from "@/lib/integrations-api";
 import { describeWebhookEvent } from "@/lib/integration-webhook-utils";
 import {
@@ -186,6 +188,27 @@ export default function IntegrationDetailPage() {
         ]);
         setMappings(m);
         setLogs(l);
+
+        // Check if user just returned from OAuth callback
+        if (typeof window !== "undefined") {
+          const params = new URLSearchParams(window.location.search);
+          const connected = params.get("connected");
+          const error = params.get("error");
+
+          if (connected === "1" && provider === "servicenow") {
+            toast.success("ServiceNow OAuth completed successfully!");
+            // Clean up URL
+            window.history.replaceState({}, "", `/integrations/${provider}`);
+            // Refresh integration status
+            const updated = await fetchIntegrations();
+            const updatedCurrent =
+              updated.find((i) => i.meta.id === provider) ?? null;
+            setIntegration(updatedCurrent);
+          } else if (error && provider === "servicenow") {
+            toast.error(`OAuth error: ${decodeURIComponent(error)}`);
+            window.history.replaceState({}, "", `/integrations/${provider}`);
+          }
+        }
       } catch (error) {
         console.error(error);
         toast.error("Failed to load integration details");
@@ -244,6 +267,61 @@ export default function IntegrationDetailPage() {
         {
           duration: 6000,
         }
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleServiceNowOAuth = async () => {
+    if (!isAdmin || provider !== "servicenow") return;
+    setBusy(true);
+    try {
+      const res = await startServiceNowOAuth();
+      if (!res.success || !res.authorizeUrl) {
+        const message =
+          res.message ??
+          "ServiceNow OAuth is not configured. Please set SN_INSTANCE_URL, SN_CLIENT_ID, and SN_REDIRECT_URI environment variables.";
+        toast.error(message, {
+          duration: 6000,
+        });
+        return;
+      }
+      // Redirect to ServiceNow OAuth page
+      window.location.href = res.authorizeUrl;
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        "Failed to start ServiceNow OAuth. Please check your configuration.",
+        {
+          duration: 6000,
+        }
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleTestServiceNow = async () => {
+    if (!isAdmin || provider !== "servicenow") return;
+    setBusy(true);
+    try {
+      const res = await testServiceNowConnection();
+      if (res.success) {
+        toast.success(res.message || "ServiceNow connection successful!");
+        // Refresh integration status
+        const all = await fetchIntegrations();
+        const current = all.find((i) => i.meta.id === provider) ?? null;
+        setIntegration(current);
+      } else {
+        toast.error(res.message || "ServiceNow connection test failed");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to test ServiceNow connection"
       );
     } finally {
       setBusy(false);
@@ -1428,9 +1506,19 @@ export default function IntegrationDetailPage() {
                   <Button
                     size="sm"
                     disabled={busy || !isAdmin}
-                    onClick={handleConnectDemo}
+                    onClick={handleServiceNowOAuth}
                   >
                     Start OAuth Setup
+                  </Button>
+                )}
+                {integration.status === "connected" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy || !isAdmin}
+                    onClick={handleTestServiceNow}
+                  >
+                    Test Connection
                   </Button>
                 )}
               </div>
@@ -1473,184 +1561,255 @@ export default function IntegrationDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Setup Steps */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Setup Steps (Required once)</CardTitle>
-                <CardDescription>
-                  Choose your preferred connection method
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="oauth" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="oauth">
-                      Option A — Recommended: OAuth Connect
-                    </TabsTrigger>
-                    <TabsTrigger value="api-token">
-                      Option B — Alternative: Integration User + MID/API Token
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="oauth" className="space-y-4 mt-4">
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
-                          1
+            {/* Setup Steps - Only show when NOT connected */}
+            {integration.status !== "connected" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Setup Steps (Required once)</CardTitle>
+                  <CardDescription>
+                    Choose your preferred connection method
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Tabs defaultValue="oauth" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="oauth">
+                        Option A — Recommended: OAuth Connect
+                      </TabsTrigger>
+                      <TabsTrigger value="api-token">
+                        Option B — Alternative: Integration User + MID/API Token
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="oauth" className="space-y-4 mt-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                            1
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">
+                              Click Start OAuth Setup
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Use the button in the header above to begin the
+                              OAuth flow
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">
-                            Click Start OAuth Setup
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Use the button in the header above to begin the
-                            OAuth flow
-                          </p>
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                            2
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">
+                              Authenticate with ServiceNow admin credentials
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Login using your ServiceNow administrator account
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                            3
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">
+                              Grant the requested scopes
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Authorize Lyzr to access your ServiceNow instance
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
+                            4
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">
+                              Integration active
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              You&apos;ll be redirected back and the integration
+                              will be active
+                            </p>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
-                          2
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">
-                            Authenticate with ServiceNow admin credentials
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Login using your ServiceNow administrator account
-                          </p>
-                        </div>
+                      <div className="pt-3 border-t">
+                        <p className="text-xs text-muted-foreground mb-3">
+                          OAuth is recommended for production — secure and
+                          supports token rotation.
+                        </p>
+                        <Button
+                          onClick={handleServiceNowOAuth}
+                          disabled={busy || !isAdmin}
+                          className="w-full"
+                        >
+                          Start OAuth Setup
+                        </Button>
                       </div>
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
-                          3
+                    </TabsContent>
+                    <TabsContent value="api-token" className="space-y-4 mt-4">
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="sn-url">ServiceNow Base URL</Label>
+                          <Input
+                            id="sn-url"
+                            placeholder="https://your-instance.service-now.com"
+                            value={servicenowApiTokenUrl}
+                            onChange={(e) =>
+                              setServicenowApiTokenUrl(e.target.value)
+                            }
+                            disabled={!isAdmin || busy}
+                            required
+                          />
                         </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">
-                            Grant the requested scopes
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Authorize Lyzr to access your ServiceNow instance
+                        <div className="space-y-2">
+                          <Label htmlFor="sn-email">
+                            Integration user (service account) email
+                          </Label>
+                          <Input
+                            id="sn-email"
+                            type="email"
+                            placeholder="integration.user@company.com"
+                            value={servicenowApiTokenEmail}
+                            onChange={(e) =>
+                              setServicenowApiTokenEmail(e.target.value)
+                            }
+                            disabled={!isAdmin || busy}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="sn-token">
+                            API token / password (masked)
+                          </Label>
+                          <Input
+                            id="sn-token"
+                            type="password"
+                            placeholder="Enter your ServiceNow API token"
+                            value={servicenowApiToken}
+                            onChange={(e) =>
+                              setServicenowApiToken(e.target.value)
+                            }
+                            disabled={!isAdmin || busy}
+                            required
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Generate an API token from your ServiceNow account
+                            settings
                           </p>
                         </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
-                          4
+                        <div className="space-y-2">
+                          <Label htmlFor="sn-scope">
+                            Instance scope (optional)
+                          </Label>
+                          <Input
+                            id="sn-scope"
+                            placeholder="global"
+                            value={servicenowInstanceScope}
+                            onChange={(e) =>
+                              setServicenowInstanceScope(e.target.value)
+                            }
+                            disabled={!isAdmin || busy}
+                          />
                         </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">
-                            Integration active
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            You&apos;ll be redirected back and the integration
-                            will be active
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="pt-3 border-t">
-                      <p className="text-xs text-muted-foreground mb-3">
-                        OAuth is recommended for production — secure and
-                        supports token rotation.
-                      </p>
-                      <Button
-                        onClick={handleConnectDemo}
-                        disabled={busy || !isAdmin}
-                        className="w-full"
-                      >
-                        Start OAuth Setup
-                      </Button>
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="api-token" className="space-y-4 mt-4">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="sn-url">ServiceNow Base URL</Label>
-                        <Input
-                          id="sn-url"
-                          placeholder="https://your-instance.service-now.com"
-                          value={servicenowApiTokenUrl}
-                          onChange={(e) =>
-                            setServicenowApiTokenUrl(e.target.value)
+                        <Button
+                          onClick={handleServiceNowConnectApiToken}
+                          disabled={
+                            !isAdmin ||
+                            busy ||
+                            !servicenowApiTokenUrl ||
+                            !servicenowApiTokenEmail ||
+                            !servicenowApiToken
                           }
-                          disabled={!isAdmin || busy}
-                          required
-                        />
+                          className="w-full"
+                        >
+                          Connect using API Token
+                        </Button>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="sn-email">
-                          Integration user (service account) email
-                        </Label>
-                        <Input
-                          id="sn-email"
-                          type="email"
-                          placeholder="integration.user@company.com"
-                          value={servicenowApiTokenEmail}
-                          onChange={(e) =>
-                            setServicenowApiTokenEmail(e.target.value)
-                          }
-                          disabled={!isAdmin || busy}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="sn-token">
-                          API token / password (masked)
-                        </Label>
-                        <Input
-                          id="sn-token"
-                          type="password"
-                          placeholder="Enter your ServiceNow API token"
-                          value={servicenowApiToken}
-                          onChange={(e) =>
-                            setServicenowApiToken(e.target.value)
-                          }
-                          disabled={!isAdmin || busy}
-                          required
-                        />
+                      <div className="pt-3 border-t">
                         <p className="text-xs text-muted-foreground">
-                          Generate an API token from your ServiceNow account
-                          settings
+                          Use this if your org uses integration service accounts
+                          or restricts external OAuth.
                         </p>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="sn-scope">
-                          Instance scope (optional)
-                        </Label>
-                        <Input
-                          id="sn-scope"
-                          placeholder="global"
-                          value={servicenowInstanceScope}
-                          onChange={(e) =>
-                            setServicenowInstanceScope(e.target.value)
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Sync Existing Tickets - Only show when connected */}
+            {integration.status === "connected" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Sync Existing Tickets</CardTitle>
+                  <CardDescription>
+                    Push all existing tickets from your database to ServiceNow
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      This will create ServiceNow incidents for all tickets in
+                      your helpdesk database that don't already have a
+                      ServiceNow incident linked.
+                    </p>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Database className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">
+                        Tickets will be synced based on their current status and
+                        priority
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">
+                        Future changes will be synced automatically
+                      </span>
+                    </div>
+                  </div>
+                  <div className="pt-3 border-t">
+                    <Button
+                      onClick={async () => {
+                        setBusy(true);
+                        try {
+                          const res = await fetch(
+                            "/api/servicenow/sync-tickets",
+                            {
+                              method: "POST",
+                            }
+                          );
+                          const data = await res.json();
+                          if (data.success) {
+                            toast.success(
+                              `Successfully synced ${data.synced} ticket(s) to ServiceNow`
+                            );
+                          } else {
+                            toast.error(
+                              data.message || "Failed to sync tickets"
+                            );
                           }
-                          disabled={!isAdmin || busy}
-                        />
-                      </div>
-                      <Button
-                        onClick={handleServiceNowConnectApiToken}
-                        disabled={
-                          !isAdmin ||
-                          busy ||
-                          !servicenowApiTokenUrl ||
-                          !servicenowApiTokenEmail ||
-                          !servicenowApiToken
+                        } catch (error) {
+                          console.error("Sync error:", error);
+                          toast.error("Failed to sync tickets to ServiceNow");
+                        } finally {
+                          setBusy(false);
                         }
-                        className="w-full"
-                      >
-                        Connect using API Token
-                      </Button>
-                    </div>
-                    <div className="pt-3 border-t">
-                      <p className="text-xs text-muted-foreground">
-                        Use this if your org uses integration service accounts
-                        or restricts external OAuth.
-                      </p>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
+                      }}
+                      disabled={busy || !isAdmin}
+                      className="w-full"
+                    >
+                      <ArrowRightLeft className="h-4 w-4 mr-2" />
+                      Sync All Tickets to ServiceNow
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Capabilities & Quick Summary */}
             <Card>
@@ -2218,8 +2377,20 @@ export default function IntegrationDetailPage() {
                 </Button>
               )}
               {integration.status !== "connected" && (
-                <Button onClick={handleConnectDemo} disabled={busy || !isAdmin}>
+                <Button
+                  onClick={handleServiceNowOAuth}
+                  disabled={busy || !isAdmin}
+                >
                   Start OAuth Setup
+                </Button>
+              )}
+              {integration.status === "connected" && (
+                <Button
+                  variant="outline"
+                  onClick={handleTestServiceNow}
+                  disabled={busy || !isAdmin}
+                >
+                  Test Connection
                 </Button>
               )}
               <Button onClick={handleSaveMappings} disabled={busy || !isAdmin}>

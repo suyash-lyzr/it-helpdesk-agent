@@ -58,27 +58,8 @@ export function IntegrationCard({
   const logoUrl = getIntegrationLogo(integration.meta.id);
 
   const handleClick = () => {
-    if (!isAdmin) {
-      router.push(`/integrations/${integration.meta.id}`);
-      return;
-    }
-    if (isConnected) {
-      onDisconnect(integration.meta.id);
-    } else {
-      // For all integrations, navigate to detail page instead of connecting directly
-      if (
-        integration.meta.id === "jira" ||
-        integration.meta.id === "servicenow" ||
-        integration.meta.id === "okta" ||
-        integration.meta.id === "google"
-      ) {
-        router.push(`/integrations/${integration.meta.id}`);
-      } else if (demoMode) {
-        onConnect(integration.meta.id);
-      } else {
-        onOpenConnectModal(integration.meta.id);
-      }
-    }
+    // Always navigate to detail page when card is clicked
+    router.push(`/integrations/${integration.meta.id}`);
   };
 
   return (
@@ -104,33 +85,36 @@ export function IntegrationCard({
               </span>
             )}
           </div>
-          {isConnected ? (
-            <Badge
-              variant="default"
-              className="text-xs bg-green-500 hover:bg-green-600"
-            >
-              {getStatusLabel()}
-            </Badge>
-          ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-xs h-6 px-2"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClick();
-              }}
-            >
-              {getStatusLabel()}
-            </Button>
-          )}
+          <Badge
+            variant={isConnected ? "default" : "secondary"}
+            className={
+              isConnected
+                ? "text-xs bg-green-500 hover:bg-green-600"
+                : "text-xs"
+            }
+          >
+            {getStatusLabel()}
+          </Badge>
         </div>
         <h3 className="text-sm font-semibold mb-2 line-clamp-1">
           {integration.meta.name}
         </h3>
-        <p className="text-xs text-muted-foreground line-clamp-3 flex-1">
+        <p className="text-xs text-muted-foreground line-clamp-3 flex-1 mb-3">
           {integration.meta.description}
         </p>
+        {isConnected && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full text-xs mt-auto"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/integrations/${integration.meta.id}`);
+            }}
+          >
+            View Details
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

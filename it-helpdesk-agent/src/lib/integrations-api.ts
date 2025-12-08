@@ -216,3 +216,50 @@ export async function startJiraOAuth(): Promise<{
     message?: string;
   };
 }
+
+// ServiceNow OAuth start
+export async function startServiceNowOAuth(): Promise<{
+  success: boolean;
+  authorizeUrl?: string;
+  state?: string;
+  message?: string;
+}> {
+  const res = await fetch("/api/oauth/servicenow/start", {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    return {
+      success: false,
+      message:
+        data.message ||
+        "ServiceNow OAuth is not configured. Please set SN_INSTANCE_URL, SN_CLIENT_ID, and SN_REDIRECT_URI environment variables.",
+    };
+  }
+
+  return data as {
+    success: boolean;
+    authorizeUrl?: string;
+    state?: string;
+    message?: string;
+  };
+}
+
+// ServiceNow test connection
+export async function testServiceNowConnection(): Promise<{
+  success: boolean;
+  message: string;
+  data?: any;
+}> {
+  return apiFetch<{
+    success: boolean;
+    message: string;
+    data?: any;
+  }>("/api/servicenow/test", {
+    method: "POST",
+  });
+}
