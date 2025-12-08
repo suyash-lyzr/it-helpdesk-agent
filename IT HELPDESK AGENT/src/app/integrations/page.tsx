@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -201,14 +200,6 @@ export default function IntegrationsPage() {
               <h1 className="text-2xl font-semibold tracking-tight">
                 Integrations
               </h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Demo Mode</span>
-              <Switch
-                checked={demoMode}
-                onCheckedChange={setDemoMode}
-                aria-label="Toggle demo mode"
-              />
             </div>
           </div>
 

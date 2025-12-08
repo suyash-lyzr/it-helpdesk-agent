@@ -1,7 +1,7 @@
 {
-  "/integrations/page": "app/integrations/page.js",
-  "/integrations/[provider]/page": "app/integrations/[provider]/page.js",
   "/page": "app/page.js",
   "/knowledge-base/page": "app/knowledge-base/page.js",
-  "/tickets/page": "app/tickets/page.js"
+  "/tickets/page": "app/tickets/page.js",
+  "/integrations/[provider]/page": "app/integrations/[provider]/page.js",
+  "/integrations/page": "app/integrations/page.js"
 }

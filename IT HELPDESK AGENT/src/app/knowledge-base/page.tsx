@@ -98,6 +98,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 
 // Types
 type DocumentStatus = "Uploading" | "Processing" | "Processed" | "Failed";
@@ -554,6 +555,11 @@ export default function KnowledgeBasePage() {
   const [showBulkInsertConfirm, setShowBulkInsertConfirm] =
     React.useState(false);
   const [isExampleTicketsOpen, setIsExampleTicketsOpen] = React.useState(false);
+
+  // AI Configuration states
+  const [systemInstructions, setSystemInstructions] = React.useState(
+    "You are a helpful IT support assistant. Provide accurate, actionable troubleshooting steps and follow IT service guidelines."
+  );
 
   // KPI calculations - simplified
   const totalDocuments = 1;
@@ -2042,108 +2048,43 @@ export default function KnowledgeBasePage() {
                   </Sheet>
                 </TabsContent>
 
-                <TabsContent value="ai-configuration" className="space-y-4">
-                  <Card>
+                <TabsContent
+                  value="ai-configuration"
+                  className="space-y-4 pt-6"
+                >
+                  <Card className="max-w-4xl">
                     <CardHeader>
-                      <CardTitle>AI Configuration</CardTitle>
+                      <CardTitle>System Instructions</CardTitle>
                       <CardDescription>
-                        Configure how documents are processed and embedded for
-                        AI retrieval
+                        Configure how the AI assistant behaves, its tone, and
+                        how it responds to user queries.
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
+                    <CardContent className="space-y-4">
                       <div className="space-y-2">
-                        <Label>Chunk size</Label>
-                        <Select defaultValue="500">
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="200">200 tokens</SelectItem>
-                            <SelectItem value="500">500 tokens</SelectItem>
-                            <SelectItem value="1000">1000 tokens</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Textarea
+                          value={systemInstructions}
+                          onChange={(e) =>
+                            setSystemInstructions(e.target.value)
+                          }
+                          className="min-h-[200px] resize-y"
+                          placeholder="Enter system instructions for the AI assistant..."
+                        />
                         <p className="text-xs text-muted-foreground">
-                          Size of text chunks for embedding. Smaller chunks
-                          provide more granular retrieval.
+                          Advanced AI settings (embedding, retrieval tuning) are
+                          automatically managed by Lyzr.
                         </p>
                       </div>
-
-                      <div className="space-y-2">
-                        <Label>Embedding model</Label>
-                        <Select defaultValue="text-embedding-ada-002">
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="text-embedding-ada-002">
-                              text-embedding-ada-002
-                            </SelectItem>
-                            <SelectItem value="text-embedding-3-small">
-                              text-embedding-3-small
-                            </SelectItem>
-                            <SelectItem value="text-embedding-3-large">
-                              text-embedding-3-large
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          Model used for generating document embeddings.
-                        </p>
+                      <div className="flex justify-end">
+                        <Button
+                          size="default"
+                          onClick={() => {
+                            toast.success("Configuration saved successfully");
+                          }}
+                        >
+                          Save Configuration
+                        </Button>
                       </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label>Reprocess on update</Label>
-                          <p className="text-xs text-muted-foreground">
-                            Automatically reprocess documents when they are
-                            updated
-                          </p>
-                        </div>
-                        <Switch defaultChecked />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Ingestion schedule</Label>
-                        <Select defaultValue="manual">
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="manual">Manual</SelectItem>
-                            <SelectItem value="hourly">Hourly</SelectItem>
-                            <SelectItem value="daily">Daily</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          How often to check for new documents from connected
-                          sources.
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Relevance threshold</Label>
-                        <div className="space-y-2">
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            defaultValue="70"
-                            className="w-full"
-                          />
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>0 (more results)</span>
-                            <span>100 (fewer, higher quality)</span>
-                          </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Minimum similarity score for document retrieval
-                          (0-100).
-                        </p>
-                      </div>
-
-                      <Button className="w-full">Save settings</Button>
                     </CardContent>
                   </Card>
                 </TabsContent>
