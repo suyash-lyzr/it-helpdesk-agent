@@ -91,76 +91,76 @@ export function AdminTicketsDashboard({
   >([]);
 
   // Fetch analytics data
-  React.useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        const startDate =
-          filters.startDate || format(subDays(new Date(), 7), "yyyy-MM-dd");
-        const endDate = filters.endDate || format(new Date(), "yyyy-MM-dd");
+  const fetchAnalytics = React.useCallback(async () => {
+    try {
+      const startDate =
+        filters.startDate || format(subDays(new Date(), 7), "yyyy-MM-dd");
+      const endDate = filters.endDate || format(new Date(), "yyyy-MM-dd");
 
-        const [
-          kpisRes,
-          slaRes,
-          topIssuesRes,
-          teamRes,
-          lifecycleRes,
-          forecastRes,
-          accessRes,
-          eventsRes,
-        ] = await Promise.all([
-          fetch(
-            `/api/analytics/kpis?start_date=${startDate}&end_date=${endDate}`
-          ),
-          fetch("/api/analytics/sla-funnel"),
-          fetch("/api/analytics/top-issues?limit=10"),
-          fetch("/api/analytics/team-performance"),
-          fetch("/api/analytics/lifecycle"),
-          fetch("/api/analytics/forecast?days=7"),
-          fetch("/api/analytics/access-requests"),
-          fetch("/api/analytics/live-events"),
-        ]);
+      const [
+        kpisRes,
+        slaRes,
+        topIssuesRes,
+        teamRes,
+        lifecycleRes,
+        forecastRes,
+        accessRes,
+        eventsRes,
+      ] = await Promise.all([
+        fetch(
+          `/api/analytics/kpis?start_date=${startDate}&end_date=${endDate}`
+        ),
+        fetch("/api/analytics/sla-funnel"),
+        fetch("/api/analytics/top-issues?limit=10"),
+        fetch("/api/analytics/team-performance"),
+        fetch("/api/analytics/lifecycle"),
+        fetch("/api/analytics/forecast?days=7"),
+        fetch("/api/analytics/access-requests"),
+        fetch("/api/analytics/live-events"),
+      ]);
 
-        if (kpisRes.ok) {
-          const kpis = await kpisRes.json();
-          setKpiMetrics(kpis.data);
-        }
-        if (slaRes.ok) {
-          const sla = await slaRes.json();
-          setSlaFunnel(sla.data);
-        }
-        if (topIssuesRes.ok) {
-          const issues = await topIssuesRes.json();
-          setTopIssues(issues.data);
-        }
-        if (teamRes.ok) {
-          const team = await teamRes.json();
-          setTeamPerformance(team.data);
-        }
-        if (lifecycleRes.ok) {
-          const lifecycle = await lifecycleRes.json();
-          setLifecycleData(lifecycle.data);
-        }
-        if (forecastRes.ok) {
-          const forecast = await forecastRes.json();
-          setForecastData(forecast.data);
-        }
-        if (accessRes.ok) {
-          const access = await accessRes.json();
-          setAccessRequestAnalytics(access.data);
-        }
-        if (eventsRes.ok) {
-          const events = await eventsRes.json();
-          setLiveEvents(events.data);
-        }
-      } catch (error) {
-        console.error("Error fetching analytics:", error);
+      if (kpisRes.ok) {
+        const kpis = await kpisRes.json();
+        setKpiMetrics(kpis.data);
       }
-    };
+      if (slaRes.ok) {
+        const sla = await slaRes.json();
+        setSlaFunnel(sla.data);
+      }
+      if (topIssuesRes.ok) {
+        const issues = await topIssuesRes.json();
+        setTopIssues(issues.data);
+      }
+      if (teamRes.ok) {
+        const team = await teamRes.json();
+        setTeamPerformance(team.data);
+      }
+      if (lifecycleRes.ok) {
+        const lifecycle = await lifecycleRes.json();
+        setLifecycleData(lifecycle.data);
+      }
+      if (forecastRes.ok) {
+        const forecast = await forecastRes.json();
+        setForecastData(forecast.data);
+      }
+      if (accessRes.ok) {
+        const access = await accessRes.json();
+        setAccessRequestAnalytics(access.data);
+      }
+      if (eventsRes.ok) {
+        const events = await eventsRes.json();
+        setLiveEvents(events.data);
+      }
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+    }
+  }, [filters]);
 
+  React.useEffect(() => {
     fetchAnalytics();
     const interval = setInterval(fetchAnalytics, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
-  }, [filters]);
+  }, [fetchAnalytics]);
 
   async function handleResolveTicket() {
     if (!selectedTicket) return;
@@ -240,6 +240,12 @@ export function AdminTicketsDashboard({
         },
         ...prev,
       ]);
+
+      // Refresh analytics to update KPIs, counts, etc.
+      await fetchAnalytics();
+
+      // Trigger parent refresh to update ticket counts
+      onRefresh?.();
 
       toast.success(`Ticket ${updated.id} marked as resolved`);
     } catch (error) {

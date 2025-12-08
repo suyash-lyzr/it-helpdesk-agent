@@ -1,217 +1,253 @@
 // Ticket types matching the Ticket Generator Agent output structure
 
-export type TicketType = "incident" | "access_request" | "request"
-export type TicketPriority = "low" | "medium" | "high"
-export type TicketStatus = "new" | "open" | "in_progress" | "resolved" | "closed"
-export type SuggestedTeam = "Network" | "Endpoint Support" | "Application Support" | "IAM" | "Security" | "DevOps"
-export type TicketSource = "chat" | "email" | "integration" | "manual"
-export type LifecycleStage = "new" | "triage" | "in_progress" | "waiting_for_user" | "resolved" | "closed"
+export type TicketType = "incident" | "access_request" | "request";
+export type TicketPriority = "low" | "medium" | "high";
+export type TicketStatus =
+  | "new"
+  | "open"
+  | "in_progress"
+  | "resolved"
+  | "closed";
+export type SuggestedTeam =
+  | "Network"
+  | "Endpoint Support"
+  | "Application Support"
+  | "IAM"
+  | "Security"
+  | "DevOps";
+export type TicketSource = "chat" | "email" | "integration" | "manual";
+export type LifecycleStage =
+  | "new"
+  | "triage"
+  | "in_progress"
+  | "waiting_for_user"
+  | "resolved"
+  | "closed";
 
 // Input structure from Ticket Generator Agent
 export interface TicketGeneratorInput {
-  ticket_ready: boolean
-  ticket_type: TicketType
-  title: string
-  description: string
-  user_name: string
-  app_or_system: string
-  priority: TicketPriority
-  collected_details: Record<string, unknown>
-  suggested_team: SuggestedTeam
-  status: TicketStatus
+  ticket_ready: boolean;
+  ticket_type: TicketType;
+  title: string;
+  description: string;
+  user_name: string;
+  app_or_system: string;
+  priority: TicketPriority;
+  collected_details: Record<string, unknown>;
+  suggested_team: SuggestedTeam;
+  status: TicketStatus;
 }
 
 // Full ticket structure stored in the system
 export interface Ticket {
-  id: string
-  ticket_type: TicketType
-  title: string
-  description: string
-  user_name: string
-  app_or_system: string
-  priority: TicketPriority
-  collected_details: Record<string, unknown>
-  suggested_team: SuggestedTeam
-  status: TicketStatus
-  created_at: string
-  updated_at: string
+  id: string;
+  ticket_type: TicketType;
+  title: string;
+  description: string;
+  user_name: string;
+  app_or_system: string;
+  priority: TicketPriority;
+  collected_details: Record<string, unknown>;
+  suggested_team: SuggestedTeam;
+  status: TicketStatus;
+  created_at: string;
+  updated_at: string;
   // Enterprise admin console fields
-  sla_due_at?: string // ISO timestamp
-  sla_breached_at?: string // ISO timestamp
-  asset_id?: string
-  external_ids?: Record<string, string> // e.g., { jira: "JRA-2031", servicenow: "INC-001234" }
-  source?: TicketSource
-  assignee?: string
-  first_response_at?: string // ISO timestamp
-  resolved_at?: string // ISO timestamp
-  reopened_count?: number
-  lifecycle_stage?: LifecycleStage
+  sla_due_at?: string; // ISO timestamp
+  sla_breached_at?: string; // ISO timestamp
+  asset_id?: string;
+  external_ids?: Record<string, string>; // e.g., { jira: "JRA-2031", servicenow: "INC-001234" }
+  source?: TicketSource;
+  assignee?: string;
+  first_response_at?: string; // ISO timestamp
+  resolved_at?: string; // ISO timestamp
+  reopened_count?: number;
+  lifecycle_stage?: LifecycleStage;
+  csat_score?: number;
+  csat_comment?: string;
+  csat_submitted_at?: string;
 }
 
 // Request body for creating a ticket
 export interface CreateTicketRequest {
-  ticket_type: TicketType
-  title: string
-  description: string
-  user_name?: string
-  app_or_system?: string
-  priority?: TicketPriority
-  collected_details?: Record<string, unknown>
-  suggested_team?: SuggestedTeam
-  status?: TicketStatus
+  ticket_type: TicketType;
+  title: string;
+  description: string;
+  user_name?: string;
+  app_or_system?: string;
+  priority?: TicketPriority;
+  collected_details?: Record<string, unknown>;
+  suggested_team?: SuggestedTeam;
+  status?: TicketStatus;
   // Enterprise fields
-  source?: TicketSource
-  assignee?: string
-  asset_id?: string
-  external_ids?: Record<string, string>
+  source?: TicketSource;
+  assignee?: string;
+  asset_id?: string;
+  external_ids?: Record<string, string>;
 }
 
 // Request body for updating a ticket
 export interface UpdateTicketRequest {
-  ticket_type?: TicketType
-  title?: string
-  description?: string
-  user_name?: string
-  app_or_system?: string
-  priority?: TicketPriority
-  collected_details?: Record<string, unknown>
-  suggested_team?: SuggestedTeam
-  status?: TicketStatus
+  ticket_type?: TicketType;
+  title?: string;
+  description?: string;
+  user_name?: string;
+  app_or_system?: string;
+  priority?: TicketPriority;
+  collected_details?: Record<string, unknown>;
+  suggested_team?: SuggestedTeam;
+  status?: TicketStatus;
+  assignee?: string;
+  first_response_at?: string;
+  resolved_at?: string;
+  sla_due_at?: string;
+  sla_breached_at?: string;
+  lifecycle_stage?: LifecycleStage;
+  reopened_count?: number;
+  csat_score?: number;
+  csat_comment?: string;
+  csat_submitted_at?: string;
 }
 
 // API response structures
 export interface TicketResponse {
-  success: boolean
-  data: Ticket
-  message?: string
+  success: boolean;
+  data: Ticket;
+  message?: string;
 }
 
 export interface TicketsListResponse {
-  success: boolean
-  data: Ticket[]
-  total: number
-  message?: string
+  success: boolean;
+  data: Ticket[];
+  total: number;
+  message?: string;
 }
 
 export interface DeleteResponse {
-  success: boolean
-  message: string
+  success: boolean;
+  message: string;
 }
 
 // Query parameters for listing tickets
 export interface TicketQueryParams {
-  status?: TicketStatus
-  priority?: TicketPriority
-  ticket_type?: TicketType
-  suggested_team?: SuggestedTeam
-  limit?: number
-  offset?: number
+  status?: TicketStatus;
+  priority?: TicketPriority;
+  ticket_type?: TicketType;
+  suggested_team?: SuggestedTeam;
+  limit?: number;
+  offset?: number;
 }
 
 // Helper function to generate ticket ID
 export function generateTicketId(): string {
-  const timestamp = Date.now().toString(36).toUpperCase()
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase()
-  return `TKT-${timestamp}-${random}`
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `TKT-${timestamp}-${random}`;
 }
 
 // Helper function to validate ticket type
 export function isValidTicketType(type: string): type is TicketType {
-  return ["incident", "access_request", "request"].includes(type)
+  return ["incident", "access_request", "request"].includes(type);
 }
 
 // Helper function to validate priority
 export function isValidPriority(priority: string): priority is TicketPriority {
-  return ["low", "medium", "high"].includes(priority)
+  return ["low", "medium", "high"].includes(priority);
 }
 
 // Helper function to validate status
 export function isValidStatus(status: string): status is TicketStatus {
-  return ["new", "open", "in_progress", "resolved", "closed"].includes(status)
+  return ["new", "open", "in_progress", "resolved", "closed"].includes(status);
 }
 
 // Helper function to validate suggested team
 export function isValidTeam(team: string): team is SuggestedTeam {
-  return ["Network", "Endpoint Support", "Application Support", "IAM", "Security", "DevOps"].includes(team)
+  return [
+    "Network",
+    "Endpoint Support",
+    "Application Support",
+    "IAM",
+    "Security",
+    "DevOps",
+  ].includes(team);
 }
 
 // Helper function to calculate MTTR (Mean Time To Resolution) in hours
 export function calculateMTTR(tickets: Ticket[]): number {
-  const resolvedTickets = tickets.filter(
-    (t) => t.resolved_at && t.created_at
-  )
-  if (resolvedTickets.length === 0) return 0
+  const resolvedTickets = tickets.filter((t) => t.resolved_at && t.created_at);
+  if (resolvedTickets.length === 0) return 0;
 
   const totalHours = resolvedTickets.reduce((sum, ticket) => {
-    const created = new Date(ticket.created_at).getTime()
-    const resolved = new Date(ticket.resolved_at!).getTime()
-    return sum + (resolved - created) / (1000 * 60 * 60)
-  }, 0)
+    const created = new Date(ticket.created_at).getTime();
+    const resolved = new Date(ticket.resolved_at!).getTime();
+    return sum + (resolved - created) / (1000 * 60 * 60);
+  }, 0);
 
-  return totalHours / resolvedTickets.length
+  return totalHours / resolvedTickets.length;
 }
 
 // Helper function to calculate First Response Time in hours
 export function calculateFirstResponseTime(tickets: Ticket[]): number {
   const respondedTickets = tickets.filter(
     (t) => t.first_response_at && t.created_at
-  )
-  if (respondedTickets.length === 0) return 0
+  );
+  if (respondedTickets.length === 0) return 0;
 
   const totalHours = respondedTickets.reduce((sum, ticket) => {
-    const created = new Date(ticket.created_at).getTime()
-    const firstResponse = new Date(ticket.first_response_at!).getTime()
-    return sum + (firstResponse - created) / (1000 * 60 * 60)
-  }, 0)
+    const created = new Date(ticket.created_at).getTime();
+    const firstResponse = new Date(ticket.first_response_at!).getTime();
+    return sum + (firstResponse - created) / (1000 * 60 * 60);
+  }, 0);
 
-  return totalHours / respondedTickets.length
+  return totalHours / respondedTickets.length;
 }
 
 // Helper function to check if SLA is breached
 export function checkSLABreach(ticket: Ticket): boolean {
-  if (!ticket.sla_due_at) return false
-  const now = new Date().getTime()
-  const slaDue = new Date(ticket.sla_due_at).getTime()
-  return now > slaDue && ticket.status !== "resolved" && ticket.status !== "closed"
+  if (!ticket.sla_due_at) return false;
+  const now = new Date().getTime();
+  const slaDue = new Date(ticket.sla_due_at).getTime();
+  return (
+    now > slaDue && ticket.status !== "resolved" && ticket.status !== "closed"
+  );
 }
 
 // Helper function to get lifecycle stage from status
 export function getLifecycleStage(ticket: Ticket): LifecycleStage {
-  if (ticket.lifecycle_stage) return ticket.lifecycle_stage
+  if (ticket.lifecycle_stage) return ticket.lifecycle_stage;
 
   // Map status to lifecycle stage
   switch (ticket.status) {
     case "new":
-      return "new"
+      return "new";
     case "open":
-      return "triage"
+      return "triage";
     case "in_progress":
-      return "in_progress"
+      return "in_progress";
     case "resolved":
-      return "resolved"
+      return "resolved";
     case "closed":
-      return "closed"
+      return "closed";
     default:
-      return "new"
+      return "new";
   }
 }
 
 // Helper function to calculate SLA compliance percentage
 export function calculateSLACompliance(tickets: Ticket[]): number {
-  if (tickets.length === 0) return 100
-  const ticketsWithSLA = tickets.filter((t) => t.sla_due_at)
-  if (ticketsWithSLA.length === 0) return 100
+  if (tickets.length === 0) return 100;
+  const ticketsWithSLA = tickets.filter((t) => t.sla_due_at);
+  if (ticketsWithSLA.length === 0) return 100;
 
   const compliant = ticketsWithSLA.filter((t) => {
     if (t.status === "resolved" || t.status === "closed") {
-      if (!t.resolved_at) return true // Assume compliant if resolved without timestamp
-      const resolved = new Date(t.resolved_at).getTime()
-      const slaDue = new Date(t.sla_due_at!).getTime()
-      return resolved <= slaDue
+      if (!t.resolved_at) return true; // Assume compliant if resolved without timestamp
+      const resolved = new Date(t.resolved_at).getTime();
+      const slaDue = new Date(t.sla_due_at!).getTime();
+      return resolved <= slaDue;
     }
-    return !checkSLABreach(t)
-  }).length
+    return !checkSLABreach(t);
+  }).length;
 
-  return (compliant / ticketsWithSLA.length) * 100
+  return (compliant / ticketsWithSLA.length) * 100;
 }
-

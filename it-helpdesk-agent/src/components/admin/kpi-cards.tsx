@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { ArrowUpRight, ArrowDownRight } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import * as React from "react";
+import { ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardAction,
@@ -11,57 +11,62 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { KPIMetrics } from "@/lib/analytics-store"
+} from "@/components/ui/card";
+import { KPIMetrics } from "@/lib/analytics-store";
 
 interface KPICardsProps {
-  metrics: KPIMetrics
-  onKpiClick?: (filter: string) => void
+  metrics: KPIMetrics;
+  onKpiClick?: (filter: string) => void;
 }
 
-const metricDescriptions: Record<string, { trend: string; subtitle: string }> = {
-  totalTickets: {
-    trend: "Total tickets created",
-    subtitle: "Tickets for the selected period",
-  },
-  open: {
-    trend: "Open tickets waiting for action",
-    subtitle: "Requires immediate attention",
-  },
-  inProgress: {
-    trend: "Tickets being actively worked on",
-    subtitle: "Teams are resolving issues",
-  },
-  resolved: {
-    trend: "Tickets resolved and closed",
-    subtitle: "Successfully completed",
-  },
-  mttr: {
-    trend: "Mean time to resolution",
-    subtitle: "Average resolution time",
-  },
-  firstResponseTime: {
-    trend: "First response time",
-    subtitle: "Average time to first contact",
-  },
-  slaCompliance: {
-    trend: "SLA compliance rate",
-    subtitle: "Tickets meeting SLA targets",
-  },
-  csat: {
-    trend: "Customer satisfaction score",
-    subtitle: "Average satisfaction rating",
-  },
-}
+const metricDescriptions: Record<string, { trend: string; subtitle: string }> =
+  {
+    totalTickets: {
+      trend: "Total tickets created",
+      subtitle: "Tickets for the selected period",
+    },
+    open: {
+      trend: "Open tickets waiting for action",
+      subtitle: "Requires immediate attention",
+    },
+    inProgress: {
+      trend: "Tickets being actively worked on",
+      subtitle: "Teams are resolving issues",
+    },
+    resolved: {
+      trend: "Tickets resolved and closed",
+      subtitle: "Successfully completed",
+    },
+    mttr: {
+      trend: "Mean time to resolution",
+      subtitle: "Average resolution time",
+    },
+    firstResponseTime: {
+      trend: "First response time",
+      subtitle: "Average time to first contact",
+    },
+    slaCompliance: {
+      trend: "SLA compliance rate",
+      subtitle: "Tickets meeting SLA targets",
+    },
+    csat: {
+      trend: "Customer satisfaction score",
+      subtitle: "Average satisfaction rating",
+    },
+  };
 
 function formatValue(value: number, type: string): string {
   if (type === "mttr" || type === "firstResponseTime") {
-    return `${value.toFixed(1)}h`
+    if (value < 1) {
+      // Show minutes for sub-hour values to avoid 0.0h readout
+      return `${Math.round(value * 60)}m`;
+    }
+    return `${value.toFixed(1)}h`;
   }
   if (type === "slaCompliance" || type === "csat") {
-    return `${value.toFixed(1)}%`
+    return `${value.toFixed(1)}%`;
   }
-  return value.toLocaleString()
+  return value.toLocaleString();
 }
 
 function KPICard({
@@ -72,15 +77,15 @@ function KPICard({
   description,
   onClick,
 }: {
-  title: string
-  value: number
-  delta: number
-  type: string
-  description: { trend: string; subtitle: string }
-  onClick?: () => void
+  title: string;
+  value: number;
+  delta: number;
+  type: string;
+  description: { trend: string; subtitle: string };
+  onClick?: () => void;
 }) {
-  const isPositive = delta >= 0
-  const DeltaIcon = isPositive ? ArrowUpRight : ArrowDownRight
+  const isPositive = delta >= 0;
+  const DeltaIcon = isPositive ? ArrowUpRight : ArrowDownRight;
 
   return (
     <Card
@@ -107,18 +112,19 @@ function KPICard({
         <div className="text-muted-foreground">{description.subtitle}</div>
       </CardFooter>
     </Card>
-  )
+  );
 }
 
 function TicketStatusSummary({
   metrics,
   onKpiClick,
 }: {
-  metrics: KPIMetrics
-  onKpiClick?: (filter: string) => void
+  metrics: KPIMetrics;
+  onKpiClick?: (filter: string) => void;
 }) {
-  const DeltaIcon = metrics.totalTicketsDelta >= 0 ? ArrowUpRight : ArrowDownRight
-  
+  const DeltaIcon =
+    metrics.totalTicketsDelta >= 0 ? ArrowUpRight : ArrowDownRight;
+
   return (
     <Card className="@container/card col-span-full">
       <CardHeader>
@@ -141,14 +147,20 @@ function TicketStatusSummary({
             onClick={() => onKpiClick?.("status:open")}
           >
             <div className="text-xs text-muted-foreground">Open</div>
-            <div className="text-lg font-semibold tabular-nums">{metrics.open}</div>
+            <div className="text-lg font-semibold tabular-nums">
+              {metrics.open}
+            </div>
             <div className="mt-0.5 flex items-center gap-1">
               {metrics.openDelta >= 0 ? (
                 <ArrowUpRight className="h-3 w-3 text-green-600" />
               ) : (
                 <ArrowDownRight className="h-3 w-3 text-red-600" />
               )}
-              <span className={`text-xs ${metrics.openDelta >= 0 ? "text-green-600" : "text-red-600"}`}>
+              <span
+                className={`text-xs ${
+                  metrics.openDelta >= 0 ? "text-green-600" : "text-red-600"
+                }`}
+              >
                 {metrics.openDelta >= 0 ? "+" : ""}
                 {metrics.openDelta.toFixed(1)}%
               </span>
@@ -159,14 +171,22 @@ function TicketStatusSummary({
             onClick={() => onKpiClick?.("status:in_progress")}
           >
             <div className="text-xs text-muted-foreground">In Progress</div>
-            <div className="text-lg font-semibold tabular-nums">{metrics.inProgress}</div>
+            <div className="text-lg font-semibold tabular-nums">
+              {metrics.inProgress}
+            </div>
             <div className="mt-0.5 flex items-center gap-1">
               {metrics.inProgressDelta >= 0 ? (
                 <ArrowUpRight className="h-3 w-3 text-green-600" />
               ) : (
                 <ArrowDownRight className="h-3 w-3 text-red-600" />
               )}
-              <span className={`text-xs ${metrics.inProgressDelta >= 0 ? "text-green-600" : "text-red-600"}`}>
+              <span
+                className={`text-xs ${
+                  metrics.inProgressDelta >= 0
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
                 {metrics.inProgressDelta >= 0 ? "+" : ""}
                 {metrics.inProgressDelta.toFixed(1)}%
               </span>
@@ -177,14 +197,20 @@ function TicketStatusSummary({
             onClick={() => onKpiClick?.("status:resolved")}
           >
             <div className="text-xs text-muted-foreground">Resolved</div>
-            <div className="text-lg font-semibold tabular-nums">{metrics.resolved}</div>
+            <div className="text-lg font-semibold tabular-nums">
+              {metrics.resolved}
+            </div>
             <div className="mt-0.5 flex items-center gap-1">
               {metrics.resolvedDelta >= 0 ? (
                 <ArrowUpRight className="h-3 w-3 text-green-600" />
               ) : (
                 <ArrowDownRight className="h-3 w-3 text-red-600" />
               )}
-              <span className={`text-xs ${metrics.resolvedDelta >= 0 ? "text-green-600" : "text-red-600"}`}>
+              <span
+                className={`text-xs ${
+                  metrics.resolvedDelta >= 0 ? "text-green-600" : "text-red-600"
+                }`}
+              >
                 {metrics.resolvedDelta >= 0 ? "+" : ""}
                 {metrics.resolvedDelta.toFixed(1)}%
               </span>
@@ -193,7 +219,7 @@ function TicketStatusSummary({
         </div>
       </CardFooter>
     </Card>
-  )
+  );
 }
 
 export function KPICards({ metrics, onKpiClick }: KPICardsProps) {
@@ -233,11 +259,10 @@ export function KPICards({ metrics, onKpiClick }: KPICardsProps) {
           description={metricDescriptions.csat}
           onClick={() => onKpiClick?.("metric:csat")}
         />
-        
+
         {/* Ticket Status Summary - Compact Card */}
         <TicketStatusSummary metrics={metrics} onKpiClick={onKpiClick} />
       </div>
     </div>
-  )
+  );
 }
-

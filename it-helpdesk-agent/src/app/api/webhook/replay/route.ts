@@ -1,18 +1,21 @@
-import { NextRequest, NextResponse } from "next/server"
-import { appendLog } from "@/lib/integrations-store"
-import { addLiveEvent, appendAuditLog } from "@/lib/analytics-store"
-import { getTickets, updateTicket } from "@/lib/ticket-store"
-import type { IntegrationProvider, WebhookSampleEvent } from "@/lib/integrations-types"
+import { NextRequest, NextResponse } from "next/server";
+import { appendLog } from "@/lib/integrations-store";
+import { addLiveEvent, appendAuditLog } from "@/lib/analytics-store";
+import { getTickets, updateTicket } from "@/lib/ticket-store";
+import type {
+  IntegrationProvider,
+  WebhookSampleEvent,
+} from "@/lib/integrations-types";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers":
     "Content-Type, Authorization, ngrok-skip-browser-warning",
-}
+};
 
 export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: corsHeaders })
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
 }
 
 const SAMPLE_EVENTS: Record<string, WebhookSampleEvent> = {
@@ -43,14 +46,14 @@ const SAMPLE_EVENTS: Record<string, WebhookSampleEvent> = {
     external_id: "GWA-DEVICE-45",
     last_seen: "2025-12-03T09:00:00Z",
   },
-}
+};
 
 // POST /api/webhook/replay
 // Body: { provider, sampleEventId }
 export async function POST(request: NextRequest) {
-  const body = await request.json()
-  const provider = body.provider as IntegrationProvider | undefined
-  const sampleEventId = body.sampleEventId as string | undefined
+  const body = await request.json();
+  const provider = body.provider as IntegrationProvider | undefined;
+  const sampleEventId = body.sampleEventId as string | undefined;
 
   if (!provider || !sampleEventId) {
     return NextResponse.json(
@@ -58,11 +61,11 @@ export async function POST(request: NextRequest) {
         success: false,
         message: "provider and sampleEventId are required",
       },
-      { status: 400, headers: corsHeaders },
-    )
+      { status: 400, headers: corsHeaders }
+    );
   }
 
-  const event = SAMPLE_EVENTS[sampleEventId]
+  const event = SAMPLE_EVENTS[sampleEventId];
 
   if (!event || event.provider !== provider) {
     return NextResponse.json(
@@ -70,8 +73,8 @@ export async function POST(request: NextRequest) {
         success: false,
         message: "Sample event not found for provider",
       },
-      { status: 404, headers: corsHeaders },
-    )
+      { status: 404, headers: corsHeaders }
+    );
   }
 
   appendLog({
@@ -82,37 +85,52 @@ export async function POST(request: NextRequest) {
       sampleEventId,
       event,
     },
-  })
+  });
 
   // Add live event to analytics store
-  const eventDescription = `${event.provider} ${event.event}: ${event.external_id}`
+  const eventDescription = `${event.provider} ${event.event}: ${event.external_id}`;
   addLiveEvent({
     type: "external_id_created",
     actor: "System",
     description: eventDescription,
     externalId: event.external_id,
-  })
+  });
 
   // Try to find and update related ticket if external_id matches
-  const { tickets } = getTickets()
+  const { tickets } = await getTickets();
   const relatedTicket = tickets.find(
-    (t) => t.external_ids && Object.values(t.external_ids).includes(event.external_id)
-  )
+    (t) =>
+      t.external_ids &&
+      Object.values(t.external_ids).includes(event.external_id)
+  );
 
   if (relatedTicket && event.event === "ticket.updated") {
     // Update ticket status if provided in changes
-    const changes = (event as { changes?: { status?: string } }).changes
+    const changes = (event as { changes?: { status?: string } }).changes;
     if (changes?.status) {
-      const normalizedStatus = changes.status.toLowerCase().replace(" ", "_")
-      if (normalizedStatus === "in_progress" || normalizedStatus === "resolved" || normalizedStatus === "closed" || normalizedStatus === "open") {
-        updateTicket(relatedTicket.id, {
-          status: normalizedStatus as "in_progress" | "resolved" | "closed" | "open",
-        })
+      const normalizedStatus = changes.status.toLowerCase().replace(" ", "_");
+      if (
+        normalizedStatus === "in_progress" ||
+        normalizedStatus === "resolved" ||
+        normalizedStatus === "closed" ||
+        normalizedStatus === "open"
+      ) {
+        await updateTicket(relatedTicket.id, {
+          status: normalizedStatus as
+            | "in_progress"
+            | "resolved"
+            | "closed"
+            | "open",
+        });
       }
     }
   }
 
-  appendAuditLog("system", "webhook_replayed", `Replayed ${event.provider} webhook: ${sampleEventId}`)
+  appendAuditLog(
+    "system",
+    "webhook_replayed",
+    `Replayed ${event.provider} webhook: ${sampleEventId}`
+  );
 
   // For demo we simply return the event payload. In production this would
   // fan out to whatever internal webhook handlers would normally process it.
@@ -125,8 +143,6 @@ export async function POST(request: NextRequest) {
       message: `Webhook replayed: ${eventDescription}`,
       externalId: event.external_id,
     },
-    { headers: corsHeaders },
-  )
+    { headers: corsHeaders }
+  );
 }
-
-
