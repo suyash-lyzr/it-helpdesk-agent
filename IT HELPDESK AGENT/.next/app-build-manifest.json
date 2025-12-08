@@ -55,6 +55,46 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/tickets/route.js"
+    ],
+    "/api/analytics/kpis/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/analytics/kpis/route.js"
+    ],
+    "/api/analytics/sla-funnel/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/analytics/sla-funnel/route.js"
+    ],
+    "/api/analytics/top-issues/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/analytics/top-issues/route.js"
+    ],
+    "/api/analytics/lifecycle/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/analytics/lifecycle/route.js"
+    ],
+    "/api/analytics/team-performance/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/analytics/team-performance/route.js"
+    ],
+    "/api/analytics/forecast/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/analytics/forecast/route.js"
+    ],
+    "/api/analytics/access-requests/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/analytics/access-requests/route.js"
+    ],
+    "/api/analytics/live-events/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/analytics/live-events/route.js"
     ]
   }
 }
