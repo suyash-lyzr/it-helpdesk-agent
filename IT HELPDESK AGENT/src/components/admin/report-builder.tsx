@@ -1,7 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Download, FileText, Play, Edit, Trash2, MoreVertical } from "lucide-react";
+import {
+  Download,
+  FileText,
+  Play,
+  Edit,
+  Trash2,
+  MoreVertical,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -127,10 +134,14 @@ export function ReportBuilder({
   const [reportName, setReportName] = React.useState("");
   const [selectedMetrics, setSelectedMetrics] = React.useState<string[]>([]);
   const [exportFormat, setExportFormat] = React.useState<"csv" | "pdf">("csv");
-  const [dateRange, setDateRange] = React.useState<"7" | "30" | "90" | "custom">("30");
+  const [dateRange, setDateRange] = React.useState<
+    "7" | "30" | "90" | "custom"
+  >("30");
   const [customStartDate, setCustomStartDate] = React.useState("");
   const [customEndDate, setCustomEndDate] = React.useState("");
-  const [scheduleFrequency, setScheduleFrequency] = React.useState<"none" | "daily" | "weekly" | "monthly">("none");
+  const [scheduleFrequency, setScheduleFrequency] = React.useState<
+    "none" | "daily" | "weekly" | "monthly"
+  >("none");
   const [scheduleRecipients, setScheduleRecipients] = React.useState("");
 
   React.useEffect(() => {
@@ -140,10 +151,13 @@ export function ReportBuilder({
   }, [scheduledReports]);
 
   const generateMockFile = (config: ReportConfig) => {
-    const fileName = `${config.name || "report"}-${Date.now()}.${config.format}`;
-    const content = config.format === "csv"
-      ? "Metric,Value,Date\nKPI 1,100,2024-01-01\nKPI 2,200,2024-01-01"
-      : "Mock PDF content (demo)";
+    const fileName = `${config.name || "report"}-${Date.now()}.${
+      config.format
+    }`;
+    const content =
+      config.format === "csv"
+        ? "Metric,Value,Date\nKPI 1,100,2024-01-01\nKPI 2,200,2024-01-01"
+        : "Mock PDF content (demo)";
 
     const blob = new Blob([content], {
       type: config.format === "csv" ? "text/csv" : "application/pdf",
@@ -198,7 +212,10 @@ export function ReportBuilder({
       }
       config.schedule = {
         frequency: scheduleFrequency,
-        recipients: scheduleRecipients.split(",").map((e) => e.trim()).filter(Boolean),
+        recipients: scheduleRecipients
+          .split(",")
+          .map((e) => e.trim())
+          .filter(Boolean),
       };
 
       // Create scheduled report
@@ -209,7 +226,7 @@ export function ReportBuilder({
         recipients: config.schedule.recipients,
         createdAt: new Date().toISOString(),
         metrics: selectedMetrics,
-        format,
+        format: exportFormat,
       };
       setReports((prev) => [newReport, ...prev]);
       addLiveEvent({
@@ -230,7 +247,9 @@ export function ReportBuilder({
         actor: "System",
         description: `Report '${reportName}' generated (demo)`,
         headline: `Report '${reportName}' generated (demo)`,
-        details: `Format: ${exportFormat.toUpperCase()}, Metrics: ${selectedMetrics.length}`,
+        details: `Format: ${exportFormat.toUpperCase()}, Metrics: ${
+          selectedMetrics.length
+        }`,
         category: "automations",
         severity: "low",
       });
@@ -309,7 +328,8 @@ export function ReportBuilder({
           Report Builder & Export
         </CardTitle>
         <CardDescription>
-          Create one-off exports or schedule recurring reports for SLA, team performance, and access request metrics.
+          Create one-off exports or schedule recurring reports for SLA, team
+          performance, and access request metrics.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -343,13 +363,19 @@ export function ReportBuilder({
                 <Label className="mb-3 block">Select Metrics</Label>
                 <div className="space-y-2">
                   {availableMetrics.map((metric) => (
-                    <div key={metric.id} className="flex items-center space-x-2">
+                    <div
+                      key={metric.id}
+                      className="flex items-center space-x-2"
+                    >
                       <Checkbox
                         id={metric.id}
                         checked={selectedMetrics.includes(metric.id)}
                         onCheckedChange={() => toggleMetric(metric.id)}
                       />
-                      <Label htmlFor={metric.id} className="cursor-pointer text-sm">
+                      <Label
+                        htmlFor={metric.id}
+                        className="cursor-pointer text-sm"
+                      >
                         {metric.label}
                       </Label>
                     </div>
@@ -361,7 +387,9 @@ export function ReportBuilder({
                 <Label className="mb-2 block">Date Range</Label>
                 <Select
                   value={dateRange}
-                  onValueChange={(v) => setDateRange(v as "7" | "30" | "90" | "custom")}
+                  onValueChange={(v) =>
+                    setDateRange(v as "7" | "30" | "90" | "custom")
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -376,7 +404,9 @@ export function ReportBuilder({
                 {dateRange === "custom" && (
                   <div className="grid grid-cols-2 gap-2 mt-2">
                     <div>
-                      <Label htmlFor="start-date" className="text-xs">Start Date</Label>
+                      <Label htmlFor="start-date" className="text-xs">
+                        Start Date
+                      </Label>
                       <Input
                         id="start-date"
                         type="date"
@@ -386,7 +416,9 @@ export function ReportBuilder({
                       />
                     </div>
                     <div>
-                      <Label htmlFor="end-date" className="text-xs">End Date</Label>
+                      <Label htmlFor="end-date" className="text-xs">
+                        End Date
+                      </Label>
                       <Input
                         id="end-date"
                         type="date"
@@ -401,7 +433,10 @@ export function ReportBuilder({
 
               <div>
                 <Label className="mb-2 block">Export Format</Label>
-                <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as "csv" | "pdf")}>
+                <Select
+                  value={exportFormat}
+                  onValueChange={(v) => setExportFormat(v as "csv" | "pdf")}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -419,7 +454,11 @@ export function ReportBuilder({
                     <Label>Frequency</Label>
                     <Select
                       value={scheduleFrequency}
-                      onValueChange={(v) => setScheduleFrequency(v as "none" | "daily" | "weekly" | "monthly")}
+                      onValueChange={(v) =>
+                        setScheduleFrequency(
+                          v as "none" | "daily" | "weekly" | "monthly"
+                        )
+                      }
                     >
                       <SelectTrigger className="mt-1">
                         <SelectValue />
@@ -434,11 +473,15 @@ export function ReportBuilder({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Scheduled reports are demo-mode and will append demo events.
+                          Scheduled reports are demo-mode and will append demo
+                          events.
                         </p>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p className="text-xs">Scheduled reports are simulated and will create demo events in the Live Activity feed.</p>
+                        <p className="text-xs">
+                          Scheduled reports are simulated and will create demo
+                          events in the Live Activity feed.
+                        </p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -489,7 +532,8 @@ export function ReportBuilder({
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       {report.lastRun && (
                         <span>
-                          Last run: {format(new Date(report.lastRun), "MMM d, yyyy")}
+                          Last run:{" "}
+                          {format(new Date(report.lastRun), "MMM d, yyyy")}
                         </span>
                       )}
                       {report.recipients.length > 0 && (

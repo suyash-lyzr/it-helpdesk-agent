@@ -81,12 +81,12 @@ export function AdminTicketsDashboard({
     Array<{
       id: string;
       name: string;
-      frequency: string;
+      frequency: "daily" | "weekly" | "monthly" | "none";
       recipients: string[];
       createdAt: string;
       lastRun?: string;
       metrics: string[];
-      format: string;
+      format: "csv" | "pdf";
     }>
   >([]);
 

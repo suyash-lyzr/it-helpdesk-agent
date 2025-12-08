@@ -18,7 +18,9 @@ export function describeWebhookEvent(event: WebhookSampleEvent): string {
     return `Google device ${event.external_id} is offline (last seen ${event.last_seen}).`
   }
 
-  return `${event.provider} event ${event.event} received for ${event.external_id}.`
+  // TypeScript fallback - all WebhookSampleEvent types have provider, event, and external_id
+  const baseEvent = event as { provider: string; event: string; external_id: string };
+  return `${baseEvent.provider} event ${baseEvent.event} received for ${baseEvent.external_id}.`
 }
 
 

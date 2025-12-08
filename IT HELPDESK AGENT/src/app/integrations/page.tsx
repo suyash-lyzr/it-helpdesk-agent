@@ -60,12 +60,14 @@ export default function IntegrationsPage() {
     })();
   }, []);
 
-  const handleConnect = async (provider: IntegrationConfig["meta"]["id"]) => {
+  const handleConnect = async (provider: string) => {
     if (!isAdmin) return;
     setBusyProvider(provider);
     try {
       const mode = demoMode ? "demo" : "real";
-      const res = await connectIntegrationApi(provider, { mode });
+      const res = await connectIntegrationApi(provider as IntegrationProvider, {
+        mode,
+      });
       toast.success(
         provider === "jira"
           ? `Connected Jira (${mode === "demo" ? "Demo" : "Real"})`
@@ -93,13 +95,11 @@ export default function IntegrationsPage() {
     }
   };
 
-  const handleDisconnect = async (
-    provider: IntegrationConfig["meta"]["id"]
-  ) => {
+  const handleDisconnect = async (provider: string) => {
     if (!isAdmin) return;
     setBusyProvider(provider);
     try {
-      await disconnectIntegrationApi(provider);
+      await disconnectIntegrationApi(provider as IntegrationProvider);
       toast.success("Integration disconnected");
       setIntegrations((prev) =>
         prev.map((i) =>
@@ -121,10 +121,10 @@ export default function IntegrationsPage() {
     }
   };
 
-  const handleTest = async (provider: IntegrationProvider) => {
+  const handleTest = async (provider: string) => {
     setBusyProvider(provider);
     try {
-      const res = await testIntegrationApi(provider);
+      const res = await testIntegrationApi(provider as IntegrationProvider);
       const message =
         (res as { message?: string }).message ??
         "Test executed successfully (demo)";
@@ -137,8 +137,8 @@ export default function IntegrationsPage() {
     }
   };
 
-  const handleOpenConnectModal = (provider: IntegrationProvider) => {
-    setConnectModalProvider(provider);
+  const handleOpenConnectModal = (provider: string) => {
+    setConnectModalProvider(provider as IntegrationProvider);
     setConnectModalOpen(true);
   };
 
@@ -152,8 +152,8 @@ export default function IntegrationsPage() {
     }
   };
 
-  const handleOpenSetupGuide = (provider: IntegrationProvider) => {
-    setSetupGuideProvider(provider);
+  const handleOpenSetupGuide = (provider: string) => {
+    setSetupGuideProvider(provider as IntegrationProvider);
     setSetupGuideOpen(true);
   };
 
@@ -164,12 +164,12 @@ export default function IntegrationsPage() {
     }
   };
 
-  const handleCreateDemoTicket = (provider: IntegrationProvider) => {
+  const handleCreateDemoTicket = (provider: string) => {
     router.push(`/integrations/${provider}`);
   };
 
-  const handleRequestDisconnect = (provider: IntegrationProvider) => {
-    setDisconnectProvider(provider);
+  const handleRequestDisconnect = (provider: string) => {
+    setDisconnectProvider(provider as IntegrationProvider);
   };
 
   const handleConfirmDisconnect = async () => {

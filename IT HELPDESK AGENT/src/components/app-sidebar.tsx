@@ -117,7 +117,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenu>
               {navMain.map((item) => {
                 const isActive = pathname === item.url;
-                const isDisabled = "disabled" in item && item.disabled;
+                const isDisabled = "disabled" in item && Boolean(item.disabled);
 
                 return (
                   <SidebarMenuItem key={item.title}>

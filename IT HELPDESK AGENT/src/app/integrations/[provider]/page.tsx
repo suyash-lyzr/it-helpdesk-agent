@@ -359,9 +359,7 @@ export default function IntegrationDetailPage() {
         toast.error("Webhook replay failed");
         return;
       }
-      const description = describeWebhookEvent(
-        res.event as WebhookSampleEvent
-      );
+      const description = describeWebhookEvent(res.event as WebhookSampleEvent);
       toast.success(description);
       const latest = await fetchIntegrationLogs(provider, 10);
       setLogs(latest);
@@ -1308,7 +1306,10 @@ export default function IntegrationDetailPage() {
                       <SelectValue placeholder="Select webhook event" />
                     </SelectTrigger>
                     <SelectContent>
-                      {DEMO_EVENTS[provider].map((event) => (
+                      {(
+                        (DEMO_EVENTS[provider as IntegrationProvider] ??
+                          []) as { id: string; label: string }[]
+                      ).map((event) => (
                         <SelectItem key={event.id} value={event.id}>
                           {event.label}
                         </SelectItem>
@@ -2131,7 +2132,10 @@ export default function IntegrationDetailPage() {
                       <SelectValue placeholder="Select webhook event" />
                     </SelectTrigger>
                     <SelectContent>
-                      {DEMO_EVENTS[provider].map((event) => (
+                      {(
+                        (DEMO_EVENTS[provider as IntegrationProvider] ??
+                          []) as { id: string; label: string }[]
+                      ).map((event) => (
                         <SelectItem key={event.id} value={event.id}>
                           {event.label}
                         </SelectItem>
@@ -2721,9 +2725,12 @@ export default function IntegrationDetailPage() {
                               ticket.requester.email
                             </p>
                           </div>
-                          <Select disabled={!isAdmin}>
+                          <Select
+                            disabled={!isAdmin}
+                            value="ticket.requester.email"
+                          >
                             <SelectTrigger>
-                              <SelectValue value="ticket.requester.email" />
+                              <SelectValue />
                             </SelectTrigger>
                           </Select>
                         </div>
@@ -2734,9 +2741,12 @@ export default function IntegrationDetailPage() {
                               ticket.requester.firstName
                             </p>
                           </div>
-                          <Select disabled={!isAdmin}>
+                          <Select
+                            disabled={!isAdmin}
+                            value="ticket.requester.firstName"
+                          >
                             <SelectTrigger>
-                              <SelectValue value="ticket.requester.firstName" />
+                              <SelectValue />
                             </SelectTrigger>
                           </Select>
                         </div>
@@ -2747,9 +2757,12 @@ export default function IntegrationDetailPage() {
                               ticket.requester.lastName
                             </p>
                           </div>
-                          <Select disabled={!isAdmin}>
+                          <Select
+                            disabled={!isAdmin}
+                            value="ticket.requester.lastName"
+                          >
                             <SelectTrigger>
-                              <SelectValue value="ticket.requester.lastName" />
+                              <SelectValue />
                             </SelectTrigger>
                           </Select>
                         </div>
@@ -2760,9 +2773,9 @@ export default function IntegrationDetailPage() {
                               requested_role / project_group
                             </p>
                           </div>
-                          <Select disabled={!isAdmin}>
+                          <Select disabled={!isAdmin} value="requested_role">
                             <SelectTrigger>
-                              <SelectValue value="requested_role" />
+                              <SelectValue />
                             </SelectTrigger>
                           </Select>
                         </div>
@@ -2958,7 +2971,10 @@ export default function IntegrationDetailPage() {
                       <SelectValue placeholder="Select webhook event" />
                     </SelectTrigger>
                     <SelectContent>
-                      {DEMO_EVENTS[provider].map((event) => (
+                      {(
+                        (DEMO_EVENTS[provider as IntegrationProvider] ??
+                          []) as { id: string; label: string }[]
+                      ).map((event) => (
                         <SelectItem key={event.id} value={event.id}>
                           {event.label}
                         </SelectItem>
@@ -3818,7 +3834,10 @@ export default function IntegrationDetailPage() {
                       <SelectValue placeholder="Select webhook event" />
                     </SelectTrigger>
                     <SelectContent>
-                      {DEMO_EVENTS[provider].map((event) => (
+                      {(
+                        (DEMO_EVENTS[provider as IntegrationProvider] ??
+                          []) as { id: string; label: string }[]
+                      ).map((event) => (
                         <SelectItem key={event.id} value={event.id}>
                           {event.label}
                         </SelectItem>
@@ -4111,7 +4130,10 @@ export default function IntegrationDetailPage() {
                       <SelectValue placeholder="Select sample event" />
                     </SelectTrigger>
                     <SelectContent>
-                      {DEMO_EVENTS[provider].map((event) => (
+                      {(
+                        (DEMO_EVENTS[provider as IntegrationProvider] ??
+                          []) as { id: string; label: string }[]
+                      ).map((event) => (
                         <SelectItem
                           key={event.id}
                           value={event.id}
