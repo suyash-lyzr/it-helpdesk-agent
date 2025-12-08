@@ -425,7 +425,7 @@ export default function IntegrationDetailPage() {
         description: demoDescription,
         type: "change_request",
       });
-        toast.success(
+      toast.success(
         `Created ServiceNow change request ${res.external_id} (Demo)`
       );
       const latest = await fetchIntegrationLogs(provider, 10);
@@ -778,7 +778,7 @@ export default function IntegrationDetailPage() {
       >
         <AppSidebar variant="inset" />
         <SidebarInset className="h-screen overflow-auto">
-          <div className="flex h-full flex-col gap-4 p-6 max-w-[1400px] mx-auto">
+          <div className="flex h-full flex-col gap-4 p-4">
             {/* Compact Header Block */}
             <div className="flex items-center justify-between py-3 px-4 bg-card border rounded-lg">
               <div className="flex items-center gap-3">
@@ -827,8 +827,8 @@ export default function IntegrationDetailPage() {
               </div>
             </div>
 
-            {/* First Row: Two Cards Side by Side */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* First Row: Cards Stacked Vertically */}
+            <div className="space-y-4">
               {/* Overview / What This Integration Does - Compact */}
               <Card>
                 <CardHeader className="pb-4">
@@ -1021,8 +1021,8 @@ export default function IntegrationDetailPage() {
               </Card>
             </div>
 
-            {/* Second Row: Two Collapsible Cards Side by Side */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Second Row: Collapsible Cards Stacked Vertically */}
+            <div className="space-y-4">
               {/* What Lyzr Handles Automatically - Collapsible */}
               <Collapsible
                 open={automaticConfigOpen}
@@ -3951,68 +3951,68 @@ export default function IntegrationDetailPage() {
       <AppSidebar variant="inset" />
       <SidebarInset className="h-screen overflow-auto">
         <div className="flex h-full flex-col gap-4 p-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {integration.meta.name}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {integration.meta.description}
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline">
-              {integration.status === "connected"
-                ? integration.mode === "demo"
-                  ? "Demo connected"
-                  : "Connected"
-                : "Not connected"}
-            </Badge>
-            {integration.lastTestAt && (
-              <span className="text-xs text-muted-foreground">
-                Last test:{" "}
-                {new Date(integration.lastTestAt).toLocaleString()}
-              </span>
-            )}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight">
+                {integration.meta.name}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {integration.meta.description}
+              </p>
+            </div>
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">
+                  {integration.status === "connected"
+                    ? integration.mode === "demo"
+                      ? "Demo connected"
+                      : "Connected"
+                    : "Not connected"}
+                </Badge>
+                {integration.lastTestAt && (
+                  <span className="text-xs text-muted-foreground">
+                    Last test:{" "}
+                    {new Date(integration.lastTestAt).toLocaleString()}
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy || !isAdmin}
+                  onClick={handleTest}
+                >
+                  Test connection
+                </Button>
+                {integration.status === "connected" ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy || !isAdmin}
+                    onClick={handleDisconnect}
+                  >
+                    Disconnect
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    disabled={busy || !isAdmin}
+                    onClick={handleConnectDemo}
+                  >
+                    Connect (Demo)
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={busy || !isAdmin}
-              onClick={handleTest}
-            >
-              Test connection
-            </Button>
-            {integration.status === "connected" ? (
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={busy || !isAdmin}
-                onClick={handleDisconnect}
-              >
-                Disconnect
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                disabled={busy || !isAdmin}
-                onClick={handleConnectDemo}
-              >
-                Connect (Demo)
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
 
-      <div className="grid gap-4 lg:grid-cols-[2fr,1fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Field Mapping</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+          <div className="grid gap-4 lg:grid-cols-[2fr,1fr]">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Field Mapping</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 {[
                   "title",
                   "description",
@@ -4020,162 +4020,162 @@ export default function IntegrationDetailPage() {
                   "assignee",
                   "project",
                 ].map((key) => (
-                <div
-                  key={key}
-                  className="grid grid-cols-2 gap-2 items-center"
-                >
-                  <div>
+                  <div
+                    key={key}
+                    className="grid grid-cols-2 gap-2 items-center"
+                  >
+                    <div>
                       <Label className="text-xs capitalize">{key}</Label>
-                    <p className="text-[10px] text-muted-foreground">
-                      Local: ticket.{key === "project" ? "component" : key}
-                    </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Local: ticket.{key === "project" ? "component" : key}
+                      </p>
+                    </div>
+                    <Select
+                      value={mappings[key] ?? ""}
+                      onValueChange={(value) =>
+                        setMappings((prev) => ({
+                          ...prev,
+                          [key]: value,
+                        }))
+                      }
+                      disabled={!isAdmin}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Select external field" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LOCAL_FIELDS.map((field) => (
+                          <SelectItem
+                            key={field}
+                            value={field}
+                            className="text-xs"
+                          >
+                            {field}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    disabled={busy || !isAdmin}
+                    onClick={handleSaveMappings}
+                  >
+                    Save mappings
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Quick actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {provider === "servicenow" && (
+                  <>
+                    <Label className="text-xs">Demo title</Label>
+                    <Input
+                      value={demoTitle}
+                      onChange={(e) => setDemoTitle(e.target.value)}
+                      className="h-8 text-xs"
+                      disabled={!isAdmin}
+                    />
+                    <Label className="text-xs">Description</Label>
+                    <Textarea
+                      value={demoDescription}
+                      onChange={(e) => setDemoDescription(e.target.value)}
+                      className="min-h-[60px] text-xs"
+                      disabled={!isAdmin}
+                    />
+                  </>
+                )}
+                <Button
+                  size="sm"
+                  className="w-full"
+                  disabled={busy || !isAdmin}
+                  onClick={handleDemoAction}
+                >
+                  {provider === "servicenow" && "Create incident (Demo)"}
+                  {provider === "okta" && "Provision user (Demo)"}
+                  {provider === "google" && "Check device (Demo)"}
+                </Button>
+
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium">Webhook replay</span>
                   </div>
                   <Select
-                    value={mappings[key] ?? ""}
-                    onValueChange={(value) =>
-                      setMappings((prev) => ({
-                        ...prev,
-                        [key]: value,
-                      }))
-                    }
-                    disabled={!isAdmin}
+                    value={selectedEvent}
+                    onValueChange={setSelectedEvent}
                   >
                     <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Select external field" />
+                      <SelectValue placeholder="Select sample event" />
                     </SelectTrigger>
                     <SelectContent>
-                      {LOCAL_FIELDS.map((field) => (
+                      {DEMO_EVENTS[provider].map((event) => (
                         <SelectItem
-                          key={field}
-                          value={field}
+                          key={event.id}
+                          value={event.id}
                           className="text-xs"
                         >
-                          {field}
+                          {event.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-                ))}
-            <div className="flex justify-end">
-              <Button
-                size="sm"
-                disabled={busy || !isAdmin}
-                onClick={handleSaveMappings}
-              >
-                Save mappings
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Quick actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-                {provider === "servicenow" && (
-              <>
-                <Label className="text-xs">Demo title</Label>
-                <Input
-                  value={demoTitle}
-                  onChange={(e) => setDemoTitle(e.target.value)}
-                  className="h-8 text-xs"
-                  disabled={!isAdmin}
-                />
-                <Label className="text-xs">Description</Label>
-                <Textarea
-                  value={demoDescription}
-                      onChange={(e) => setDemoDescription(e.target.value)}
-                  className="min-h-[60px] text-xs"
-                  disabled={!isAdmin}
-                />
-              </>
-            )}
-            <Button
-              size="sm"
-              className="w-full"
-              disabled={busy || !isAdmin}
-              onClick={handleDemoAction}
-            >
-              {provider === "servicenow" && "Create incident (Demo)"}
-              {provider === "okta" && "Provision user (Demo)"}
-              {provider === "google" && "Check device (Demo)"}
-            </Button>
-
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium">Webhook replay</span>
-              </div>
-              <Select
-                value={selectedEvent}
-                onValueChange={setSelectedEvent}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Select sample event" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DEMO_EVENTS[provider].map((event) => (
-                    <SelectItem
-                      key={event.id}
-                      value={event.id}
-                      className="text-xs"
-                    >
-                      {event.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full"
-                disabled={webhookBusy}
-                onClick={handleWebhookReplay}
-              >
-                Replay webhook (Demo)
-              </Button>
-              <p className="text-[10px] text-muted-foreground">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    disabled={webhookBusy}
+                    onClick={handleWebhookReplay}
+                  >
+                    Replay webhook (Demo)
+                  </Button>
+                  <p className="text-[10px] text-muted-foreground">
                     This simulates an incoming webhook and shows how the agent
                     or dashboard would react.
-              </p>
-            </div>
+                  </p>
+                </div>
 
-            <div className="mt-4 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium">
-                  Recent audit log
-                </span>
-              </div>
-              <div className="space-y-1">
-                {logs.map((log) => (
+                <div className="mt-4 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium">
+                      Recent audit log
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    {logs.map((log) => (
                       <div key={log.id} className="rounded-md border px-2 py-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-medium">
-                        {log.action}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {new Date(log.timestamp).toLocaleTimeString()}
-                      </span>
-                    </div>
-                    {log.details && (
-                      <p className="mt-1 text-[10px] text-muted-foreground">
-                        {JSON.stringify(log.details)}
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-medium">
+                            {log.action}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(log.timestamp).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        {log.details && (
+                          <p className="mt-1 text-[10px] text-muted-foreground">
+                            {JSON.stringify(log.details)}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                    {logs.length === 0 && (
+                      <p className="text-[10px] text-muted-foreground">
+                        No audit log entries yet. Connect and run a test to see
+                        activity.
                       </p>
                     )}
                   </div>
-                ))}
-                {logs.length === 0 && (
-                  <p className="text-[10px] text-muted-foreground">
-                        No audit log entries yet. Connect and run a test to see
-                        activity.
-                  </p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>
