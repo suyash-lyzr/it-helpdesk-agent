@@ -1545,8 +1545,8 @@ export default function IntegrationDetailPage() {
                             Integration active
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            You'll be redirected back and the integration will
-                            be active
+                            You&apos;ll be redirected back and the integration
+                            will be active
                           </p>
                         </div>
                       </div>
@@ -3238,8 +3238,8 @@ export default function IntegrationDetailPage() {
                             Integration active
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            You'll be redirected back and the integration will
-                            be active
+                            You&apos;ll be redirected back and the integration
+                            will be active
                           </p>
                         </div>
                       </div>

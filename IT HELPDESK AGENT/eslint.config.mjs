@@ -20,7 +20,12 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": "warn",
+      "react/no-unescaped-entities": "error",
+    },
+  },
 ];
 
 export default eslintConfig;
-
