@@ -42,6 +42,7 @@ import {
   LiveEvent,
   ForecastData,
   addLiveEvent,
+  AccessRequestAnalytics,
 } from "@/lib/analytics-store";
 
 interface AdminTicketsDashboardProps {
@@ -75,8 +76,19 @@ export function AdminTicketsDashboard({
   const [forecastData, setForecastData] = React.useState<ForecastData[]>([]);
   const [liveEvents, setLiveEvents] = React.useState<LiveEvent[]>([]);
   const [accessRequestAnalytics, setAccessRequestAnalytics] =
-    React.useState<any>(null);
-  const [scheduledReports, setScheduledReports] = React.useState<any[]>([]);
+    React.useState<AccessRequestAnalytics | null>(null);
+  const [scheduledReports, setScheduledReports] = React.useState<
+    Array<{
+      id: string;
+      name: string;
+      frequency: string;
+      recipients: string[];
+      createdAt: string;
+      lastRun?: string;
+      metrics: string[];
+      format: string;
+    }>
+  >([]);
 
   // Fetch analytics data
   React.useEffect(() => {
@@ -290,7 +302,16 @@ export function AdminTicketsDashboard({
     }
   };
 
-  const handleReportGenerate = async (config: any) => {
+  const handleReportGenerate = async (config: {
+    name?: string;
+    metrics: string[];
+    format: "csv" | "pdf";
+    dateRange?: { start: string; end: string };
+    schedule?: {
+      frequency: "daily" | "weekly" | "monthly";
+      recipients: string[];
+    };
+  }) => {
     try {
       const response = await fetch("/api/analytics/reports", {
         method: "POST",

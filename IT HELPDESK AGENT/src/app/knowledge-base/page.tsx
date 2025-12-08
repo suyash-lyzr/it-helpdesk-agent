@@ -1493,8 +1493,8 @@ export default function KnowledgeBasePage() {
                                       {dup.doc1.title}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                      Similarity: {dup.similarity}% with "
-                                      {dup.doc2.title}"
+                                      Similarity: {dup.similarity}% with &quot;
+                                      {dup.doc2.title}&quot;
                                     </p>
                                   </div>
                                   <Button
@@ -1765,7 +1765,7 @@ export default function KnowledgeBasePage() {
                                 {entry.action}
                               </span>
                               <span className="text-muted-foreground">
-                                "{entry.kbDocumentTitle}"
+                                &quot;{entry.kbDocumentTitle}&quot;
                               </span>
                               <span className="text-muted-foreground ml-auto">
                                 {getTimeAgo(new Date(entry.timestamp))}
@@ -2102,9 +2102,9 @@ export default function KnowledgeBasePage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Insert into Knowledge Base</AlertDialogTitle>
               <AlertDialogDescription>
-                Create knowledge base article titled "
-                {editingTitle || selectedSuggestion?.title}"? This will mark the
-                suggestion resolved.
+                Create knowledge base article titled &quot;
+                {editingTitle || selectedSuggestion?.title}&quot;? This will
+                mark the suggestion resolved.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
