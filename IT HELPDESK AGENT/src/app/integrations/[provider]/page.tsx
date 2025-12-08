@@ -37,6 +37,7 @@ import type {
   AuditLogEntry,
   IntegrationConfig,
   IntegrationProvider,
+  WebhookSampleEvent,
 } from "@/lib/integrations-types";
 import {
   connectIntegrationApi,
@@ -359,12 +360,7 @@ export default function IntegrationDetailPage() {
         return;
       }
       const description = describeWebhookEvent(
-        res.event as {
-          provider: string;
-          event: string;
-          external_id?: string;
-          [key: string]: unknown;
-        }
+        res.event as WebhookSampleEvent
       );
       toast.success(description);
       const latest = await fetchIntegrationLogs(provider, 10);
