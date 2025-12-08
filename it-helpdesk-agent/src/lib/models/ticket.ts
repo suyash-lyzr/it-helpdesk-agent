@@ -35,8 +35,8 @@ const TicketSchema = new Schema<Ticket>(
     },
     status: {
       type: String,
-      enum: ["new", "open", "in_progress", "resolved", "closed"],
-      default: "new",
+      enum: ["open", "in_progress", "resolved", "closed"],
+      default: "open",
       index: true,
     },
     created_at: { type: Date, required: true, index: true },
@@ -61,7 +61,7 @@ const TicketSchema = new Schema<Ticket>(
       ],
     },
     reopened_count: { type: Number, default: 0 },
-    csat_score: { type: Number, min: 1, max: 5 },
+    csat_score: { type: Number, min: 0, max: 1 }, // 0 = thumbs down, 1 = thumbs up
     csat_comment: { type: String },
     csat_submitted_at: { type: Date },
   },

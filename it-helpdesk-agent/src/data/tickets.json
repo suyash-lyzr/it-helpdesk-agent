@@ -9,7 +9,7 @@
     "priority": "high",
     "collected_details": {},
     "suggested_team": "Network",
-    "status": "new",
+    "status": "open",
     "created_at": "2025-12-08T06:07:43.581Z",
     "updated_at": "2025-12-08T06:07:43.581Z",
     "sla_due_at": "2025-12-09T06:07:43.581Z",
@@ -169,7 +169,7 @@
       "access_level": "Admin Console"
     },
     "suggested_team": "IAM",
-    "status": "new",
+    "status": "open",
     "created_at": "2025-12-08T07:07:43.581Z",
     "updated_at": "2025-12-08T07:07:43.581Z",
     "sla_due_at": "2025-12-10T07:07:43.581Z",

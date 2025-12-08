@@ -392,7 +392,12 @@ export function AccessRequestAnalyticsComponent({
           />
           <KPITile
             label="SLA Compliance"
-            value={`${data.kpis.slaCompliance.toFixed(1)}%`}
+            value={
+              data.kpis.slaCompliance !== null &&
+              data.kpis.slaCompliance !== undefined
+                ? `${data.kpis.slaCompliance.toFixed(1)}%`
+                : "-"
+            }
             delta={data.kpis.slaComplianceDelta}
             trend={data.kpis.slaComplianceTrend}
             tooltip="Percentage of approvals completed within the SLA target (default 24 hours)."
@@ -502,7 +507,10 @@ export function AccessRequestAnalyticsComponent({
                               : "bg-red-500/10 text-red-700 border-red-500/20"
                           }`}
                         >
-                          {app.slaCompliance.toFixed(1)}%
+                          {app.slaCompliance !== null &&
+                          app.slaCompliance !== undefined
+                            ? `${app.slaCompliance.toFixed(1)}%`
+                            : "-"}
                         </Badge>
                       </TableCell>
                     </TableRow>

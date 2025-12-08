@@ -162,7 +162,7 @@ export async function PUT(
           {
             success: false,
             message:
-              "Invalid status. Must be 'new', 'open', 'in_progress', 'resolved', or 'closed'",
+              "Invalid status. Must be 'open', 'in_progress', 'resolved', or 'closed'",
           },
           { status: 400, headers: corsHeaders }
         );
@@ -230,6 +230,29 @@ export async function PUT(
       updateData.lifecycle_stage = body.lifecycle_stage;
     } else if (updateData.status === "resolved") {
       updateData.lifecycle_stage = "resolved";
+    }
+
+    // Handle CSAT rating (thumbs up/down: 1 = thumbs up, 0 = thumbs down)
+    if (body.csat_score !== undefined) {
+      if (
+        typeof body.csat_score !== "number" ||
+        (body.csat_score !== 0 && body.csat_score !== 1)
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "Invalid csat_score. Must be 0 (thumbs down) or 1 (thumbs up)",
+          },
+          { status: 400, headers: corsHeaders }
+        );
+      }
+      updateData.csat_score = body.csat_score;
+      updateData.csat_submitted_at = new Date().toISOString();
+    }
+
+    if (body.csat_comment !== undefined) {
+      updateData.csat_comment = body.csat_comment;
     }
 
     const updatedTicket = await updateTicket(id, updateData);

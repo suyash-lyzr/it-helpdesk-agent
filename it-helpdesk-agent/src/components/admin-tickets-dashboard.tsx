@@ -91,9 +91,11 @@ export function AdminTicketsDashboard({
       format: "csv" | "pdf";
     }>
   >([]);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = React.useState(true);
 
   // Fetch analytics data
   const fetchAnalytics = React.useCallback(async () => {
+    setIsLoadingAnalytics(true);
     try {
       const startDate =
         filters.startDate || format(subDays(new Date(), 7), "yyyy-MM-dd");
@@ -155,10 +157,14 @@ export function AdminTicketsDashboard({
       }
     } catch (error) {
       console.error("Error fetching analytics:", error);
+    } finally {
+      setIsLoadingAnalytics(false);
     }
   }, [filters]);
 
   React.useEffect(() => {
+    // Reset loading state when component mounts or filters change
+    setIsLoadingAnalytics(true);
     fetchAnalytics();
     const interval = setInterval(fetchAnalytics, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
@@ -404,6 +410,22 @@ export function AdminTicketsDashboard({
       selectedTicket.status !== "resolved" &&
       selectedTicket.status !== "closed"
     : false;
+
+  // Show loading state while analytics are being fetched
+  if (isLoadingAnalytics) {
+    return (
+      <div className="@container/main flex flex-1 flex-col">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="text-sm text-muted-foreground">
+              Loading admin dashboard...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="@container/main flex flex-1 flex-col">

@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       priority: body.priority,
       collected_details: body.collected_details,
       suggested_team: body.suggested_team,
-      status: body.status || "new",
+      status: body.status || "open",
     };
 
     // Validate required fields
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           message:
-            "Invalid status. Must be 'new', 'open', 'in_progress', 'resolved', or 'closed'",
+            "Invalid status. Must be 'open', 'in_progress', 'resolved', or 'closed'",
         },
         { status: 400, headers: corsHeaders }
       );

@@ -26,8 +26,8 @@ export interface KPIMetrics {
   resolved: number;
   mttr: number; // Mean Time To Resolution in hours
   firstResponseTime: number; // First Response Time in hours
-  slaCompliance: number; // Percentage
-  csat: number; // Customer Satisfaction percentage (mocked)
+  slaCompliance: number | null; // Percentage, or null if no resolved tickets
+  csat: number | null; // Customer Satisfaction percentage, or null if no ratings
   // Deltas vs previous period
   totalTicketsDelta: number;
   openDelta: number;
@@ -35,8 +35,8 @@ export interface KPIMetrics {
   resolvedDelta: number;
   mttrDelta: number;
   firstResponseTimeDelta: number;
-  slaComplianceDelta: number;
-  csatDelta: number;
+  slaComplianceDelta: number | null;
+  csatDelta: number | null;
   // Trend data for sparklines (last 7 days)
   totalTicketsTrend: number[];
   openTrend: number[];
@@ -44,8 +44,8 @@ export interface KPIMetrics {
   resolvedTrend: number[];
   mttrTrend: number[];
   firstResponseTimeTrend: number[];
-  slaComplianceTrend: number[];
-  csatTrend: number[];
+  slaComplianceTrend: (number | null)[];
+  csatTrend: (number | null)[];
 }
 
 // SLA Funnel Data
@@ -54,7 +54,7 @@ export interface SLAFunnelData {
   total: number;
   meetingSLA: number;
   breached: number;
-  slaPercentage: number;
+  slaPercentage: number | null; // null when no resolved tickets
   breachedTickets: Ticket[];
 }
 
@@ -200,7 +200,17 @@ export function getKPIMetrics(
   const mttr = calculateMTTR(filteredTickets);
   const firstResponseTime = calculateFirstResponseTime(filteredTickets);
   const slaCompliance = calculateSLACompliance(filteredTickets);
-  const csat = 85 + Math.random() * 10; // Mocked CSAT between 85-95%
+
+  // Calculate CSAT from actual ratings (thumbs up = 1, thumbs down = 0)
+  const ratedTickets = filteredTickets.filter(
+    (t) => t.csat_score !== undefined && t.csat_score !== null
+  );
+  const csat =
+    ratedTickets.length > 0
+      ? (ratedTickets.filter((t) => t.csat_score === 1).length /
+          ratedTickets.length) *
+        100
+      : null;
 
   // Calculate previous period metrics for deltas
   const prevTotal = previousTickets.length;
@@ -214,10 +224,26 @@ export function getKPIMetrics(
   const prevMTTR = calculateMTTR(previousTickets);
   const prevFRT = calculateFirstResponseTime(previousTickets);
   const prevSLA = calculateSLACompliance(previousTickets);
-  const prevCSAT = 85 + Math.random() * 10;
+
+  // Calculate previous period CSAT
+  const prevRatedTickets = previousTickets.filter(
+    (t) => t.csat_score !== undefined && t.csat_score !== null
+  );
+  const prevCSAT =
+    prevRatedTickets.length > 0
+      ? (prevRatedTickets.filter((t) => t.csat_score === 1).length /
+          prevRatedTickets.length) *
+        100
+      : null;
 
   // Calculate deltas
-  const calculateDelta = (current: number, previous: number) => {
+  const calculateDelta = (
+    current: number | null,
+    previous: number | null
+  ): number | null => {
+    if (current === null && previous === null) return null;
+    if (current === null) return null;
+    if (previous === null) return current > 0 ? 100 : null;
     if (previous === 0) return current > 0 ? 100 : 0;
     return ((current - previous) / previous) * 100;
   };
@@ -265,7 +291,18 @@ export function getKPIMetrics(
     mttrTrend.push(calculateMTTR(dayTickets));
     firstResponseTimeTrend.push(calculateFirstResponseTime(dayTickets));
     slaComplianceTrend.push(calculateSLACompliance(dayTickets));
-    csatTrend.push(85 + Math.random() * 10);
+
+    // Calculate CSAT for this day
+    const dayRatedTickets = dayTickets.filter(
+      (t) => t.csat_score !== undefined && t.csat_score !== null
+    );
+    const dayCSAT =
+      dayRatedTickets.length > 0
+        ? (dayRatedTickets.filter((t) => t.csat_score === 1).length /
+            dayRatedTickets.length) *
+          100
+        : null;
+    csatTrend.push(dayCSAT);
   }
 
   return {
@@ -283,8 +320,8 @@ export function getKPIMetrics(
     resolvedDelta: calculateDelta(filteredResolved, prevResolved),
     mttrDelta: calculateDelta(mttr, prevMTTR),
     firstResponseTimeDelta: calculateDelta(firstResponseTime, prevFRT),
-    slaComplianceDelta: calculateDelta(slaCompliance, prevSLA),
-    csatDelta: calculateDelta(csat, prevCSAT),
+    slaComplianceDelta: calculateDelta(slaCompliance ?? null, prevSLA ?? null),
+    csatDelta: calculateDelta(csat ?? null, prevCSAT ?? null),
     totalTicketsTrend,
     openTrend,
     inProgressTrend,
@@ -297,6 +334,7 @@ export function getKPIMetrics(
 }
 
 // Get SLA Funnel Data
+// SLA percentage only considers closed tickets for compliance calculation
 export function getSLAFunnel(tickets: Ticket[]): SLAFunnelData[] {
   const priorities = ["high", "medium", "low"] as const;
   const result: SLAFunnelData[] = [];
@@ -305,8 +343,30 @@ export function getSLAFunnel(tickets: Ticket[]): SLAFunnelData[] {
     const priorityTickets = tickets.filter((t) => t.priority === priority);
     const total = priorityTickets.length;
     const breached = priorityTickets.filter(checkSLABreach).length;
-    const meetingSLA = total - breached;
-    const slaPercentage = total > 0 ? (meetingSLA / total) * 100 : 100;
+
+    // For SLA compliance percentage, only consider resolved/closed tickets
+    const resolvedTicketsWithSLA = priorityTickets.filter(
+      (t) => (t.status === "resolved" || t.status === "closed") && t.sla_due_at
+    );
+
+    let meetingSLA = 0;
+    let slaPercentage: number | null = null;
+
+    if (resolvedTicketsWithSLA.length > 0) {
+      // Count resolved tickets that were resolved before or on SLA due date
+      meetingSLA = resolvedTicketsWithSLA.filter((t) => {
+        if (!t.resolved_at) {
+          const resolvedAt = new Date(t.updated_at).getTime();
+          const slaDue = new Date(t.sla_due_at!).getTime();
+          return resolvedAt <= slaDue;
+        }
+        const resolved = new Date(t.resolved_at).getTime();
+        const slaDue = new Date(t.sla_due_at!).getTime();
+        return resolved <= slaDue;
+      }).length;
+
+      slaPercentage = (meetingSLA / resolvedTicketsWithSLA.length) * 100;
+    }
 
     result.push({
       priority: priority.toUpperCase(),

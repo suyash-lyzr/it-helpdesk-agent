@@ -88,7 +88,7 @@ export async function createTicket(data: CreateTicketRequest): Promise<Ticket> {
     priority: data.priority || "medium",
     collected_details: data.collected_details || {},
     suggested_team: data.suggested_team || "Application Support",
-    status: data.status || "new",
+    status: data.status || "open",
     created_at: now,
     updated_at: now,
     sla_due_at: slaDueAt,
@@ -165,7 +165,6 @@ export async function deleteTicket(id: string): Promise<boolean> {
 
 export async function getTicketCounts(): Promise<{
   total: number;
-  new: number;
   open: number;
   in_progress: number;
   resolved: number;
@@ -173,19 +172,16 @@ export async function getTicketCounts(): Promise<{
 }> {
   await connectToDatabase();
 
-  const [total, newCount, open, inProgress, resolved, closed] =
-    await Promise.all([
-      TicketModel.estimatedDocumentCount(),
-      TicketModel.countDocuments({ status: "new" }),
-      TicketModel.countDocuments({ status: "open" }),
-      TicketModel.countDocuments({ status: "in_progress" }),
-      TicketModel.countDocuments({ status: "resolved" }),
-      TicketModel.countDocuments({ status: "closed" }),
-    ]);
+  const [total, open, inProgress, resolved, closed] = await Promise.all([
+    TicketModel.estimatedDocumentCount(),
+    TicketModel.countDocuments({ status: "open" }),
+    TicketModel.countDocuments({ status: "in_progress" }),
+    TicketModel.countDocuments({ status: "resolved" }),
+    TicketModel.countDocuments({ status: "closed" }),
+  ]);
 
   return {
     total,
-    new: newCount,
     open,
     in_progress: inProgress,
     resolved,

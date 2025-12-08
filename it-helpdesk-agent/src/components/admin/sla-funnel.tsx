@@ -166,7 +166,7 @@ export function SLAFunnel({ data, onSegmentClick }: SLAFunnelProps) {
                 <div className="flex items-center gap-2 ml-4">
                   <div className="text-right">
                     <div className="text-sm font-semibold tabular-nums">
-                      {item.total > 0
+                      {item.slaPercentage !== null
                         ? `${item.slaPercentage.toFixed(1)}%`
                         : "-"}
                     </div>
@@ -174,7 +174,7 @@ export function SLAFunnel({ data, onSegmentClick }: SLAFunnelProps) {
                       compliance
                     </div>
                   </div>
-                  {item.total > 0 &&
+                  {item.slaPercentage !== null &&
                     (item.slaPercentage >= 100 ? (
                       <TrendingUp className="h-4 w-4 text-primary" />
                     ) : (

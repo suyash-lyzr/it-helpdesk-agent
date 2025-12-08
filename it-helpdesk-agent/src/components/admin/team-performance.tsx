@@ -78,7 +78,7 @@ function TeamSummaryCard({
   const hasTeamTickets = teamTickets.length > 0;
   const slaCompliance = hasTeamTickets
     ? calculateSLACompliance(teamTickets)
-    : 0;
+    : null;
 
   return (
     <Card className="transition-all hover:shadow-sm">
@@ -156,7 +156,7 @@ function TeamSummaryCard({
                 </Tooltip>
               </div>
               <span className="text-base font-semibold tabular-nums">
-                {hasTeamTickets ? `${slaCompliance.toFixed(1)}%` : "-"}
+                {slaCompliance !== null ? `${slaCompliance.toFixed(1)}%` : "-"}
               </span>
             </div>
 
@@ -200,7 +200,7 @@ function TeamDetailsPanel({
   const hasTeamTickets = teamTickets.length > 0;
   const slaCompliance = hasTeamTickets
     ? calculateSLACompliance(teamTickets)
-    : 0;
+    : null;
 
   // Calculate ticket distribution by category
   const categoryCounts = teamTickets.reduce((acc, ticket) => {
@@ -279,9 +279,11 @@ function TeamDetailsPanel({
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="text-lg font-semibold tabular-nums">
-                      {hasTeamTickets ? `${slaCompliance.toFixed(1)}%` : "-"}
+                      {slaCompliance !== null
+                        ? `${slaCompliance.toFixed(1)}%`
+                        : "-"}
                     </div>
-                    {hasTeamTickets && (
+                    {slaCompliance !== null && (
                       <>
                         <TrendingUp className="h-4 w-4 text-primary" />
                         <span className="text-xs text-muted-foreground">

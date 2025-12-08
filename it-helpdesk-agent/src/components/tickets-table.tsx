@@ -43,9 +43,8 @@ import {
 } from "@/components/ui/select";
 import { Ticket as TicketType } from "@/lib/ticket-types";
 
-// Status color mapping for the new status values
+// Status color mapping
 const statusColors: Record<string, string> = {
-  new: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 border-blue-200 dark:border-blue-500/30",
   open: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 border-red-200 dark:border-red-500/30",
   in_progress:
     "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border-amber-200 dark:border-amber-500/30",
@@ -57,7 +56,6 @@ const statusColors: Record<string, string> = {
 
 // Status display labels
 const statusLabels: Record<string, string> = {
-  new: "New",
   open: "Open",
   in_progress: "In Progress",
   resolved: "Resolved",

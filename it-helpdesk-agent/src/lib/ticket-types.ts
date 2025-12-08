@@ -2,12 +2,7 @@
 
 export type TicketType = "incident" | "access_request" | "request";
 export type TicketPriority = "low" | "medium" | "high";
-export type TicketStatus =
-  | "new"
-  | "open"
-  | "in_progress"
-  | "resolved"
-  | "closed";
+export type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
 export type SuggestedTeam =
   | "Network"
   | "Endpoint Support"
@@ -163,7 +158,7 @@ export function isValidPriority(priority: string): priority is TicketPriority {
 
 // Helper function to validate status
 export function isValidStatus(status: string): status is TicketStatus {
-  return ["new", "open", "in_progress", "resolved", "closed"].includes(status);
+  return ["open", "in_progress", "resolved", "closed"].includes(status);
 }
 
 // Helper function to validate suggested team
@@ -224,10 +219,8 @@ export function getLifecycleStage(ticket: Ticket): LifecycleStage {
 
   // Map status to lifecycle stage
   switch (ticket.status) {
-    case "new":
-      return "new";
     case "open":
-      return "triage";
+      return "new";
     case "in_progress":
       return "in_progress";
     case "resolved":
@@ -240,20 +233,30 @@ export function getLifecycleStage(ticket: Ticket): LifecycleStage {
 }
 
 // Helper function to calculate SLA compliance percentage
-export function calculateSLACompliance(tickets: Ticket[]): number {
-  if (tickets.length === 0) return 100;
-  const ticketsWithSLA = tickets.filter((t) => t.sla_due_at);
-  if (ticketsWithSLA.length === 0) return 100;
+// Only considers resolved/closed tickets - checks if they were resolved before SLA due date
+// Returns null when there are no resolved tickets with SLA (no data to calculate)
+export function calculateSLACompliance(tickets: Ticket[]): number | null {
+  if (tickets.length === 0) return null;
 
-  const compliant = ticketsWithSLA.filter((t) => {
-    if (t.status === "resolved" || t.status === "closed") {
-      if (!t.resolved_at) return true; // Assume compliant if resolved without timestamp
-      const resolved = new Date(t.resolved_at).getTime();
+  // Only consider resolved or closed tickets with SLA due dates
+  const resolvedTicketsWithSLA = tickets.filter(
+    (t) => (t.status === "resolved" || t.status === "closed") && t.sla_due_at
+  );
+
+  if (resolvedTicketsWithSLA.length === 0) return null;
+
+  // Check if each resolved ticket was resolved before or on the SLA due date
+  const compliant = resolvedTicketsWithSLA.filter((t) => {
+    if (!t.resolved_at) {
+      // If no resolved_at timestamp, check if updated_at (when resolved) is before SLA due
+      const resolvedAt = new Date(t.updated_at).getTime();
       const slaDue = new Date(t.sla_due_at!).getTime();
-      return resolved <= slaDue;
+      return resolvedAt <= slaDue;
     }
-    return !checkSLABreach(t);
+    const resolved = new Date(t.resolved_at).getTime();
+    const slaDue = new Date(t.sla_due_at!).getTime();
+    return resolved <= slaDue;
   }).length;
 
-  return (compliant / ticketsWithSLA.length) * 100;
+  return (compliant / resolvedTicketsWithSLA.length) * 100;
 }

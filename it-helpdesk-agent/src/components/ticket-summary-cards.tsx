@@ -1,19 +1,17 @@
-"use client"
+"use client";
 
-import { Card, CardContent } from "@/components/ui/card"
-import { Ticket, Circle, Clock, CheckCircle2, AlertCircle } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card";
+import { Ticket, Circle, Clock, CheckCircle2 } from "lucide-react";
 
 interface TicketSummaryCardsProps {
-  total: number
-  new_count: number
-  open: number
-  inProgress: number
-  resolved: number
+  total: number;
+  open: number;
+  inProgress: number;
+  resolved: number;
 }
 
 export function TicketSummaryCards({
   total,
-  new_count,
   open,
   inProgress,
   resolved,
@@ -25,13 +23,6 @@ export function TicketSummaryCards({
       icon: Ticket,
       iconColor: "text-primary",
       iconBg: "bg-primary/10",
-    },
-    {
-      title: "New",
-      count: new_count,
-      icon: AlertCircle,
-      iconColor: "text-blue-500",
-      iconBg: "bg-blue-50 dark:bg-blue-500/10",
     },
     {
       title: "Open",
@@ -54,10 +45,10 @@ export function TicketSummaryCards({
       iconColor: "text-green-500",
       iconBg: "bg-green-50 dark:bg-green-500/10",
     },
-  ]
+  ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((card) => (
         <Card key={card.title} className="border">
           <CardContent className="p-4">
@@ -74,5 +65,5 @@ export function TicketSummaryCards({
         </Card>
       ))}
     </div>
-  )
+  );
 }

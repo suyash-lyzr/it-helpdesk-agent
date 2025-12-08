@@ -3,7 +3,16 @@
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { ArrowLeft, Send, CheckCircle2, User, Bot, Shield } from "lucide-react";
+import {
+  ArrowLeft,
+  Send,
+  CheckCircle2,
+  User,
+  Bot,
+  Shield,
+  ThumbsUp,
+  ThumbsDown,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +53,7 @@ export default function TicketDetailPage() {
   const [messageText, setMessageText] = React.useState("");
   const [isInternalNote, setIsInternalNote] = React.useState(false);
   const [isSending, setIsSending] = React.useState(false);
+  const [isSubmittingRating, setIsSubmittingRating] = React.useState(false);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
   // Fetch ticket details and messages
@@ -175,6 +185,45 @@ export default function TicketDetailPage() {
         return "bg-purple-50 border-purple-200 dark:bg-purple-950/20 dark:border-purple-800";
       default:
         return "bg-muted border-border";
+    }
+  };
+
+  const handleRatingSubmit = async (rating: 0 | 1) => {
+    if (
+      !ticket ||
+      (ticket.status !== "resolved" && ticket.status !== "closed")
+    ) {
+      return;
+    }
+
+    setIsSubmittingRating(true);
+    try {
+      const response = await fetch(`/api/tickets/${ticketId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          csat_score: rating,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit rating");
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setTicket(data.data);
+        toast.success(
+          rating === 1
+            ? "Thank you for your positive feedback!"
+            : "We appreciate your feedback and will work to improve."
+        );
+      }
+    } catch (error) {
+      console.error("Error submitting rating:", error);
+      toast.error("Failed to submit rating. Please try again.");
+    } finally {
+      setIsSubmittingRating(false);
     }
   };
 
@@ -416,6 +465,71 @@ export default function TicketDetailPage() {
                   )}
                 </div>
               </div>
+
+              {/* CSAT Rating Section - Only show for resolved/closed tickets */}
+              {(ticket.status === "resolved" || ticket.status === "closed") && (
+                <div className="mt-6 pt-6 border-t">
+                  <h3 className="font-semibold mb-3">Rate Your Experience</h3>
+                  {ticket.csat_score !== undefined ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        {ticket.csat_score === 1 ? (
+                          <>
+                            <ThumbsUp className="h-4 w-4 text-green-600" />
+                            <span className="text-muted-foreground">
+                              You rated this ticket positively
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <ThumbsDown className="h-4 w-4 text-red-600" />
+                            <span className="text-muted-foreground">
+                              You rated this ticket negatively
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      {ticket.csat_submitted_at && (
+                        <p className="text-xs text-muted-foreground">
+                          Rated on{" "}
+                          {format(
+                            new Date(ticket.csat_submitted_at),
+                            "MMM d, yyyy • h:mm a"
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        How satisfied were you with the resolution?
+                      </p>
+                      <div className="flex gap-3">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleRatingSubmit(1)}
+                          disabled={isSubmittingRating}
+                          className="h-10 w-10"
+                          title="Thumbs Up"
+                        >
+                          <ThumbsUp className="h-5 w-5" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleRatingSubmit(0)}
+                          disabled={isSubmittingRating}
+                          className="h-10 w-10"
+                          title="Thumbs Down"
+                        >
+                          <ThumbsDown className="h-5 w-5" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
