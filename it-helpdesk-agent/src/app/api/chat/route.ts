@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { LYZR_CONFIG } from "@/lib/lyzr-api";
+import { LYZR_CONFIG, streamChatWithAgent } from "@/lib/lyzr-api";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,31 +13,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const response = await fetch(LYZR_CONFIG.endpoint, {
-      method: "POST",
+    const responseStream = await streamChatWithAgent(
+      LYZR_CONFIG.apiKey,
+      LYZR_CONFIG.agentId,
+      message,
+      user_id || LYZR_CONFIG.defaultUserId,
+      {},
+      session_id
+    );
+
+    // Stream SSE/text from Lyzr straight through to the client
+    return new Response(responseStream, {
+      status: 200,
       headers: {
-        "Content-Type": "application/json",
-        "x-api-key": LYZR_CONFIG.apiKey,
+        "Content-Type": "text/event-stream",
+        Connection: "keep-alive",
+        "Cache-Control": "no-cache, no-transform",
+        "X-Accel-Buffering": "no",
       },
-      body: JSON.stringify({
-        user_id: user_id || LYZR_CONFIG.defaultUserId,
-        agent_id: LYZR_CONFIG.agentId,
-        session_id: session_id,
-        message: message,
-      }),
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Lyzr API error:", errorText);
-      return NextResponse.json(
-        { error: "Failed to get response from AI agent" },
-        { status: response.status }
-      );
-    }
-
-    const data = await response.json();
-    return NextResponse.json(data);
   } catch (error) {
     console.error("Chat API error:", error);
     return NextResponse.json(
@@ -46,4 +40,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

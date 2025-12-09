@@ -98,18 +98,55 @@ export function ChatInterface() {
         }),
       });
 
-      if (!response.ok) {
+      if (!response.ok || !response.body) {
         throw new Error("Failed to get response");
       }
 
-      const data = await response.json();
+      // Stream the SSE/text response and build the assistant reply
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+      let buffer = "";
+      let done = false;
+
+      while (!done) {
+        const { value, done: streamDone } = await reader.read();
+        done = streamDone;
+        if (value) {
+          buffer += decoder.decode(value, { stream: !done });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? ""; // keep incomplete line
+
+          for (const line of lines) {
+            if (!line.startsWith("data:")) continue;
+            const payload = line.replace(/^data:\s*/, "");
+            if (payload === "[DONE]") {
+              done = true;
+              break;
+            }
+            let text = payload;
+            if (text.trim().startsWith("{")) {
+              try {
+                const parsed = JSON.parse(text);
+                text = parsed.response ?? parsed.message ?? parsed.data ?? text;
+              } catch {
+                // fallback to raw text
+              }
+            }
+            text = text
+              .replace(/\\n/g, "\n")
+              .replace(/\\"/g, '"')
+              .replace(/\\\\/g, "\\");
+            fullText += text;
+          }
+        }
+      }
 
       const assistantMessage: ChatMessageType = {
         id: generateMessageId(),
         role: "assistant",
         content:
-          data.response ||
-          data.message ||
+          fullText.trim() ||
           "I apologize, but I couldn't process your request. Please try again.",
         timestamp: new Date(),
       };
