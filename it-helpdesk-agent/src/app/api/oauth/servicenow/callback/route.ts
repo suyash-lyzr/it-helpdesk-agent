@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { IntegrationOAuthModel } from "@/lib/models/integration";
+import { appendLog } from "@/lib/integrations-store";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,6 +126,18 @@ export async function GET(request: NextRequest) {
       },
       { upsert: true, new: true }
     );
+
+    // Log the successful OAuth connection
+    appendLog({
+      provider: "servicenow",
+      action: "oauth.connected",
+      actor: "admin",
+      details: {
+        instanceUrl,
+        connectedAt: new Date().toISOString(),
+        scope: tokenData.scope,
+      },
+    });
 
     // Redirect back to integration page with success
     return NextResponse.redirect(

@@ -43,6 +43,7 @@ import {
   connectIntegrationApi,
   createDemoJiraIssue,
   createDemoServiceNowIncident,
+  createServiceNowIncident,
   demoGoogleCheckDevice,
   demoOktaProvision,
   disconnectIntegrationApi,
@@ -313,6 +314,9 @@ export default function IntegrationDetailPage() {
         const all = await fetchIntegrations();
         const current = all.find((i) => i.meta.id === provider) ?? null;
         setIntegration(current);
+        // Refresh logs
+        const latest = await fetchIntegrationLogs(provider, 10);
+        setLogs(latest);
       } else {
         toast.error(res.message || "ServiceNow connection test failed");
       }
@@ -322,6 +326,54 @@ export default function IntegrationDetailPage() {
         error instanceof Error
           ? error.message
           : "Failed to test ServiceNow connection"
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCreateServiceNowIncident = async () => {
+    if (!isAdmin || provider !== "servicenow") return;
+    if (!demoTitle || !demoDescription) {
+      toast.error("Please enter both title and description");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await createServiceNowIncident({
+        title: demoTitle,
+        description: demoDescription,
+        priority: demoSeverity,
+      });
+      if (res.success && res.number) {
+        toast.success(
+          <div className="flex flex-col gap-1">
+            <span>{res.message}</span>
+            {res.url && (
+              <a
+                href={res.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs underline"
+              >
+                Open {res.number} in ServiceNow →
+              </a>
+            )}
+          </div>,
+          { duration: 6000 }
+        );
+        // Refresh logs
+        const latest = await fetchIntegrationLogs(provider, 10);
+        setLogs(latest);
+      } else {
+        toast.error(res.message || "Failed to create incident");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to create ServiceNow incident"
       );
     } finally {
       setBusy(false);
@@ -1484,23 +1536,25 @@ export default function IntegrationDetailPage() {
                 >
                   {statusBadgeText}
                 </Badge>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={busy || !isAdmin}
-                  onClick={handleTest}
-                >
-                  Test Connection
-                </Button>
                 {integration.status === "connected" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={busy || !isAdmin}
-                    onClick={handleDisconnect}
-                  >
-                    Disconnect
-                  </Button>
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busy || !isAdmin}
+                      onClick={handleTestServiceNow}
+                    >
+                      Test Connection
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busy || !isAdmin}
+                      onClick={handleDisconnect}
+                    >
+                      Disconnect
+                    </Button>
+                  </>
                 )}
                 {integration.status !== "connected" && (
                   <Button
@@ -1509,16 +1563,6 @@ export default function IntegrationDetailPage() {
                     onClick={handleServiceNowOAuth}
                   >
                     Start OAuth Setup
-                  </Button>
-                )}
-                {integration.status === "connected" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={busy || !isAdmin}
-                    onClick={handleTestServiceNow}
-                  >
-                    Test Connection
                   </Button>
                 )}
               </div>
@@ -2162,56 +2206,6 @@ export default function IntegrationDetailPage() {
               </Card>
             </Collapsible>
 
-            {/* CMDB Sync & Discovery */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Database className="h-4 w-4" />
-                  CMDB Sync & Discovery
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {integration.status === "connected" && (
-                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-md">
-                    <div>
-                      <p className="text-sm font-medium">Last CMDB sync</p>
-                      <p className="text-xs text-muted-foreground">
-                        {integration.lastTestAt
-                          ? new Date(integration.lastTestAt).toLocaleString()
-                          : "Never"}
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      OK
-                    </Badge>
-                  </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="cmdb-sync">Auto-sync CMDB</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Enable automatic CMDB sync to improve triage and automated
-                      routing.
-                    </p>
-                  </div>
-                  <Switch
-                    id="cmdb-sync"
-                    checked={cmdbSyncEnabled}
-                    onCheckedChange={setCmdbSyncEnabled}
-                    disabled={!isAdmin || integration.status !== "connected"}
-                  />
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={handleCmdbDiscovery}
-                  disabled={busy || !isAdmin}
-                  className="w-full"
-                >
-                  Run CMDB Discovery (Demo)
-                </Button>
-              </CardContent>
-            </Card>
-
             {/* Test & Validate Integration */}
             <Card>
               <CardHeader>
@@ -2259,56 +2253,21 @@ export default function IntegrationDetailPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-2">
                     <Button
-                      onClick={handleDemoAction}
-                      disabled={busy || !isAdmin}
+                      onClick={handleCreateServiceNowIncident}
+                      disabled={
+                        busy || !isAdmin || !demoTitle || !demoDescription
+                      }
                       className="w-full"
                     >
-                      Create Sample Incident in ServiceNow (Demo)
+                      Create Test Incident in ServiceNow
                     </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleCreateServiceNowChange}
-                      disabled={busy || !isAdmin}
-                      className="w-full"
-                    >
-                      Create Sample Change Request (Demo)
-                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">
+                      This will create a real incident in your ServiceNow
+                      instance tagged with [Lyzr Test]
+                    </p>
                   </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-3">
-                  <Label className="text-sm">Webhook Replay Event</Label>
-                  <Select
-                    value={selectedEvent}
-                    onValueChange={setSelectedEvent}
-                    disabled={webhookBusy}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select webhook event" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(
-                        (DEMO_EVENTS[provider as IntegrationProvider] ??
-                          []) as { id: string; label: string }[]
-                      ).map((event) => (
-                        <SelectItem key={event.id} value={event.id}>
-                          {event.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="outline"
-                    onClick={handleWebhookReplay}
-                    disabled={webhookBusy || !selectedEvent}
-                    className="w-full"
-                  >
-                    Replay Webhook (Demo)
-                  </Button>
                 </div>
 
                 <Separator />
@@ -2320,39 +2279,73 @@ export default function IntegrationDetailPage() {
                   <div className="rounded-md border bg-muted/30 max-h-[300px] overflow-y-auto">
                     {logs.length > 0 ? (
                       <div className="divide-y">
-                        {logs.map((log) => (
-                          <div key={log.id} className="p-3 text-xs">
-                            <div className="flex items-start justify-between gap-2 mb-1">
-                              <div className="flex items-center gap-2">
-                                {log.action.includes("error") ||
-                                log.action.includes("fail") ? (
-                                  <XCircle className="h-3 w-3 text-destructive" />
-                                ) : log.action.includes("success") ||
-                                  log.action.includes("connect") ? (
-                                  <CheckCircle className="h-3 w-3 text-green-600" />
-                                ) : (
-                                  <Info className="h-3 w-3 text-muted-foreground" />
-                                )}
-                                <span className="font-medium">
-                                  {log.action}
+                        {logs.map((log) => {
+                          // Format ServiceNow-specific action names for better readability
+                          const formatActionName = (action: string) => {
+                            const replacements: Record<string, string> = {
+                              "oauth.connected": "OAuth Connected",
+                              "connection.test.succeeded":
+                                "Connection Test Succeeded",
+                              "connection.test.failed":
+                                "Connection Test Failed",
+                              "incident.created": "Incident Created",
+                              "incident.create.failed":
+                                "Incident Creation Failed",
+                              "tickets.sync.completed": "Tickets Synced",
+                            };
+
+                            if (replacements[action]) {
+                              return replacements[action];
+                            }
+
+                            // Fallback: capitalize and format
+                            return action
+                              .replace(/\./g, " ")
+                              .split(" ")
+                              .map(
+                                (word) =>
+                                  word.charAt(0).toUpperCase() + word.slice(1)
+                              )
+                              .join(" ");
+                          };
+
+                          return (
+                            <div key={log.id} className="p-3 text-xs">
+                              <div className="flex items-start justify-between gap-2 mb-1">
+                                <div className="flex items-center gap-2">
+                                  {log.action.includes("error") ||
+                                  log.action.includes("fail") ? (
+                                    <XCircle className="h-3 w-3 text-destructive" />
+                                  ) : log.action.includes("success") ||
+                                    log.action.includes("connect") ||
+                                    log.action.includes("succeeded") ||
+                                    log.action.includes("created") ||
+                                    log.action.includes("sync") ? (
+                                    <CheckCircle className="h-3 w-3 text-green-600" />
+                                  ) : (
+                                    <Info className="h-3 w-3 text-muted-foreground" />
+                                  )}
+                                  <span className="font-medium">
+                                    {formatActionName(log.action)}
+                                  </span>
+                                </div>
+                                <span className="text-muted-foreground whitespace-nowrap">
+                                  {new Date(log.timestamp).toLocaleString()}
                                 </span>
                               </div>
-                              <span className="text-muted-foreground whitespace-nowrap">
-                                {new Date(log.timestamp).toLocaleString()}
-                              </span>
+                              {log.details && (
+                                <details className="mt-2">
+                                  <summary className="cursor-pointer text-[10px] text-muted-foreground hover:text-foreground">
+                                    View JSON details
+                                  </summary>
+                                  <pre className="mt-2 text-[10px] bg-background p-2 rounded border overflow-x-auto">
+                                    {JSON.stringify(log.details, null, 2)}
+                                  </pre>
+                                </details>
+                              )}
                             </div>
-                            {log.details && (
-                              <details className="mt-2">
-                                <summary className="cursor-pointer text-[10px] text-muted-foreground hover:text-foreground">
-                                  View JSON details
-                                </summary>
-                                <pre className="mt-2 text-[10px] bg-background p-2 rounded border overflow-x-auto">
-                                  {JSON.stringify(log.details, null, 2)}
-                                </pre>
-                              </details>
-                            )}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="p-4 text-center text-sm text-muted-foreground">

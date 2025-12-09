@@ -1,7 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { IntegrationOAuthModel } from "@/lib/models/integration";
-import { TicketModel } from "@/lib/models/ticket";
 import { appendLog } from "@/lib/integrations-store";
 
 const corsHeaders = {
@@ -15,60 +14,10 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: corsHeaders });
 }
 
-interface ServiceNowIncidentResponse {
-  result: {
-    sys_id: string;
-    number: string;
-  };
-}
-
-async function createServiceNowIncident(
-  accessToken: string,
-  instanceUrl: string,
-  ticket: any
-): Promise<{ sys_id: string; number: string }> {
-  const incidentData = {
-    short_description: ticket.title,
-    description: ticket.description,
-    urgency:
-      ticket.priority === "high"
-        ? "1"
-        : ticket.priority === "medium"
-        ? "2"
-        : "3",
-    impact:
-      ticket.priority === "high"
-        ? "1"
-        : ticket.priority === "medium"
-        ? "2"
-        : "3",
-    caller_id: ticket.user_name,
-    state:
-      ticket.status === "resolved"
-        ? "6"
-        : ticket.status === "in_progress"
-        ? "2"
-        : "1",
-    assignment_group: ticket.suggested_team || "IT Support",
-  };
-
-  const response = await fetch(`${instanceUrl}/api/now/table/incident`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify(incidentData),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`ServiceNow API error: ${response.status} ${errorText}`);
-  }
-
-  const data = (await response.json()) as ServiceNowIncidentResponse;
-  return data.result;
+interface RefreshTokenResponse {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
 }
 
 async function refreshAccessToken(
@@ -76,11 +25,7 @@ async function refreshAccessToken(
   instanceUrl: string,
   clientId: string,
   clientSecret: string
-): Promise<{
-  access_token: string;
-  refresh_token: string;
-  expires_in: number;
-}> {
+): Promise<RefreshTokenResponse> {
   const tokenUrl = `${instanceUrl}/oauth_token.do`;
 
   const body = new URLSearchParams({
@@ -102,11 +47,11 @@ async function refreshAccessToken(
     throw new Error(`Failed to refresh token: ${response.status}`);
   }
 
-  return await response.json();
+  return (await response.json()) as RefreshTokenResponse;
 }
 
-// POST /api/servicenow/sync-tickets
-export async function POST() {
+// POST /api/servicenow/create-incident
+export async function POST(request: NextRequest) {
   const clientId = process.env.SN_CLIENT_ID;
   const clientSecret = process.env.SN_CLIENT_SECRET;
 
@@ -122,10 +67,28 @@ export async function POST() {
   }
 
   try {
+    const body = await request.json();
+    const {
+      title,
+      description,
+      priority = "3",
+      assignment_group = "IT Support",
+    } = body;
+
+    if (!title || !description) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Title and description are required",
+        },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
     // Connect to database
     await connectToDatabase();
 
-    // Get ServiceNow OAuth credentials
+    // Retrieve stored integration
     const integration = await IntegrationOAuthModel.findOne({
       provider: "servicenow",
     });
@@ -207,91 +170,81 @@ export async function POST() {
       }
     }
 
-    // Fetch all tickets that don't have a ServiceNow incident ID
-    const tickets = await TicketModel.find({
-      $or: [
-        { "external_ids.servicenow": { $exists: false } },
-        { "external_ids.servicenow": null },
-      ],
-    }).limit(50); // Limit to 50 tickets per sync to avoid timeouts
+    // Create incident in ServiceNow
+    const incidentData = {
+      short_description: `[Lyzr Test] ${title}`,
+      description: description,
+      urgency: priority,
+      impact: priority,
+      state: "1", // New
+      assignment_group: assignment_group,
+    };
 
-    if (tickets.length === 0) {
-      return NextResponse.json(
-        {
-          success: true,
-          synced: 0,
-          message: "All tickets are already synced to ServiceNow",
+    const createResponse = await fetch(
+      `${instanceUrl}/api/now/table/incident`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
-        { headers: corsHeaders }
+        body: JSON.stringify(incidentData),
+      }
+    );
+
+    if (!createResponse.ok) {
+      const errorText = await createResponse.text();
+
+      // Log the failure
+      appendLog({
+        provider: "servicenow",
+        action: "incident.create.failed",
+        actor: "admin",
+        details: {
+          error: errorText,
+          status: createResponse.status,
+        },
+      });
+
+      throw new Error(
+        `ServiceNow API error: ${createResponse.status} ${errorText}`
       );
     }
 
-    const results = {
-      synced: 0,
-      failed: 0,
-      errors: [] as string[],
-    };
+    const result = await createResponse.json();
+    const incident = result.result;
 
-    // Sync each ticket to ServiceNow
-    for (const ticket of tickets) {
-      try {
-        const incident = await createServiceNowIncident(
-          accessToken,
-          instanceUrl,
-          ticket
-        );
-
-        // Update ticket with ServiceNow incident ID
-        await TicketModel.findByIdAndUpdate(ticket._id, {
-          $set: {
-            "external_ids.servicenow": incident.number,
-          },
-        });
-
-        results.synced++;
-      } catch (error) {
-        results.failed++;
-        results.errors.push(
-          `Ticket ${ticket.id}: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`
-        );
-        console.error(`Failed to sync ticket ${ticket.id}:`, error);
-      }
-    }
-
-    // Log the sync operation
+    // Log the success
     appendLog({
       provider: "servicenow",
-      action: "tickets.sync.completed",
+      action: "incident.created",
       actor: "admin",
       details: {
-        synced: results.synced,
-        failed: results.failed,
-        total: tickets.length,
-        errors:
-          results.errors.length > 0 ? results.errors.slice(0, 3) : undefined,
+        incident_number: incident.number,
+        sys_id: incident.sys_id,
+        title: title,
+        source: "test-card",
       },
     });
 
     return NextResponse.json(
       {
         success: true,
-        synced: results.synced,
-        failed: results.failed,
-        total: tickets.length,
-        errors: results.errors.length > 0 ? results.errors : undefined,
-        message: `Successfully synced ${results.synced} out of ${tickets.length} ticket(s)`,
+        number: incident.number,
+        sys_id: incident.sys_id,
+        url: `${instanceUrl}/nav_to.do?uri=incident.do?sys_id=${incident.sys_id}`,
+        message: `Successfully created incident ${incident.number}`,
       },
       { headers: corsHeaders }
     );
   } catch (error) {
-    console.error("ServiceNow sync tickets error:", error);
+    console.error("ServiceNow create incident error:", error);
     return NextResponse.json(
       {
         success: false,
         message:
-          error instanceof Error ? error.message : "Failed to sync tickets",
+          error instanceof Error ? error.message : "Failed to create incident",
       },
       { status: 500, headers: corsHeaders }
     );

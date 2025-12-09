@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { IntegrationOAuthModel } from "@/lib/models/integration";
+import { appendLog } from "@/lib/integrations-store";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -190,9 +191,31 @@ export async function POST() {
       { lastTestAt: new Date() }
     );
 
+    // Log the test success
+    appendLog({
+      provider: "servicenow",
+      action: "connection.test.succeeded",
+      actor: "admin",
+      details: {
+        incident_count: result.data?.incidentCount || 0,
+        message: result.message,
+      },
+    });
+
     return NextResponse.json(result, { headers: corsHeaders });
   } catch (error) {
     console.error("ServiceNow test connection error:", error);
+
+    // Log the test failure
+    appendLog({
+      provider: "servicenow",
+      action: "connection.test.failed",
+      actor: "admin",
+      details: {
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+    });
+
     return NextResponse.json(
       {
         success: false,

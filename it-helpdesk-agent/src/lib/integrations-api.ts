@@ -263,3 +263,28 @@ export async function testServiceNowConnection(): Promise<{
     method: "POST",
   });
 }
+
+// ServiceNow create incident
+export async function createServiceNowIncident(body: {
+  title: string;
+  description: string;
+  priority?: string;
+  assignment_group?: string;
+}): Promise<{
+  success: boolean;
+  number?: string;
+  sys_id?: string;
+  url?: string;
+  message: string;
+}> {
+  return apiFetch<{
+    success: boolean;
+    number?: string;
+    sys_id?: string;
+    url?: string;
+    message: string;
+  }>("/api/servicenow/create-incident", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
