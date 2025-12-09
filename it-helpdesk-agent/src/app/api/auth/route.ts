@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
-import User from "@/models/user";
+import { createOrUpdateUserAndAgents } from "@/lib/lyzr-services";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,21 +25,11 @@ export async function POST(request: NextRequest) {
       email.split("@")[0].charAt(0).toUpperCase() +
         email.split("@")[0].slice(1);
 
-    const existing = await User.findOne({ lyzrUserId: user.id });
-
-    if (existing) {
-      existing.email = email;
-      existing.displayName = displayName;
-      existing.lyzrApiKey = lyzrApiKey;
-      await existing.save();
-    } else {
-      await User.create({
-        lyzrUserId: user.id,
-        email,
-        displayName,
-        lyzrApiKey,
-      });
-    }
+    // Sync user, create/update tools and agents in their Lyzr account
+    await createOrUpdateUserAndAgents(
+      { id: user.id, email, name: displayName },
+      lyzrApiKey
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

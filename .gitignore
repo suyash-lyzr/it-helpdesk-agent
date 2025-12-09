@@ -37,3 +37,5 @@ next-env.d.ts
 
 
 it-helpdesk-agent/auth_reference/
+
+it-helpdesk-agent/agent_api_reference/
