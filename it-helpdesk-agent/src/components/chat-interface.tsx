@@ -119,8 +119,11 @@ export function ChatInterface() {
 
           for (const line of lines) {
             if (!line.startsWith("data:")) continue;
-            const payload = line.replace(/^data:\s*/, "");
-            if (payload === "[DONE]") {
+            // Preserve leading spaces in tokens; only strip the literal prefix
+            let payload = line.startsWith("data: ")
+              ? line.slice(6)
+              : line.slice(5);
+            if (payload.trim() === "[DONE]") {
               done = true;
               break;
             }
