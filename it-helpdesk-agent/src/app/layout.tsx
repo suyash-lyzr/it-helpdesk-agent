@@ -4,6 +4,8 @@ import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { AdminModeProvider } from "@/contexts/admin-mode-context";
+import { AuthProvider } from "@/lib/AuthProvider";
+import { AuthGuard } from "@/components/AuthGuard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,25 +30,28 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="h-full overflow-hidden">
       <head>
-        <link 
-          href="https://api.fontshare.com/v2/css?f[]=switzer@1,2&display=swap" 
+        <link
+          href="https://api.fontshare.com/v2/css?f[]=switzer@1,2&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-full overflow-hidden`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased h-full overflow-hidden`}
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
-          <AdminModeProvider>
-            {children}
-            <Toaster />
-          </AdminModeProvider>
+          <AuthProvider>
+            <AdminModeProvider>
+              <AuthGuard>{children}</AuthGuard>
+              <Toaster />
+            </AdminModeProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
   );
 }
-

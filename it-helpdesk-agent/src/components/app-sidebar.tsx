@@ -13,6 +13,7 @@ import {
   Puzzle,
 } from "lucide-react";
 
+import { useAuth } from "@/lib/AuthProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -72,14 +73,28 @@ const navSecondary = [
   },
 ];
 
-const user = {
-  name: "Sample User",
-  email: "sample@company.com",
-  avatar: "",
-};
-
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
+  const { email, displayName, logout } = useAuth();
+
+  // Get user initials for avatar
+  const userInitials = React.useMemo(() => {
+    if (!displayName) return "U";
+    return displayName
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }, [displayName]);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -180,18 +195,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarImage src="" alt={displayName || "User"} />
                     <AvatarFallback className="rounded-lg bg-[#603BFC] text-white text-xs">
-                      {user.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
+                      {userInitials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">{user.name}</span>
+                    <span className="truncate font-medium">
+                      {displayName || "User"}
+                    </span>
                     <span className="text-muted-foreground truncate text-xs">
-                      {user.email}
+                      {email || ""}
                     </span>
                   </div>
                 </SidebarMenuButton>
@@ -205,18 +219,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarImage src="" alt={displayName || "User"} />
                       <AvatarFallback className="rounded-lg bg-gradient-to-r from-[#603BFC] to-[#A94FA1] text-white text-xs">
-                        {user.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
+                        {userInitials}
                       </AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-medium">{user.name}</span>
+                      <span className="truncate font-medium">
+                        {displayName || "User"}
+                      </span>
                       <span className="text-muted-foreground truncate text-xs">
-                        {user.email}
+                        {email || ""}
                       </span>
                     </div>
                   </div>
@@ -229,7 +242,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>
