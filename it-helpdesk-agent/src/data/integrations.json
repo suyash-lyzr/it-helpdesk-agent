@@ -344,6 +344,32 @@
       "provider": "servicenow",
       "action": "disconnect",
       "actor": "admin"
+    },
+    {
+      "id": "servicenow-disconnect-1765271220617",
+      "timestamp": "2025-12-09T09:07:00.617Z",
+      "provider": "servicenow",
+      "action": "disconnect",
+      "actor": "admin"
+    },
+    {
+      "id": "servicenow-disconnect-1765271293319",
+      "timestamp": "2025-12-09T09:08:13.319Z",
+      "provider": "servicenow",
+      "action": "disconnect",
+      "actor": "admin"
+    },
+    {
+      "id": "servicenow-oauth.connected-1765271692609",
+      "timestamp": "2025-12-09T09:14:52.609Z",
+      "provider": "servicenow",
+      "action": "oauth.connected",
+      "actor": "admin",
+      "details": {
+        "instanceUrl": "https://dev308108.service-now.com",
+        "connectedAt": "2025-12-09T09:14:52.608Z",
+        "scope": ""
+      }
     }
   ]
 }

@@ -59,7 +59,7 @@ export function IntegrationCard({
 
   const handleClick = () => {
     // Always navigate to detail page when card is clicked
-    router.push(`/integrations/${integration.meta.id}`);
+        router.push(`/integrations/${integration.meta.id}`);
   };
 
   return (
@@ -85,16 +85,16 @@ export function IntegrationCard({
               </span>
             )}
           </div>
-          <Badge
+            <Badge
             variant={isConnected ? "default" : "secondary"}
             className={
               isConnected
                 ? "text-xs bg-green-500 hover:bg-green-600"
                 : "text-xs"
             }
-          >
-            {getStatusLabel()}
-          </Badge>
+            >
+              {getStatusLabel()}
+            </Badge>
         </div>
         <h3 className="text-sm font-semibold mb-2 line-clamp-1">
           {integration.meta.name}
