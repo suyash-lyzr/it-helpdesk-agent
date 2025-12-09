@@ -145,7 +145,7 @@ export default function TicketsPage() {
   const handleTicketClick = (ticket: Ticket) => {
     // Admin mode: navigate to full-screen chat view
     if (isAdmin) {
-      router.push(`/tickets/${ticket.id}`);
+      router.push(`/tickets/${ticket.id}?admin=true`);
     } else {
       // Non-admin: show read-only sidebar
       setSelectedTicket(ticket);

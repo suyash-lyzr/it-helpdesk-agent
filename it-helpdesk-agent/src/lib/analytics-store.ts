@@ -13,6 +13,7 @@ import {
   subDays,
   format,
   differenceInHours,
+  differenceInMinutes,
   addHours,
   isAfter,
   isBefore,
@@ -649,18 +650,18 @@ export function getAssetData(assetId: string, tickets: Ticket[]) {
 // Access Request Analytics Data Structures
 export interface AccessRequestKPI {
   pending: number;
-  avgApprovalTime: number;
-  slaCompliance: number;
+  avgApprovalTime: number | null; // null when no resolved tickets
+  slaCompliance: number | null; // null when no resolved tickets
   overdue: number;
   // Deltas vs previous period
   pendingDelta: number;
-  avgApprovalTimeDelta: number;
-  slaComplianceDelta: number;
+  avgApprovalTimeDelta: number | null;
+  slaComplianceDelta: number | null;
   overdueDelta: number;
   // Trend data for sparklines (last 7 days)
   pendingTrend: number[];
-  avgApprovalTimeTrend: number[];
-  slaComplianceTrend: number[];
+  avgApprovalTimeTrend: (number | null)[];
+  slaComplianceTrend: (number | null)[];
   overdueTrend: number[];
 }
 
@@ -907,15 +908,37 @@ export function getAccessRequestAnalytics(
   const periodStart = subDays(now, periodDays);
   const previousPeriodStart = subDays(periodStart, periodDays);
 
+  // Helper function to parse dates (handles MongoDB format and regular dates)
+  const parseDate = (dateValue: any): Date | null => {
+    if (!dateValue) return null;
+    try {
+      // Handle MongoDB date format { $date: "..." }
+      if (
+        typeof dateValue === "object" &&
+        dateValue !== null &&
+        "$date" in dateValue
+      ) {
+        return new Date((dateValue as any).$date);
+      }
+      return new Date(dateValue);
+    } catch {
+      return null;
+    }
+  };
+
   // Filter requests by period
-  const periodRequests = accessRequests.filter(
-    (t) => new Date(t.created_at) >= periodStart
-  );
-  const previousPeriodRequests = accessRequests.filter(
-    (t) =>
-      new Date(t.created_at) >= previousPeriodStart &&
-      new Date(t.created_at) < periodStart
-  );
+  const periodRequests = accessRequests.filter((t) => {
+    const createdDate = parseDate(t.created_at);
+    return createdDate && createdDate >= periodStart;
+  });
+  const previousPeriodRequests = accessRequests.filter((t) => {
+    const createdDate = parseDate(t.created_at);
+    return (
+      createdDate &&
+      createdDate >= previousPeriodStart &&
+      createdDate < periodStart
+    );
+  });
 
   // Calculate KPIs
   const pending = accessRequests.filter(
@@ -925,24 +948,41 @@ export function getAccessRequestAnalytics(
     (t) => t.status !== "resolved" && t.status !== "closed"
   ).length;
 
-  // Calculate average approval time (for resolved requests)
+  // Calculate average approval time (for resolved requests in the period)
   const resolvedRequests = periodRequests.filter(
     (t) => t.status === "resolved" || t.status === "closed"
   );
   let totalApprovalTime = 0;
   let approvedCount = 0;
   resolvedRequests.forEach((t) => {
-    if (t.resolved_at && t.created_at) {
-      const hours = differenceInHours(
-        new Date(t.resolved_at),
-        new Date(t.created_at)
-      );
-      totalApprovalTime += hours;
+    // Check if ticket has resolved_at, if not, skip it
+    if (!t.resolved_at || !t.created_at) {
+      return;
+    }
+
+    // Use the parseDate helper function
+    const resolvedDate = parseDate(t.resolved_at);
+    const createdDate = parseDate(t.created_at);
+
+    if (!resolvedDate || !createdDate) {
+      return;
+    }
+
+    // Validate dates are valid
+    if (isNaN(resolvedDate.getTime()) || isNaN(createdDate.getTime())) {
+      return;
+    }
+
+    const minutes = differenceInMinutes(resolvedDate, createdDate);
+    // Only count if minutes is a valid positive number
+    if (minutes >= 0 && isFinite(minutes)) {
+      // Convert minutes to hours for storage (to maintain consistency with display format)
+      totalApprovalTime += minutes / 60;
       approvedCount++;
     }
   });
   const avgApprovalTime =
-    approvedCount > 0 ? totalApprovalTime / approvedCount : 25.2;
+    approvedCount > 0 ? totalApprovalTime / approvedCount : null;
 
   // Previous period avg approval time
   const prevResolved = previousPeriodRequests.filter(
@@ -951,16 +991,22 @@ export function getAccessRequestAnalytics(
   let prevTotalTime = 0;
   let prevApprovedCount = 0;
   prevResolved.forEach((t) => {
-    if (t.resolved_at && t.created_at) {
-      prevTotalTime += differenceInHours(
-        new Date(t.resolved_at),
-        new Date(t.created_at)
-      );
+    const resolvedDate = parseDate(t.resolved_at);
+    const createdDate = parseDate(t.created_at);
+
+    if (!resolvedDate || !createdDate) {
+      return;
+    }
+
+    const minutes = differenceInMinutes(resolvedDate, createdDate);
+    if (minutes >= 0 && isFinite(minutes)) {
+      // Convert minutes to hours for storage
+      prevTotalTime += minutes / 60;
       prevApprovedCount++;
     }
   });
   const prevAvgApprovalTime =
-    prevApprovedCount > 0 ? prevTotalTime / prevApprovedCount : 24;
+    prevApprovedCount > 0 ? prevTotalTime / prevApprovedCount : null;
 
   // SLA Compliance (24 hour target)
   const slaTargetHours = 24;
@@ -974,7 +1020,7 @@ export function getAccessRequestAnalytics(
   const slaCompliance =
     resolvedRequests.length > 0
       ? (slaCompliant / resolvedRequests.length) * 100
-      : 85;
+      : null;
 
   const prevSlaCompliant = prevResolved.filter((t) => {
     if (!t.resolved_at || !t.created_at) return false;
@@ -986,14 +1032,65 @@ export function getAccessRequestAnalytics(
   const prevSlaCompliance =
     prevResolved.length > 0
       ? (prevSlaCompliant / prevResolved.length) * 100
-      : 80;
+      : null;
 
-  // Overdue approvals
-  const pendingApprovals = generateSeededPendingApprovals(tickets);
-  const overdue = pendingApprovals.filter(
-    (a) => a.status === "overdue" || a.status === "breached"
-  ).length;
-  const prevOverdue = Math.max(0, overdue - 2); // Mock previous period
+  // Overdue approvals - calculate from real pending access requests
+  const pendingAccessRequests = accessRequests.filter(
+    (t) => t.status !== "resolved" && t.status !== "closed"
+  );
+  const overdue = pendingAccessRequests.filter((t) => {
+    if (!t.sla_due_at) return false;
+    return isAfter(now, new Date(t.sla_due_at));
+  }).length;
+
+  // Previous period overdue
+  const prevPending = previousPeriodRequests.filter(
+    (t) => t.status !== "resolved" && t.status !== "closed"
+  );
+  const prevPeriodEnd = periodStart;
+  const prevOverdue = prevPending.filter((t) => {
+    if (!t.sla_due_at) return false;
+    return isAfter(prevPeriodEnd, new Date(t.sla_due_at));
+  }).length;
+
+  // Generate real pending approvals from tickets (no seeded data)
+  const pendingApprovals: PendingApproval[] = pendingAccessRequests
+    .map((t) => {
+      const requestedAt = new Date(t.created_at);
+      const slaDueAt = t.sla_due_at
+        ? new Date(t.sla_due_at)
+        : addHours(requestedAt, 24);
+      const isOverdue = isAfter(now, slaDueAt);
+      const timeOverdue = isOverdue ? differenceInHours(now, slaDueAt) : 0;
+      const timeRemaining = !isOverdue
+        ? differenceInHours(slaDueAt, now)
+        : undefined;
+
+      return {
+        requestId: `AR-${t.id.slice(-6)}`,
+        ticketId: t.id,
+        requester: t.user_name || "Unknown",
+        department: undefined, // Not stored in ticket
+        application: t.app_or_system || "Unknown",
+        requestedAt: t.created_at,
+        approver: t.assignee || "Unassigned",
+        slaDueAt: slaDueAt.toISOString(),
+        status:
+          timeOverdue > 48 ? "breached" : isOverdue ? "overdue" : "pending",
+        timeRemaining,
+        timeOverdue: isOverdue ? timeOverdue : undefined,
+      };
+    })
+    .sort((a, b) => {
+      // Sort by status (breached first, then overdue, then pending)
+      const statusOrder = { breached: 3, overdue: 2, pending: 1 };
+      if (statusOrder[a.status] !== statusOrder[b.status]) {
+        return statusOrder[b.status] - statusOrder[a.status];
+      }
+      return (
+        new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
+      );
+    });
 
   // Generate trend data (last 30 days)
   const trendData: AccessRequestTrendData[] = [];
@@ -1060,16 +1157,45 @@ export function getAccessRequestAnalytics(
     .sort((a, b) => b.requests - a.requests)
     .slice(0, 6);
 
-  // Manager Performance (use seeded data with some real calculations)
+  // Manager Performance - calculate from real resolved tickets
   const managerStats = new Map<
     string,
-    { times: number[]; count: number; overdue: number }
+    { times: number[]; count: number; overdue: number; resolvedCount: number }
   >();
+
+  // Calculate from resolved requests
+  resolvedRequests.forEach((t) => {
+    if (t.assignee && t.resolved_at && t.created_at) {
+      const resolvedDate = parseDate(t.resolved_at);
+      const createdDate = parseDate(t.created_at);
+
+      if (!resolvedDate || !createdDate) {
+        return;
+      }
+
+      const stats = managerStats.get(t.assignee) || {
+        times: [],
+        count: 0,
+        overdue: 0,
+        resolvedCount: 0,
+      };
+      const minutes = differenceInMinutes(resolvedDate, createdDate);
+      if (minutes >= 0 && isFinite(minutes)) {
+        // Convert minutes to hours for storage
+        stats.times.push(minutes / 60);
+        stats.resolvedCount++;
+        managerStats.set(t.assignee, stats);
+      }
+    }
+  });
+
+  // Add pending/overdue counts
   pendingApprovals.forEach((approval) => {
     const stats = managerStats.get(approval.approver) || {
       times: [],
       count: 0,
       overdue: 0,
+      resolvedCount: 0,
     };
     stats.count++;
     if (approval.status === "overdue" || approval.status === "breached") {
@@ -1078,25 +1204,31 @@ export function getAccessRequestAnalytics(
     managerStats.set(approval.approver, stats);
   });
 
-  // Merge seeded manager data with calculated stats
-  const managerPerformance: ManagerPerformance[] = seededManagers.map(
-    (seeded) => {
-      const stats = managerStats.get(seeded.manager);
-      return {
-        ...seeded,
-        requestCount: stats?.count || seeded.requestCount,
-        overdueCount: stats?.overdue || seeded.overdueCount,
-        overduePercentage: stats?.count
-          ? (stats.overdue / stats.count) * 100
-          : seeded.overduePercentage,
-      };
-    }
-  );
+  // Build manager performance from real data only
+  const managerPerformance: ManagerPerformance[] = Array.from(
+    managerStats.entries()
+  )
+    .map(([manager, stats]) => ({
+      manager,
+      avgApprovalTime:
+        stats.times.length > 0
+          ? stats.times.reduce((a, b) => a + b, 0) / stats.times.length
+          : 0,
+      requestCount: stats.count + stats.resolvedCount,
+      overdueCount: stats.overdue,
+      overduePercentage:
+        stats.count + stats.resolvedCount > 0
+          ? (stats.overdue / (stats.count + stats.resolvedCount)) * 100
+          : 0,
+    }))
+    .filter((m) => m.requestCount > 0); // Only show managers with actual requests
 
   const slowestApprovers = [...managerPerformance]
+    .filter((m) => m.avgApprovalTime > 0) // Only those with resolved requests
     .sort((a, b) => b.avgApprovalTime - a.avgApprovalTime)
     .slice(0, 5);
   const fastestApprovers = [...managerPerformance]
+    .filter((m) => m.avgApprovalTime > 0)
     .sort((a, b) => a.avgApprovalTime - b.avgApprovalTime)
     .slice(0, 5);
 
@@ -1156,27 +1288,89 @@ export function getAccessRequestAnalytics(
     return data.slice(-7).map((d) => (typeof d[key] === "number" ? d[key] : 0));
   };
 
+  // Calculate daily avg approval time and SLA compliance trends
+  const avgApprovalTimeTrend: (number | null)[] = [];
+  const slaComplianceTrend: (number | null)[] = [];
+
+  for (let i = 6; i >= 0; i--) {
+    const date = subDays(now, i);
+    const dayResolved = accessRequests.filter((t) => {
+      if (t.status !== "resolved" && t.status !== "closed") return false;
+      if (!t.resolved_at) return false;
+      const resolvedDate = new Date(t.resolved_at);
+      return format(resolvedDate, "yyyy-MM-dd") === format(date, "yyyy-MM-dd");
+    });
+
+    if (dayResolved.length > 0) {
+      let totalTime = 0;
+      let compliant = 0;
+      let validCount = 0;
+      dayResolved.forEach((t) => {
+        const resolvedDate = parseDate(t.resolved_at);
+        const createdDate = parseDate(t.created_at);
+
+        if (!resolvedDate || !createdDate) {
+          return;
+        }
+
+        const minutes = differenceInMinutes(resolvedDate, createdDate);
+        if (minutes >= 0 && isFinite(minutes)) {
+          const hours = minutes / 60;
+          totalTime += hours;
+          validCount++;
+          if (hours <= slaTargetHours) compliant++;
+        }
+      });
+      if (validCount > 0) {
+        avgApprovalTimeTrend.push(
+          Math.round((totalTime / validCount) * 10) / 10
+        );
+        slaComplianceTrend.push(
+          Math.round((compliant / validCount) * 100 * 10) / 10
+        );
+      } else {
+        avgApprovalTimeTrend.push(null);
+        slaComplianceTrend.push(null);
+      }
+      slaComplianceTrend.push(
+        Math.round((compliant / dayResolved.length) * 100 * 10) / 10
+      );
+    } else {
+      avgApprovalTimeTrend.push(null);
+      slaComplianceTrend.push(null);
+    }
+  }
+
+  // Calculate deltas
+  const calculateDelta = (
+    current: number | null,
+    previous: number | null
+  ): number | null => {
+    if (current === null && previous === null) return null;
+    if (current === null) return null;
+    if (previous === null) return current > 0 ? 100 : null;
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / previous) * 100;
+  };
+
   const kpis: AccessRequestKPI = {
     pending,
-    avgApprovalTime: Math.round(avgApprovalTime * 10) / 10,
-    slaCompliance: Math.round(slaCompliance * 10) / 10,
+    avgApprovalTime:
+      avgApprovalTime !== null ? Math.round(avgApprovalTime * 10) / 10 : null,
+    slaCompliance:
+      slaCompliance !== null ? Math.round(slaCompliance * 10) / 10 : null,
     overdue,
     pendingDelta: pending - previousPending,
-    avgApprovalTimeDelta:
-      Math.round((avgApprovalTime - prevAvgApprovalTime) * 10) / 10,
-    slaComplianceDelta:
-      Math.round((slaCompliance - prevSlaCompliance) * 10) / 10,
+    avgApprovalTimeDelta: calculateDelta(avgApprovalTime, prevAvgApprovalTime),
+    slaComplianceDelta: calculateDelta(slaCompliance, prevSlaCompliance),
     overdueDelta: overdue - prevOverdue,
     pendingTrend: generateTrend(trendData, "volume"),
-    avgApprovalTimeTrend: Array(7)
-      .fill(0)
-      .map((_, i) => avgApprovalTime + (Math.random() - 0.5) * 5),
-    slaComplianceTrend: Array(7)
-      .fill(0)
-      .map((_, i) => slaCompliance + (Math.random() - 0.5) * 3),
-    overdueTrend: generateTrend(trendData, "volume").map((v) =>
-      Math.floor(v * 0.3)
-    ),
+    avgApprovalTimeTrend,
+    slaComplianceTrend,
+    overdueTrend: generateTrend(trendData, "volume").map((v) => {
+      // Estimate overdue based on volume (rough approximation)
+      return Math.floor(v * 0.1);
+    }),
   };
 
   return {

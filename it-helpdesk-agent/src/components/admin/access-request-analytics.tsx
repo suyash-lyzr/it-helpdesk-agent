@@ -28,6 +28,26 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { format, differenceInHours } from "date-fns";
+
+// Helper function to format hours as "x Hr y Min"
+function formatHoursMinutes(hours: number): string {
+  const wholeHours = Math.floor(hours);
+  const minutes = Math.round((hours - wholeHours) * 60);
+
+  if (wholeHours === 0 && minutes === 0) {
+    return "0 Min";
+  }
+
+  const parts: string[] = [];
+  if (wholeHours > 0) {
+    parts.push(`${wholeHours} Hr`);
+  }
+  if (minutes > 0) {
+    parts.push(`${minutes} Min`);
+  }
+
+  return parts.join(" ");
+}
 import {
   Card,
   CardContent,
@@ -107,14 +127,15 @@ function KPITile({
   icon: Icon,
 }: {
   label: string;
-  value: string | number;
-  delta?: number;
-  trend?: number[];
+  value: string | number | null;
+  delta?: number | null;
+  trend?: (number | null)[];
   tooltip?: string;
   icon?: React.ComponentType<{ className?: string }>;
 }) {
-  const isPositive = delta !== undefined && delta >= 0;
-  const deltaAbs = delta !== undefined ? Math.abs(delta) : 0;
+  const isPositive = delta !== null && delta !== undefined && delta >= 0;
+  const deltaAbs = delta !== null && delta !== undefined ? Math.abs(delta) : 0;
+  const displayValue = value === null ? "-" : value;
 
   return (
     <Card className="p-3">
@@ -134,8 +155,8 @@ function KPITile({
               </Tooltip>
             )}
           </div>
-          <div className="text-xl font-bold tabular-nums">{value}</div>
-          {delta !== undefined && (
+          <div className="text-xl font-bold tabular-nums">{displayValue}</div>
+          {delta !== null && delta !== undefined && (
             <div
               className={`flex items-center gap-1 mt-1 text-xs ${
                 isPositive ? "text-green-600" : "text-red-600"
@@ -150,11 +171,11 @@ function KPITile({
             </div>
           )}
         </div>
-        {trend && trend.length > 0 && (
+        {trend && trend.length > 0 && trend.some((v) => v !== null) && (
           <div className="w-16 h-8 ml-2">
             <ChartContainer config={chartConfig} className="h-full w-full">
               <AreaChart
-                data={trend.map((v, i) => ({ value: v, index: i }))}
+                data={trend.map((v, i) => ({ value: v ?? 0, index: i }))}
                 margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
               >
                 <Area
@@ -384,7 +405,11 @@ export function AccessRequestAnalyticsComponent({
           />
           <KPITile
             label="Avg Approval Time"
-            value={`${data.kpis.avgApprovalTime.toFixed(1)}h`}
+            value={
+              data.kpis.avgApprovalTime !== null
+                ? formatHoursMinutes(data.kpis.avgApprovalTime)
+                : "-"
+            }
             delta={data.kpis.avgApprovalTimeDelta}
             trend={data.kpis.avgApprovalTimeTrend}
             tooltip="Average time taken by approvers to approve requests in the selected period."
@@ -485,36 +510,49 @@ export function AccessRequestAnalyticsComponent({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.topApplications.map((app, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="font-medium text-xs">
-                        {app.name}
-                      </TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">
-                        {app.requests}
-                      </TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">
-                        {app.avgApprovalTime.toFixed(1)}h
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] ${
-                            app.slaCompliance >= 90
-                              ? "bg-green-500/10 text-green-700 border-green-500/20"
-                              : app.slaCompliance >= 70
-                              ? "bg-yellow-500/10 text-yellow-700 border-yellow-500/20"
-                              : "bg-red-500/10 text-red-700 border-red-500/20"
-                          }`}
-                        >
-                          {app.slaCompliance !== null &&
-                          app.slaCompliance !== undefined
-                            ? `${app.slaCompliance.toFixed(1)}%`
+                  {data.topApplications.length > 0 ? (
+                    data.topApplications.map((app, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-medium text-xs">
+                          {app.name}
+                        </TableCell>
+                        <TableCell className="text-right text-xs tabular-nums">
+                          {app.requests}
+                        </TableCell>
+                        <TableCell className="text-right text-xs tabular-nums">
+                          {app.avgApprovalTime > 0
+                            ? formatHoursMinutes(app.avgApprovalTime)
                             : "-"}
-                        </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] ${
+                              app.slaCompliance >= 90
+                                ? "bg-green-500/10 text-green-700 border-green-500/20"
+                                : app.slaCompliance >= 70
+                                ? "bg-yellow-500/10 text-yellow-700 border-yellow-500/20"
+                                : "bg-red-500/10 text-red-700 border-red-500/20"
+                            }`}
+                          >
+                            {app.slaCompliance !== null &&
+                            app.slaCompliance !== undefined
+                              ? `${app.slaCompliance.toFixed(1)}%`
+                              : "-"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        className="text-center text-xs text-muted-foreground py-4"
+                      >
+                        No access request data available
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -527,31 +565,40 @@ export function AccessRequestAnalyticsComponent({
             </CardHeader>
             <CardContent className="p-3">
               <div className="space-y-2">
-                {data.slowestApprovers.slice(0, 5).map((manager, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between text-xs"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">
-                        {manager.manager}
-                      </div>
-                      <div className="text-muted-foreground">
-                        {manager.avgApprovalTime}h avg • {manager.requestCount}{" "}
-                        req
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-[10px] px-2"
-                      onClick={() => handleSendReminder(manager.manager)}
+                {data.slowestApprovers.length > 0 ? (
+                  data.slowestApprovers.slice(0, 5).map((manager, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between text-xs"
                     >
-                      <Send className="h-2.5 w-2.5 mr-1" />
-                      Remind
-                    </Button>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">
+                          {manager.manager}
+                        </div>
+                        <div className="text-muted-foreground">
+                          {manager.avgApprovalTime > 0
+                            ? `${formatHoursMinutes(
+                                manager.avgApprovalTime
+                              )} avg • ${manager.requestCount} req`
+                            : `${manager.requestCount} req`}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-[10px] px-2"
+                        onClick={() => handleSendReminder(manager.manager)}
+                      >
+                        <Send className="h-2.5 w-2.5 mr-1" />
+                        Remind
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-xs text-muted-foreground text-center py-4">
+                    No approver data available
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -733,100 +780,117 @@ export function AccessRequestAnalyticsComponent({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.pendingApprovals.slice(0, 10).map((approval) => (
-                    <TableRow key={approval.requestId}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedRequests.has(approval.requestId)}
-                          onCheckedChange={() =>
-                            toggleRequestSelection(approval.requestId)
-                          }
-                        />
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {approval.requestId}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        <div>{approval.requester}</div>
-                        {approval.department && (
-                          <div className="text-muted-foreground text-[10px]">
-                            {approval.department}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {approval.application}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {format(new Date(approval.requestedAt), "MMM d, HH:mm")}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {approval.approver}
-                      </TableCell>
-                      <TableCell>
-                        {approval.status === "breached" ? (
-                          <Badge variant="destructive" className="text-[10px]">
-                            {approval.timeOverdue
-                              ? `${Math.floor(approval.timeOverdue)}h overdue`
-                              : "Breached"}
-                          </Badge>
-                        ) : approval.status === "overdue" ? (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] bg-yellow-500/10 text-yellow-700 border-yellow-500/20"
-                          >
-                            {approval.timeOverdue
-                              ? `${Math.floor(approval.timeOverdue)}h overdue`
-                              : "Overdue"}
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] bg-green-500/10 text-green-700 border-green-500/20"
-                          >
-                            {approval.timeRemaining
-                              ? `${Math.floor(approval.timeRemaining)}h left`
-                              : "Pending"}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 text-[10px] px-2"
-                            onClick={() =>
-                              handleSendReminder(
-                                approval.approver,
-                                approval.requestId
-                              )
-                            }
-                          >
-                            <Bell className="h-2.5 w-2.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 text-[10px] px-2"
-                            onClick={() => handleEscalate(approval.requestId)}
-                          >
-                            Escalate
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 text-[10px] px-2"
-                            onClick={() =>
-                              handleAutoApprove(approval.requestId)
-                            }
-                          >
-                            Auto-approve
-                          </Button>
-                        </div>
+                  {data.pendingApprovals.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={8}
+                        className="text-center text-sm text-muted-foreground py-8"
+                      >
+                        No Pending Approvals
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    data.pendingApprovals.slice(0, 10).map((approval) => (
+                      <TableRow key={approval.requestId}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedRequests.has(approval.requestId)}
+                            onCheckedChange={() =>
+                              toggleRequestSelection(approval.requestId)
+                            }
+                          />
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {approval.requestId}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          <div>{approval.requester}</div>
+                          {approval.department && (
+                            <div className="text-muted-foreground text-[10px]">
+                              {approval.department}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {approval.application}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {format(
+                            new Date(approval.requestedAt),
+                            "MMM d, HH:mm"
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {approval.approver}
+                        </TableCell>
+                        <TableCell>
+                          {approval.status === "breached" ? (
+                            <Badge
+                              variant="destructive"
+                              className="text-[10px]"
+                            >
+                              {approval.timeOverdue
+                                ? `${Math.floor(approval.timeOverdue)}h overdue`
+                                : "Breached"}
+                            </Badge>
+                          ) : approval.status === "overdue" ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] bg-yellow-500/10 text-yellow-700 border-yellow-500/20"
+                            >
+                              {approval.timeOverdue
+                                ? `${Math.floor(approval.timeOverdue)}h overdue`
+                                : "Overdue"}
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] bg-green-500/10 text-green-700 border-green-500/20"
+                            >
+                              {approval.timeRemaining
+                                ? `${Math.floor(approval.timeRemaining)}h left`
+                                : "Pending"}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 text-[10px] px-2"
+                              onClick={() =>
+                                handleSendReminder(
+                                  approval.approver,
+                                  approval.requestId
+                                )
+                              }
+                            >
+                              <Bell className="h-2.5 w-2.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 text-[10px] px-2"
+                              onClick={() => handleEscalate(approval.requestId)}
+                            >
+                              Escalate
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 text-[10px] px-2"
+                              onClick={() =>
+                                handleAutoApprove(approval.requestId)
+                              }
+                            >
+                              Auto-approve
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>

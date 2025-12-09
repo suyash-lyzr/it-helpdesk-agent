@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import {
   ArrowLeft,
@@ -45,7 +45,9 @@ const priorityColors: Record<string, string> = {
 export default function TicketDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const ticketId = params.id as string;
+  const isAdmin = searchParams.get("admin") === "true";
 
   const [ticket, setTicket] = React.useState<Ticket | null>(null);
   const [messages, setMessages] = React.useState<TicketMessage[]>([]);
@@ -154,6 +156,63 @@ export default function TicketDetailPage() {
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleApproveAndResolve = async () => {
+    if (!ticket) return;
+
+    setIsSending(true);
+    try {
+      // First, send the "Approved" message
+      const messageRes = await fetch(`/api/tickets/${ticketId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          body: "Approved",
+          author_type: "agent",
+          author_name: "Admin",
+          is_internal_note: false,
+        }),
+      });
+
+      if (!messageRes.ok) {
+        throw new Error("Failed to send approval message");
+      }
+
+      const messageData = await messageRes.json();
+      if (messageData.success) {
+        // Add message to local state
+        setMessages((prev) => [...prev, messageData.data]);
+        toast.success("Approval message sent");
+
+        // Then resolve the ticket
+        const updateRes = await fetch(`/api/tickets/${ticketId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: "resolved",
+            resolved_at: new Date().toISOString(),
+            collected_details: {
+              ...(ticket.collected_details || {}),
+              resolution: "Approved",
+            },
+          }),
+        });
+
+        if (updateRes.ok) {
+          const updateData = await updateRes.json();
+          if (updateData.success) {
+            setTicket(updateData.data);
+            toast.success(`Ticket ${ticketId} approved and resolved`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error approving and resolving ticket:", error);
+      toast.error("Failed to approve and resolve ticket");
     } finally {
       setIsSending(false);
     }
@@ -386,17 +445,27 @@ export default function TicketDetailPage() {
                       <Send className="h-4 w-4 mr-2" />
                       Send
                     </Button>
-                    <Button
-                      onClick={() => handleSendMessage(true)}
-                      disabled={
-                        isSending ||
-                        !messageText.trim() ||
-                        ticket.status === "resolved"
-                      }
-                    >
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Send & Resolve
-                    </Button>
+                    {ticket.ticket_type === "access_request" ? (
+                      <Button
+                        onClick={handleApproveAndResolve}
+                        disabled={isSending || ticket.status === "resolved"}
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Approve and resolve
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => handleSendMessage(true)}
+                        disabled={
+                          isSending ||
+                          !messageText.trim() ||
+                          ticket.status === "resolved"
+                        }
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Send & Resolve
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -466,70 +535,71 @@ export default function TicketDetailPage() {
                 </div>
               </div>
 
-              {/* CSAT Rating Section - Only show for resolved/closed tickets */}
-              {(ticket.status === "resolved" || ticket.status === "closed") && (
-                <div className="mt-6 pt-6 border-t">
-                  <h3 className="font-semibold mb-3">Rate Your Experience</h3>
-                  {ticket.csat_score !== undefined ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        {ticket.csat_score === 1 ? (
-                          <>
-                            <ThumbsUp className="h-4 w-4 text-green-600" />
-                            <span className="text-muted-foreground">
-                              You rated this ticket positively
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <ThumbsDown className="h-4 w-4 text-red-600" />
-                            <span className="text-muted-foreground">
-                              You rated this ticket negatively
-                            </span>
-                          </>
+              {/* CSAT Rating Section - Only show for resolved/closed tickets and not in admin mode */}
+              {(ticket.status === "resolved" || ticket.status === "closed") &&
+                !isAdmin && (
+                  <div className="mt-6 pt-6 border-t">
+                    <h3 className="font-semibold mb-3">Rate Your Experience</h3>
+                    {ticket.csat_score !== undefined ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          {ticket.csat_score === 1 ? (
+                            <>
+                              <ThumbsUp className="h-4 w-4 text-green-600" />
+                              <span className="text-muted-foreground">
+                                You rated this ticket positively
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <ThumbsDown className="h-4 w-4 text-red-600" />
+                              <span className="text-muted-foreground">
+                                You rated this ticket negatively
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {ticket.csat_submitted_at && (
+                          <p className="text-xs text-muted-foreground">
+                            Rated on{" "}
+                            {format(
+                              new Date(ticket.csat_submitted_at),
+                              "MMM d, yyyy • h:mm a"
+                            )}
+                          </p>
                         )}
                       </div>
-                      {ticket.csat_submitted_at && (
-                        <p className="text-xs text-muted-foreground">
-                          Rated on{" "}
-                          {format(
-                            new Date(ticket.csat_submitted_at),
-                            "MMM d, yyyy • h:mm a"
-                          )}
+                    ) : (
+                      <div className="space-y-3">
+                        <p className="text-sm text-muted-foreground">
+                          How satisfied were you with the resolution?
                         </p>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <p className="text-sm text-muted-foreground">
-                        How satisfied were you with the resolution?
-                      </p>
-                      <div className="flex gap-3">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleRatingSubmit(1)}
-                          disabled={isSubmittingRating}
-                          className="h-10 w-10"
-                          title="Thumbs Up"
-                        >
-                          <ThumbsUp className="h-5 w-5" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleRatingSubmit(0)}
-                          disabled={isSubmittingRating}
-                          className="h-10 w-10"
-                          title="Thumbs Down"
-                        >
-                          <ThumbsDown className="h-5 w-5" />
-                        </Button>
+                        <div className="flex gap-3">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleRatingSubmit(1)}
+                            disabled={isSubmittingRating}
+                            className="h-10 w-10"
+                            title="Thumbs Up"
+                          >
+                            <ThumbsUp className="h-5 w-5" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleRatingSubmit(0)}
+                            disabled={isSubmittingRating}
+                            className="h-10 w-10"
+                            title="Thumbs Down"
+                          >
+                            <ThumbsDown className="h-5 w-5" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                )}
             </CardContent>
           </Card>
         </div>
