@@ -78,6 +78,16 @@ export async function createTicket(data: CreateTicketRequest): Promise<Ticket> {
   const slaDueAt = new Date(now);
   slaDueAt.setHours(slaDueAt.getHours() + slaHours);
 
+  // Auto-assign access requests to the manager mentioned in collected_details
+  let assignee = data.assignee;
+  if (
+    data.ticket_type === "access_request" &&
+    !assignee &&
+    data.collected_details?.manager_name
+  ) {
+    assignee = data.collected_details.manager_name;
+  }
+
   const doc = await TicketModel.create({
     id: generateTicketId(),
     ticket_type: data.ticket_type,
@@ -93,7 +103,7 @@ export async function createTicket(data: CreateTicketRequest): Promise<Ticket> {
     updated_at: now,
     sla_due_at: slaDueAt,
     source: data.source || "chat",
-    assignee: data.assignee,
+    assignee: assignee,
     asset_id: data.asset_id,
     external_ids: data.external_ids,
     lifecycle_stage: "new",
@@ -173,12 +183,12 @@ export async function getTicketCounts(): Promise<{
   await connectToDatabase();
 
   const [total, open, inProgress, resolved, closed] = await Promise.all([
-    TicketModel.estimatedDocumentCount(),
-    TicketModel.countDocuments({ status: "open" }),
-    TicketModel.countDocuments({ status: "in_progress" }),
-    TicketModel.countDocuments({ status: "resolved" }),
-    TicketModel.countDocuments({ status: "closed" }),
-  ]);
+      TicketModel.estimatedDocumentCount(),
+      TicketModel.countDocuments({ status: "open" }),
+      TicketModel.countDocuments({ status: "in_progress" }),
+      TicketModel.countDocuments({ status: "resolved" }),
+      TicketModel.countDocuments({ status: "closed" }),
+    ]);
 
   return {
     total,

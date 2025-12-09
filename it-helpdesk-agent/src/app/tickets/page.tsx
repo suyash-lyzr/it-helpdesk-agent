@@ -333,74 +333,74 @@ export default function TicketsPage() {
                     {/* Body */}
                     <div className="p-3">
                       <div className="space-y-4 rounded-2xl border bg-card/80 shadow-xs p-4">
-                        {/* Ticket Information Section */}
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                      {/* Ticket Information Section */}
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                             <h3 className="text-sm font-semibold">
                               Ticket Information
                             </h3>
-                          </div>
+                        </div>
                           <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-                            <div className="space-y-1">
+                          <div className="space-y-1">
                               <p className="text-xs text-muted-foreground">
                                 Type
                               </p>
-                              <p className="font-medium capitalize">
-                                {selectedTicket.ticket_type.replace("_", " ")}
-                              </p>
-                            </div>
-                            <div className="space-y-1">
+                            <p className="font-medium capitalize">
+                              {selectedTicket.ticket_type.replace("_", " ")}
+                            </p>
+                          </div>
+                          <div className="space-y-1">
                               <p className="text-xs text-muted-foreground">
                                 Priority
                               </p>
-                              <p className="font-medium capitalize">
-                                {selectedTicket.priority || "Not set"}
-                              </p>
-                            </div>
-                            <div className="space-y-1">
+                            <p className="font-medium capitalize">
+                              {selectedTicket.priority || "Not set"}
+                            </p>
+                          </div>
+                          <div className="space-y-1">
                               <p className="text-xs text-muted-foreground">
                                 App/System
                               </p>
-                              <p className="font-medium">
-                                {selectedTicket.app_or_system || (
+                            <p className="font-medium">
+                              {selectedTicket.app_or_system || (
                                   <span className="text-muted-foreground">
                                     Not specified
                                   </span>
-                                )}
-                              </p>
-                            </div>
-                            <div className="space-y-1">
+                              )}
+                            </p>
+                          </div>
+                          <div className="space-y-1">
                               <p className="text-xs text-muted-foreground">
                                 Team
                               </p>
-                              <p className="font-medium">
-                                {selectedTicket.suggested_team}
-                              </p>
-                            </div>
+                            <p className="font-medium">
+                              {selectedTicket.suggested_team}
+                            </p>
                           </div>
                         </div>
+                      </div>
 
-                        <Separator />
+                      <Separator />
 
-                        {/* People & Assignment Section */}
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                            <h3 className="text-sm font-semibold">People</h3>
-                          </div>
+                      {/* People & Assignment Section */}
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                          <h3 className="text-sm font-semibold">People</h3>
+                        </div>
                           <div className="space-y-1.5 text-sm">
                             <div className="flex items-center justify-between gap-4 py-1.5">
                               <span className="text-xs text-muted-foreground">
                                 Requester
                               </span>
                               <span className="font-medium text-right">
-                                {selectedTicket.user_name || "Unknown"}
-                              </span>
-                            </div>
-                            {selectedTicket.assignee && (
-                              <>
-                                <Separator />
+                              {selectedTicket.user_name || "Unknown"}
+                            </span>
+                          </div>
+                          {selectedTicket.assignee && (
+                            <>
+                              <Separator />
                                 <div className="flex items-center justify-between gap-4 py-1.5">
                                   <span className="text-xs text-muted-foreground">
                                     Assignee
@@ -408,12 +408,12 @@ export default function TicketsPage() {
                                   <span className="font-medium text-right">
                                     {selectedTicket.assignee}
                                   </span>
-                                </div>
-                              </>
-                            )}
-                            {selectedTicket.source && (
-                              <>
-                                <Separator />
+                              </div>
+                            </>
+                          )}
+                          {selectedTicket.source && (
+                            <>
+                              <Separator />
                                 <div className="flex items-center justify-between gap-4 py-1.5">
                                   <span className="text-xs text-muted-foreground">
                                     Source
@@ -421,105 +421,105 @@ export default function TicketsPage() {
                                   <span className="font-medium capitalize text-right">
                                     {selectedTicket.source}
                                   </span>
-                                </div>
-                              </>
-                            )}
-                          </div>
+                              </div>
+                            </>
+                          )}
                         </div>
+                      </div>
 
-                        <Separator />
+                      <Separator />
 
-                        {/* Timeline Section */}
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                            <h3 className="text-sm font-semibold">Timeline</h3>
-                          </div>
+                      {/* Timeline Section */}
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                          <h3 className="text-sm font-semibold">Timeline</h3>
+                        </div>
                           <div className="space-y-1.5 text-xs">
                             <div className="flex items-center justify-between gap-4 py-1.5">
                               <span className="text-muted-foreground">
                                 Created
                               </span>
                               <span className="font-medium text-right">
-                                {format(
-                                  new Date(selectedTicket.created_at),
-                                  "MMM d, h:mm a"
-                                )}
-                              </span>
-                            </div>
-                            <Separator />
+                              {format(
+                                new Date(selectedTicket.created_at),
+                                "MMM d, h:mm a"
+                              )}
+                            </span>
+                          </div>
+                          <Separator />
                             <div className="flex items-center justify-between gap-4 py-1.5">
                               <span className="text-muted-foreground">
                                 Updated
                               </span>
                               <span className="font-medium text-right">
-                                {format(
-                                  new Date(selectedTicket.updated_at),
-                                  "MMM d, h:mm a"
-                                )}
-                              </span>
-                            </div>
-                            <Separator />
+                              {format(
+                                new Date(selectedTicket.updated_at),
+                                "MMM d, h:mm a"
+                              )}
+                            </span>
+                          </div>
+                          <Separator />
                             <div className="flex items-center justify-between gap-4 py-1.5">
                               <span className="text-muted-foreground">
                                 Time Open
                               </span>
                               <span className="font-medium text-right">
-                                {formatDurationMinutes(
-                                  selectedTicket.created_at,
-                                  selectedTicket.resolved_at
-                                )}
-                              </span>
-                            </div>
-                            {selectedTicket.resolved_at && (
-                              <>
-                                <Separator />
+                              {formatDurationMinutes(
+                                selectedTicket.created_at,
+                                selectedTicket.resolved_at
+                              )}
+                            </span>
+                          </div>
+                          {selectedTicket.resolved_at && (
+                            <>
+                              <Separator />
                                 <div className="flex items-center justify-between gap-4 py-1.5">
                                   <span className="text-muted-foreground">
                                     Resolved
                                   </span>
                                   <span className="font-medium text-right text-green-600 dark:text-green-400">
-                                    {format(
-                                      new Date(selectedTicket.resolved_at),
-                                      "MMM d, h:mm a"
-                                    )}
-                                  </span>
-                                </div>
-                              </>
-                            )}
-                            {selectedTicket.sla_due_at && (
-                              <>
-                                <Separator />
+                                  {format(
+                                    new Date(selectedTicket.resolved_at),
+                                    "MMM d, h:mm a"
+                                  )}
+                                </span>
+                              </div>
+                            </>
+                          )}
+                          {selectedTicket.sla_due_at && (
+                            <>
+                              <Separator />
                                 <div className="flex items-center justify-between gap-4 py-1.5">
                                   <span className="text-muted-foreground">
                                     SLA Due
                                   </span>
                                   <span className="font-medium text-right">
-                                    {format(
-                                      new Date(selectedTicket.sla_due_at),
-                                      "MMM d, h:mm a"
-                                    )}
-                                  </span>
-                                </div>
-                              </>
-                            )}
-                          </div>
+                                  {format(
+                                    new Date(selectedTicket.sla_due_at),
+                                    "MMM d, h:mm a"
+                                  )}
+                                </span>
+                              </div>
+                            </>
+                          )}
                         </div>
+                      </div>
 
-                        {/* External IDs Section */}
-                        {selectedTicket.external_ids &&
+                      {/* External IDs Section */}
+                      {selectedTicket.external_ids &&
                           Object.keys(selectedTicket.external_ids).length >
                             0 && (
-                            <>
+                          <>
                               <Separator />
-                              <div className="space-y-3">
-                                <div className="flex items-center gap-2">
-                                  <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
                                   <h3 className="text-sm font-semibold">
                                     External IDs
                                   </h3>
-                                </div>
-                                <div className="flex flex-wrap gap-1.5">
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
                                   {Object.entries(
                                     selectedTicket.external_ids
                                   ).map(([key, value]) => (
@@ -533,34 +533,34 @@ export default function TicketsPage() {
                                   ))}
                                 </div>
                               </div>
-                            </>
-                          )}
+                          </>
+                        )}
 
-                        {/* Collected Details Section */}
-                        {selectedTicket.collected_details &&
-                          Object.keys(selectedTicket.collected_details).length >
-                            0 && (
+                      {/* Collected Details Section */}
+                      {selectedTicket.collected_details &&
+                        Object.keys(selectedTicket.collected_details).length >
+                          0 && (
                             <>
                               <Separator />
-                              <div className="space-y-3">
-                                <div className="flex items-center gap-2">
-                                  <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                                   <h3 className="text-sm font-semibold">
                                     Additional Details
                                   </h3>
-                                </div>
-                                <div className="rounded-md bg-muted/50 border p-3">
-                                  <pre className="text-xs leading-relaxed whitespace-pre-wrap font-mono">
-                                    {JSON.stringify(
-                                      selectedTicket.collected_details,
-                                      null,
-                                      2
-                                    )}
-                                  </pre>
-                                </div>
-                              </div>
+                            </div>
+                            <div className="rounded-md bg-muted/50 border p-3">
+                              <pre className="text-xs leading-relaxed whitespace-pre-wrap font-mono">
+                                {JSON.stringify(
+                                  selectedTicket.collected_details,
+                                  null,
+                                  2
+                                )}
+                              </pre>
+                            </div>
+                          </div>
                             </>
-                          )}
+                        )}
 
                         {/* CSAT Rating Section - Only show for resolved/closed tickets */}
                         {(selectedTicket.status === "resolved" ||

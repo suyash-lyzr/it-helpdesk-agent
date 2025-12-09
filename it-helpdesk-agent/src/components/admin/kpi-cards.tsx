@@ -97,7 +97,7 @@ function KPICard({
   const shouldShowDash =
     value === null ||
     ((type === "slaCompliance" || type === "csat") &&
-      totalTickets !== undefined &&
+    totalTickets !== undefined &&
       totalTickets === 0);
 
   return (
@@ -112,11 +112,11 @@ function KPICard({
         </CardTitle>
         <CardAction>
           {delta !== null ? (
-            <Badge variant="outline">
-              <DeltaIcon className="h-3 w-3" />
-              {isPositive ? "+" : ""}
-              {delta.toFixed(1)}%
-            </Badge>
+          <Badge variant="outline">
+            <DeltaIcon className="h-3 w-3" />
+            {isPositive ? "+" : ""}
+            {delta.toFixed(1)}%
+          </Badge>
           ) : (
             <Badge variant="outline" className="opacity-50">
               -

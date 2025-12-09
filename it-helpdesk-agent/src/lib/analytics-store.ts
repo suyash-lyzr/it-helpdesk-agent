@@ -269,8 +269,8 @@ export function getKPIMetrics(
   const resolvedTrend: number[] = [];
   const mttrTrend: number[] = [];
   const firstResponseTimeTrend: number[] = [];
-  const slaComplianceTrend: number[] = [];
-  const csatTrend: number[] = [];
+  const slaComplianceTrend: (number | null)[] = [];
+  const csatTrend: (number | null)[] = [];
 
   for (let i = trendDays - 1; i >= 0; i--) {
     const dayStart = subDays(now, i + 1);
@@ -291,7 +291,8 @@ export function getKPIMetrics(
     );
     mttrTrend.push(calculateMTTR(dayTickets));
     firstResponseTimeTrend.push(calculateFirstResponseTime(dayTickets));
-    slaComplianceTrend.push(calculateSLACompliance(dayTickets));
+    const daySLA = calculateSLACompliance(dayTickets);
+    slaComplianceTrend.push(daySLA ?? null);
 
     // Calculate CSAT for this day
     const dayRatedTickets = dayTickets.filter(
@@ -306,6 +307,21 @@ export function getKPIMetrics(
     csatTrend.push(dayCSAT);
   }
 
+  // Calculate deltas (ensure numbers for non-nullable fields)
+  const totalTicketsDelta = calculateDelta(filteredTotal, prevTotal) ?? 0;
+  const openDelta = calculateDelta(filteredOpen, prevOpen) ?? 0;
+  const inProgressDelta =
+    calculateDelta(filteredInProgress, prevInProgress) ?? 0;
+  const resolvedDelta = calculateDelta(filteredResolved, prevResolved) ?? 0;
+  const mttrDelta = calculateDelta(mttr, prevMTTR) ?? 0;
+  const firstResponseTimeDelta =
+    calculateDelta(firstResponseTime, prevFRT) ?? 0;
+  const slaComplianceDelta = calculateDelta(
+    slaCompliance ?? null,
+    prevSLA ?? null
+  );
+  const csatDelta = calculateDelta(csat ?? null, prevCSAT ?? null);
+
   return {
     totalTickets,
     open,
@@ -315,14 +331,14 @@ export function getKPIMetrics(
     firstResponseTime,
     slaCompliance,
     csat,
-    totalTicketsDelta: calculateDelta(filteredTotal, prevTotal),
-    openDelta: calculateDelta(filteredOpen, prevOpen),
-    inProgressDelta: calculateDelta(filteredInProgress, prevInProgress),
-    resolvedDelta: calculateDelta(filteredResolved, prevResolved),
-    mttrDelta: calculateDelta(mttr, prevMTTR),
-    firstResponseTimeDelta: calculateDelta(firstResponseTime, prevFRT),
-    slaComplianceDelta: calculateDelta(slaCompliance ?? null, prevSLA ?? null),
-    csatDelta: calculateDelta(csat ?? null, prevCSAT ?? null),
+    totalTicketsDelta,
+    openDelta,
+    inProgressDelta,
+    resolvedDelta,
+    mttrDelta,
+    firstResponseTimeDelta,
+    slaComplianceDelta,
+    csatDelta,
     totalTicketsTrend,
     openTrend,
     inProgressTrend,
@@ -711,6 +727,16 @@ export interface AccessRequestInsight {
   actions: Array<{ label: string; primary?: boolean }>;
 }
 
+export interface AutomationRecommendation {
+  id: string;
+  name: string;
+  description: string;
+  recommended: boolean;
+  reason?: string;
+  potentialImpact?: string;
+  riskLevel: "low" | "medium" | "high";
+}
+
 export interface AccessRequestAnalytics {
   kpis: AccessRequestKPI;
   trendData: AccessRequestTrendData[];
@@ -719,6 +745,7 @@ export interface AccessRequestAnalytics {
   fastestApprovers: ManagerPerformance[];
   pendingApprovals: PendingApproval[];
   insights: AccessRequestInsight[];
+  automationRecommendations: AutomationRecommendation[];
 }
 
 // Seeded demo data for access requests
@@ -1066,6 +1093,9 @@ export function getAccessRequestAnalytics(
         ? differenceInHours(slaDueAt, now)
         : undefined;
 
+      const status: "pending" | "overdue" | "breached" =
+        timeOverdue > 48 ? "breached" : isOverdue ? "overdue" : "pending";
+
       return {
         requestId: `AR-${t.id.slice(-6)}`,
         ticketId: t.id,
@@ -1075,8 +1105,7 @@ export function getAccessRequestAnalytics(
         requestedAt: t.created_at,
         approver: t.assignee || "Unassigned",
         slaDueAt: slaDueAt.toISOString(),
-        status:
-          timeOverdue > 48 ? "breached" : isOverdue ? "overdue" : "pending",
+        status,
         timeRemaining,
         timeOverdue: isOverdue ? timeOverdue : undefined,
       };
@@ -1373,6 +1402,98 @@ export function getAccessRequestAnalytics(
     }),
   };
 
+  // Calculate automation recommendations based on real metrics
+  const automationRecommendations: AutomationRecommendation[] = [];
+
+  // 1. Auto-remind after 24h
+  const nearSLABreaches = pendingApprovals.filter(
+    (a) => a.timeRemaining && a.timeRemaining < 12 && a.timeRemaining > 0
+  ).length;
+  const recommendAutoRemind = overdue > 0 || nearSLABreaches >= 2;
+  automationRecommendations.push({
+    id: "auto-remind-24h",
+    name: "Auto-remind after 24h",
+    description:
+      "Automatically send reminder notifications to approvers for requests pending over 24 hours",
+    recommended: recommendAutoRemind,
+    reason: recommendAutoRemind
+      ? overdue > 0
+        ? `${overdue} overdue request${overdue > 1 ? "s" : ""} detected`
+        : `${nearSLABreaches} request${
+            nearSLABreaches > 1 ? "s" : ""
+          } approaching SLA deadline`
+      : "No pending requests at risk currently",
+    potentialImpact: recommendAutoRemind
+      ? `Could prevent ${Math.max(overdue, nearSLABreaches)} SLA breaches`
+      : "Minimal impact with current metrics",
+    riskLevel: "low",
+  });
+
+  // 2. Escalate after 48h
+  const breachedCount = pendingApprovals.filter(
+    (a) => a.status === "breached"
+  ).length;
+  const highOverduePercentage = slowestApprovers.some(
+    (m) => m.overduePercentage > 30
+  );
+  const recommendAutoEscalate = breachedCount > 0 || highOverduePercentage;
+  automationRecommendations.push({
+    id: "auto-escalate-48h",
+    name: "Escalate after 48h",
+    description:
+      "Automatically escalate requests to senior management if not approved within 48 hours",
+    recommended: recommendAutoEscalate,
+    reason: recommendAutoEscalate
+      ? breachedCount > 0
+        ? `${breachedCount} severely breached request${
+            breachedCount > 1 ? "s" : ""
+          } need escalation`
+        : "Some approvers have high overdue rates (>30%)"
+      : "No escalation needed with current performance",
+    potentialImpact: recommendAutoEscalate
+      ? `Could reduce overdue % by escalating ${
+          breachedCount || overdue
+        } request${(breachedCount || overdue) > 1 ? "s" : ""}`
+      : "Not needed currently",
+    riskLevel: "medium",
+  });
+
+  // 3. Auto-approve after 72h
+  const lowRiskApps = topApplications.filter(
+    (app) => app.slaCompliance >= 95 && app.requests >= 3
+  );
+  const hasReliableApprovers =
+    fastestApprovers.length > 0 &&
+    fastestApprovers.every((m) => m.overduePercentage < 5);
+  const recommendAutoApprove =
+    lowRiskApps.length >= 2 &&
+    hasReliableApprovers &&
+    slaCompliance !== null &&
+    slaCompliance >= 90;
+  automationRecommendations.push({
+    id: "auto-approve-72h",
+    name: "Auto-approve after 72h",
+    description:
+      "Auto-approve low-risk applications after 72h for requests with no approver response",
+    recommended: recommendAutoApprove,
+    reason: recommendAutoApprove
+      ? `${lowRiskApps.length} app${
+          lowRiskApps.length > 1 ? "s" : ""
+        } have 95%+ SLA compliance with reliable approval history`
+      : slaCompliance && slaCompliance < 90
+      ? "Overall SLA compliance too low (<90%) for safe auto-approval"
+      : lowRiskApps.length < 2
+      ? "Not enough apps with proven reliability (need 2+ with 95%+ SLA)"
+      : "Need more reliable approver performance data",
+    potentialImpact: recommendAutoApprove
+      ? `Could auto-approve ~${lowRiskApps.reduce(
+          (sum, app) => sum + app.requests,
+          0
+        )} low-risk requests per month`
+      : "Requires better baseline performance first",
+    riskLevel: "high",
+  });
+
   return {
     kpis,
     trendData,
@@ -1381,263 +1502,279 @@ export function getAccessRequestAnalytics(
     fastestApprovers,
     pendingApprovals,
     insights,
+    automationRecommendations,
   };
 }
 
-// Seed initial demo events
-function seedDemoEvents() {
+// Generate Live Events from real tickets
+export function generateLiveEventsFromTickets(
+  tickets: Ticket[],
+  since?: Date
+): LiveEvent[] {
+  const cutoff = since || subDays(new Date(), 7); // Default to last 7 days
   const now = new Date();
-  const seeded: LiveEvent[] = [
-    {
-      id: "event-seed-1",
-      type: "ticket_created",
-      timestamp: new Date(now.getTime() - 2 * 60 * 1000).toISOString(), // 2 minutes ago
-      ticketId: "TKT-567",
-      actor: "Sarah",
-      description: 'New ticket created by Sarah: "VPN disconnecting"',
-      headline: 'New ticket created by Sarah: "VPN disconnecting"',
-      details: "Ticket TKT-567 assigned to Network team",
-      category: "tickets",
-      severity: "medium",
-    },
-    {
-      id: "event-seed-2",
-      type: "ticket_assigned",
-      timestamp: new Date(now.getTime() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
-      ticketId: "TKT-567",
-      actor: "System",
-      description: "Ticket TKT-567 assigned to Network team",
-      headline: "Ticket TKT-567 assigned to Network team",
-      category: "tickets",
-      severity: "low",
-    },
-    {
-      id: "event-seed-3",
-      type: "sla_warning",
-      timestamp: new Date(now.getTime() - 8 * 60 * 1000).toISOString(), // 8 minutes ago
-      ticketId: "TKT-VPN-002",
-      actor: "System",
-      description: "SLA warning: TKT-VPN-002 nearing SLA in 30m",
-      headline: "SLA warning: TKT-VPN-002 nearing SLA in 30m",
-      details: "Ticket will breach SLA threshold if not resolved soon",
-      category: "sla",
-      severity: "high",
-    },
-    {
-      id: "event-seed-4",
-      type: "access_request_approved",
-      timestamp: new Date(now.getTime() - 12 * 60 * 1000).toISOString(), // 12 minutes ago
-      requestId: "AR-123",
-      actor: "John Manager",
-      description: "Access request AR-123 approved by John Manager",
-      headline: "Access request AR-123 approved by John Manager",
-      details: "Jira access granted for user@company.com",
-      category: "access",
-      severity: "low",
-    },
-    {
-      id: "event-seed-5",
-      type: "automation_fired",
-      timestamp: new Date(now.getTime() - 15 * 60 * 1000).toISOString(), // 15 minutes ago
-      requestId: "AR-010",
-      actor: "System",
-      description:
-        "Automation: Reminder sent to approver Helen Mirren (AR-010)",
-      headline: "Automation: Reminder sent to approver Helen Mirren",
-      details: "Access request AR-010 pending for 24+ hours",
-      category: "automations",
-      severity: "low",
-    },
-    {
-      id: "event-seed-6",
-      type: "ai_anomaly",
-      timestamp: new Date(now.getTime() - 18 * 60 * 1000).toISOString(), // 18 minutes ago
-      actor: "AI System",
-      description: "AI detected anomaly: VPN surge +200% (Forecasted)",
-      headline: "AI detected anomaly: VPN surge +200% (Forecasted)",
-      details: "Historical pattern detected: VPN spikes on Fridays during WFH",
-      category: "ai_insights",
-      severity: "high",
-    },
-    {
-      id: "event-seed-7",
-      type: "integration_event",
-      timestamp: new Date(now.getTime() - 25 * 60 * 1000).toISOString(), // 25 minutes ago
-      actor: "Okta Integration",
-      description:
-        "Integration (Okta): User added to Jira Developers group (demo)",
-      headline: "Integration (Okta): User added to Jira Developers group",
-      details: "User john.doe@company.com provisioned via Okta sync",
-      category: "integrations",
-      severity: "low",
-      externalId: "OKTA-12345",
-    },
-    {
-      id: "event-seed-8",
-      type: "ticket_resolved",
-      timestamp: new Date(now.getTime() - 40 * 60 * 1000).toISOString(), // 40 minutes ago
-      ticketId: "TKT-123",
-      actor: "Endpoint Support",
-      description: "Ticket TKT-123 resolved by Endpoint Support",
-      headline: "Ticket TKT-123 resolved by Endpoint Support",
-      details: "Issue resolved: Laptop connectivity restored",
-      category: "tickets",
-      severity: "low",
-    },
-    {
-      id: "event-seed-9",
-      type: "access_request_submitted",
-      timestamp: new Date(now.getTime() - 60 * 60 * 1000).toISOString(), // 1 hour ago
-      requestId: "AR-090",
-      actor: "System",
-      description: "Escalation: Access request AR-090 escalated to IAM team",
-      headline: "Escalation: Access request AR-090 escalated to IAM team",
-      details: "Request pending >48h, auto-escalated per policy",
-      category: "access",
-      severity: "medium",
-    },
-    {
-      id: "event-seed-10",
-      type: "automation_fired",
-      timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-      requestId: "AR-SEED-001",
-      actor: "System",
-      description: "Auto-approve demo event: AR-SEED-001 auto-approved",
-      headline: "Auto-approve: AR-SEED-001 auto-approved",
-      details: "Low-risk application request auto-approved after 72h",
-      category: "automations",
-      severity: "low",
-    },
-    {
-      id: "event-seed-11",
-      type: "ticket_created",
-      timestamp: subDays(now, 1).toISOString(),
-      ticketId: "TKT-456",
-      actor: "Mike Johnson",
-      description: 'New ticket created by Mike Johnson: "Email not syncing"',
-      headline: 'New ticket created by Mike Johnson: "Email not syncing"',
-      details: "Ticket TKT-456 assigned to IT Helpdesk team",
-      category: "tickets",
-      severity: "medium",
-    },
-    {
-      id: "event-seed-12",
-      type: "sla_breached",
-      timestamp: subDays(now, 1).toISOString(),
-      ticketId: "TKT-789",
-      actor: "System",
-      description: "SLA breached: TKT-789 exceeded SLA threshold",
-      headline: "SLA breached: TKT-789 exceeded SLA threshold",
-      details: "Ticket unresolved for 25 hours (SLA: 24h)",
-      category: "sla",
-      severity: "critical",
-    },
-    {
-      id: "event-seed-13",
-      type: "integration_event",
-      timestamp: subDays(now, 1).toISOString(),
-      actor: "Jira Integration",
-      description: "Integration (Jira): Issue JRA-2031 created externally",
-      headline: "Integration (Jira): Issue JRA-2031 created externally",
-      details: "Linked to ticket TKT-567",
-      category: "integrations",
-      severity: "low",
-      externalId: "JRA-2031",
-    },
-    {
-      id: "event-seed-14",
-      type: "ai_insight",
-      timestamp: subDays(now, 2).toISOString(),
-      actor: "AI System",
-      description: "AI Insight: Access request surge detected (+80%)",
-      headline: "AI Insight: Access request surge detected (+80%)",
-      details: "New joiner batch processed by HR yesterday",
-      category: "ai_insights",
-      severity: "medium",
-    },
-    {
-      id: "event-seed-15",
-      type: "access_request_reminder",
-      timestamp: subDays(now, 2).toISOString(),
-      requestId: "AR-045",
-      actor: "System",
-      description: "Reminder sent to approver Bob VP for AR-045",
-      headline: "Reminder sent to approver Bob VP",
-      details: "Access request AR-045 pending for 26 hours",
-      category: "access",
-      severity: "low",
-    },
-    {
-      id: "event-seed-16",
-      type: "ticket_updated",
-      timestamp: subDays(now, 3).toISOString(),
-      ticketId: "TKT-234",
-      actor: "Network Team",
-      description: "Ticket TKT-234 updated: Status changed to In Progress",
-      headline: "Ticket TKT-234 updated: Status changed to In Progress",
-      details: "Network team investigating connectivity issue",
-      category: "tickets",
-      severity: "low",
-    },
-    {
-      id: "event-seed-17",
-      type: "integration_event",
-      timestamp: subDays(now, 4).toISOString(),
-      actor: "ServiceNow Integration",
-      description: "Integration (ServiceNow): Incident INC-001234 created",
-      headline: "Integration (ServiceNow): Incident INC-001234 created",
-      details: "Linked to ticket TKT-567",
-      category: "integrations",
-      severity: "low",
-      externalId: "INC-001234",
-    },
-    {
-      id: "event-seed-18",
-      type: "automation_fired",
-      timestamp: subDays(now, 5).toISOString(),
-      actor: "System",
-      description: "Automation: Auto-escalation triggered for AR-078",
-      headline: "Automation: Auto-escalation triggered for AR-078",
-      details: "Request pending >48h, escalated to manager",
-      category: "automations",
-      severity: "medium",
-    },
-    {
-      id: "event-seed-19",
-      type: "ai_anomaly",
-      timestamp: subDays(now, 6).toISOString(),
-      actor: "AI System",
-      description: "AI detected anomaly: Access request surge detected (+80%)",
-      headline: "AI detected anomaly: Access request surge detected (+80%)",
-      details: "Approver delays observed in last 48h",
-      category: "ai_insights",
-      severity: "medium",
-    },
-    {
-      id: "event-seed-20",
-      type: "ticket_created",
-      timestamp: subDays(now, 7).toISOString(),
-      ticketId: "TKT-890",
-      actor: "Lisa Chen",
-      description: 'New ticket created by Lisa Chen: "Printer offline"',
-      headline: 'New ticket created by Lisa Chen: "Printer offline"',
-      details: "Ticket TKT-890 assigned to IT Helpdesk team",
-      category: "tickets",
-      severity: "low",
-    },
-  ];
+  const events: LiveEvent[] = [];
 
-  // Only seed if events array is empty
-  if (liveEvents.length === 0) {
-    liveEvents = seeded;
-  }
+  tickets.forEach((ticket) => {
+    const createdDate = new Date(ticket.created_at);
+    const updatedDate = new Date(ticket.updated_at);
+
+    // Skip tickets outside the time range
+    if (createdDate < cutoff && updatedDate < cutoff) {
+      return;
+    }
+
+    // 1. Ticket Created Event
+    if (createdDate >= cutoff) {
+      events.push({
+        id: `event-created-${ticket.id}`,
+        type: "ticket_created",
+        timestamp: ticket.created_at,
+        ticketId: ticket.id,
+        actor: ticket.user_name || "Unknown",
+        description: `New ticket created by ${
+          ticket.user_name || "Unknown"
+        }: "${ticket.title}"`,
+        headline: `New ticket created by ${ticket.user_name || "Unknown"}: "${
+          ticket.title
+        }"`,
+        details: `Ticket ${ticket.id} assigned to ${
+          ticket.suggested_team || "Unassigned"
+        } team`,
+        category: "tickets",
+        severity:
+          ticket.priority === "high"
+            ? "high"
+            : ticket.priority === "medium"
+            ? "medium"
+            : "low",
+      });
+    }
+
+    // 2. Ticket Assigned Event (if assignee exists and was set recently)
+    if (ticket.assignee && updatedDate >= cutoff && updatedDate > createdDate) {
+      events.push({
+        id: `event-assigned-${ticket.id}-${updatedDate.getTime()}`,
+        type: "ticket_assigned",
+        timestamp: ticket.updated_at,
+        ticketId: ticket.id,
+        actor: "System",
+        description: `Ticket ${ticket.id} assigned to ${ticket.assignee}`,
+        headline: `Ticket ${ticket.id} assigned to ${ticket.assignee}`,
+        details: `${ticket.suggested_team || "Team"} team`,
+        category: "tickets",
+        severity: "low",
+      });
+    }
+
+    // 3. Ticket Resolved Event
+    if (ticket.resolved_at) {
+      const resolvedDate = new Date(ticket.resolved_at);
+      if (resolvedDate >= cutoff) {
+        events.push({
+          id: `event-resolved-${ticket.id}`,
+          type: "ticket_resolved",
+          timestamp: ticket.resolved_at,
+          ticketId: ticket.id,
+          actor: ticket.assignee || ticket.suggested_team || "System",
+          description: `Ticket ${ticket.id} resolved by ${
+            ticket.assignee || ticket.suggested_team || "System"
+          }`,
+          headline: `Ticket ${ticket.id} resolved by ${
+            ticket.assignee || ticket.suggested_team || "System"
+          }`,
+          details: ticket.collected_details?.resolution
+            ? String(ticket.collected_details.resolution)
+            : `Issue resolved: ${ticket.title}`,
+          category: "tickets",
+          severity: "low",
+        });
+      }
+    }
+
+    // 4. Access Request Events (for access_request type tickets)
+    if (ticket.ticket_type === "access_request") {
+      // Access request submitted
+      if (createdDate >= cutoff) {
+        events.push({
+          id: `event-ar-submitted-${ticket.id}`,
+          type: "access_request_submitted",
+          timestamp: ticket.created_at,
+          ticketId: ticket.id,
+          requestId: `AR-${ticket.id.slice(-6)}`,
+          actor: ticket.user_name || "Unknown",
+          description: `Access request ${ticket.id} submitted for ${
+            ticket.app_or_system || "application"
+          }`,
+          headline: `Access request ${ticket.id} submitted for ${
+            ticket.app_or_system || "application"
+          }`,
+          details: `Requested by ${ticket.user_name || "Unknown"}`,
+          category: "access",
+          severity: ticket.priority === "high" ? "medium" : "low",
+        });
+      }
+
+      // Access request approved (if resolved)
+      if (ticket.resolved_at && ticket.status === "resolved") {
+        const resolvedDate = new Date(ticket.resolved_at);
+        if (resolvedDate >= cutoff) {
+          events.push({
+            id: `event-ar-approved-${ticket.id}`,
+            type: "access_request_approved",
+            timestamp: ticket.resolved_at,
+            ticketId: ticket.id,
+            requestId: `AR-${ticket.id.slice(-6)}`,
+            actor: ticket.assignee || "System",
+            description: `Access request ${ticket.id} approved by ${
+              ticket.assignee || "System"
+            }`,
+            headline: `Access request ${ticket.id} approved by ${
+              ticket.assignee || "System"
+            }`,
+            details: `${
+              ticket.app_or_system || "Application"
+            } access granted for ${ticket.user_name || "user"}`,
+            category: "access",
+            severity: "low",
+          });
+        }
+      }
+    }
+
+    // 5. SLA Warning/Breach Events
+    if (ticket.sla_due_at) {
+      const slaDueDate = new Date(ticket.sla_due_at);
+      const hoursUntilSLA = differenceInHours(slaDueDate, now);
+
+      // SLA Warning (within 2 hours of SLA)
+      if (
+        hoursUntilSLA > 0 &&
+        hoursUntilSLA <= 2 &&
+        ticket.status !== "resolved" &&
+        ticket.status !== "closed"
+      ) {
+        events.push({
+          id: `event-sla-warning-${ticket.id}-${now.getTime()}`,
+          type: "sla_warning",
+          timestamp: now.toISOString(),
+          ticketId: ticket.id,
+          actor: "System",
+          description: `SLA warning: ${ticket.id} nearing SLA in ${Math.round(
+            hoursUntilSLA * 60
+          )}m`,
+          headline: `SLA warning: ${ticket.id} nearing SLA in ${Math.round(
+            hoursUntilSLA * 60
+          )}m`,
+          details: "Ticket will breach SLA threshold if not resolved soon",
+          category: "sla",
+          severity: "high",
+        });
+      }
+
+      // SLA Breached
+      if (
+        isAfter(now, slaDueDate) &&
+        ticket.status !== "resolved" &&
+        ticket.status !== "closed"
+      ) {
+        const hoursOverdue = differenceInHours(now, slaDueDate);
+        events.push({
+          id: `event-sla-breach-${ticket.id}-${now.getTime()}`,
+          type: "sla_breached",
+          timestamp: slaDueDate.toISOString(),
+          ticketId: ticket.id,
+          actor: "System",
+          description: `SLA breached: ${ticket.id} exceeded SLA threshold`,
+          headline: `SLA breached: ${ticket.id} exceeded SLA threshold`,
+          details: `Ticket unresolved for ${Math.round(
+            hoursOverdue
+          )} hours (SLA: ${format(slaDueDate, "MMM d, h:mm a")})`,
+          category: "sla",
+          severity: "critical",
+        });
+      }
+    }
+
+    // 6. Integration Events (from external_ids)
+    if (ticket.external_ids && Object.keys(ticket.external_ids).length > 0) {
+      Object.entries(ticket.external_ids).forEach(([key, value]) => {
+        // Only create integration event if ticket was recently created/updated
+        if (createdDate >= cutoff || updatedDate >= cutoff) {
+          const integrationName =
+            key === "servicenow"
+              ? "ServiceNow"
+              : key === "jira"
+              ? "Jira"
+              : key === "okta"
+              ? "Okta"
+              : key.charAt(0).toUpperCase() + key.slice(1);
+
+          events.push({
+            id: `event-integration-${ticket.id}-${key}`,
+            type: "integration_event",
+            timestamp:
+              updatedDate >= cutoff ? ticket.updated_at : ticket.created_at,
+            ticketId: ticket.id,
+            actor: `${integrationName} Integration`,
+            description: `Integration (${integrationName}): ${
+              integrationName === "ServiceNow"
+                ? "Incident"
+                : integrationName === "Jira"
+                ? "Issue"
+                : "Record"
+            } ${value} ${createdDate >= cutoff ? "created" : "linked"}`,
+            headline: `Integration (${integrationName}): ${
+              integrationName === "ServiceNow"
+                ? "Incident"
+                : integrationName === "Jira"
+                ? "Issue"
+                : "Record"
+            } ${value} ${createdDate >= cutoff ? "created" : "linked"}`,
+            details: `Linked to ticket ${ticket.id}`,
+            category: "integrations",
+            severity: "low",
+            externalId: String(value),
+          });
+        }
+      });
+    }
+
+    // 7. Ticket Updated Event (status changes)
+    if (
+      updatedDate >= cutoff &&
+      updatedDate > createdDate &&
+      ticket.status !== "resolved" &&
+      ticket.status !== "closed"
+    ) {
+      events.push({
+        id: `event-updated-${ticket.id}-${updatedDate.getTime()}`,
+        type: "ticket_updated",
+        timestamp: ticket.updated_at,
+        ticketId: ticket.id,
+        actor: ticket.assignee || ticket.suggested_team || "System",
+        description: `Ticket ${
+          ticket.id
+        } updated: Status changed to ${ticket.status.replace("_", " ")}`,
+        headline: `Ticket ${
+          ticket.id
+        } updated: Status changed to ${ticket.status.replace("_", " ")}`,
+        details: `${ticket.suggested_team || "Team"} team`,
+        category: "tickets",
+        severity: "low",
+      });
+    }
+  });
+
+  // Sort by timestamp (newest first)
+  return events.sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
 }
 
-// Initialize seeded events
-seedDemoEvents();
-
-// Get Live Events
+// Get Live Events (now generates from tickets)
 export function getLiveEvents(since?: Date): LiveEvent[] {
+  // Return only manually added events (from addLiveEvent)
   const cutoff = since || subDays(new Date(), 1);
   return liveEvents.filter((e) => new Date(e.timestamp) >= cutoff);
 }

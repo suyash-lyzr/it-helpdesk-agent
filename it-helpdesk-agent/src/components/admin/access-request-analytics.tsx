@@ -558,7 +558,7 @@ export function AccessRequestAnalyticsComponent({
             </CardContent>
           </Card>
 
-          {/* Column 2: Slowest Approvers */}
+          {/* Slowest Approvers */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-xs">Slowest Approvers</CardTitle>
@@ -603,60 +603,95 @@ export function AccessRequestAnalyticsComponent({
             </CardContent>
           </Card>
 
-          {/* Column 3: Recommended Automations */}
+          {/* Right Column: Recommended Automations */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Recommended Automations</CardTitle>
               <CardDescription className="text-xs">
-                Demo automation presets
+                AI-driven suggestions based on your metrics
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <Label
-                    htmlFor="auto-remind"
-                    className="text-xs cursor-pointer"
+            <CardContent className="space-y-4">
+              {data.automationRecommendations.map((rec) => {
+                const isEnabled =
+                  automationToggles[
+                    rec.id === "auto-remind-24h"
+                      ? "autoRemind"
+                      : rec.id === "auto-escalate-48h"
+                      ? "autoEscalate"
+                      : "autoApprove"
+                  ] || false;
+
+                return (
+                  <div
+                    key={rec.id}
+                    className={`rounded-md border p-3 ${
+                      rec.recommended
+                        ? "border-primary/30 bg-primary/5"
+                        : "border-border/50 bg-muted/20"
+                    }`}
                   >
-                    Auto-remind after 24h
-                  </Label>
-                </div>
-                <Switch
-                  id="auto-remind"
-                  checked={automationToggles.autoRemind}
-                  onCheckedChange={() => handleAutomationToggle("autoRemind")}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <Label
-                    htmlFor="auto-escalate"
-                    className="text-xs cursor-pointer"
-                  >
-                    Escalate after 48h
-                  </Label>
-                </div>
-                <Switch
-                  id="auto-escalate"
-                  checked={automationToggles.autoEscalate}
-                  onCheckedChange={() => handleAutomationToggle("autoEscalate")}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <Label
-                    htmlFor="auto-approve"
-                    className="text-xs cursor-pointer"
-                  >
-                    Auto-approve after 72h
-                  </Label>
-                </div>
-                <Switch
-                  id="auto-approve"
-                  checked={automationToggles.autoApprove}
-                  onCheckedChange={() => handleAutomationToggle("autoApprove")}
-                />
-              </div>
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Label
+                            htmlFor={rec.id}
+                            className="text-xs font-semibold cursor-pointer"
+                          >
+                            {rec.name}
+                          </Label>
+                          {rec.recommended && (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] bg-green-500/10 text-green-700 border-green-500/20"
+                            >
+                              Recommended
+                            </Badge>
+                          )}
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] ${
+                              rec.riskLevel === "high"
+                                ? "bg-red-500/10 text-red-700 border-red-500/20"
+                                : rec.riskLevel === "medium"
+                                ? "bg-yellow-500/10 text-yellow-700 border-yellow-500/20"
+                                : "bg-green-500/10 text-green-700 border-green-500/20"
+                            }`}
+                          >
+                            {rec.riskLevel} risk
+                          </Badge>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          {rec.description}
+                        </p>
+                        {rec.reason && (
+                          <p className="text-[10px] text-muted-foreground/70 mt-1.5 italic">
+                            {rec.reason}
+                          </p>
+                        )}
+                        {rec.potentialImpact && rec.recommended && (
+                          <p className="text-[10px] text-primary/80 mt-1 font-medium">
+                            💡 {rec.potentialImpact}
+                          </p>
+                        )}
+                      </div>
+                      <Switch
+                        id={rec.id}
+                        checked={isEnabled}
+                        onCheckedChange={() =>
+                          handleAutomationToggle(
+                            rec.id === "auto-remind-24h"
+                              ? "autoRemind"
+                              : rec.id === "auto-escalate-48h"
+                              ? "autoEscalate"
+                              : "autoApprove"
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
         </div>
