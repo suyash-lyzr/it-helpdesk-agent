@@ -101,6 +101,33 @@ export function AdminTicketsDashboard({
         filters.startDate || format(subDays(new Date(), 7), "yyyy-MM-dd");
       const endDate = filters.endDate || format(new Date(), "yyyy-MM-dd");
 
+      // Build query params from filters
+      const queryParams = new URLSearchParams({
+        start_date: startDate,
+        end_date: endDate,
+      });
+
+      if (filters.team && filters.team !== "all") {
+        queryParams.set("team", filters.team);
+      }
+      if (filters.priority && filters.priority !== "all") {
+        queryParams.set("priority", filters.priority);
+      }
+      if (filters.category && filters.category !== "all") {
+        queryParams.set("category", filters.category);
+      }
+      if (filters.assignee && filters.assignee !== "all") {
+        queryParams.set("assignee", filters.assignee);
+      }
+      if (filters.slaStatus && filters.slaStatus !== "all") {
+        queryParams.set("sla_status", filters.slaStatus);
+      }
+      if (filters.source && filters.source !== "all") {
+        queryParams.set("source", filters.source);
+      }
+
+      const queryString = queryParams.toString();
+
       const [
         kpisRes,
         slaRes,
@@ -111,16 +138,14 @@ export function AdminTicketsDashboard({
         accessRes,
         eventsRes,
       ] = await Promise.all([
-        fetch(
-          `/api/analytics/kpis?start_date=${startDate}&end_date=${endDate}`
-        ),
-        fetch("/api/analytics/sla-funnel"),
-        fetch("/api/analytics/top-issues?limit=10"),
-        fetch("/api/analytics/team-performance"),
-        fetch("/api/analytics/lifecycle"),
-        fetch("/api/analytics/forecast?days=7"),
-        fetch("/api/analytics/access-requests"),
-        fetch("/api/analytics/live-events"),
+        fetch(`/api/analytics/kpis?${queryString}`),
+        fetch(`/api/analytics/sla-funnel?${queryString}`),
+        fetch(`/api/analytics/top-issues?limit=10&${queryString}`),
+        fetch(`/api/analytics/team-performance?${queryString}`),
+        fetch(`/api/analytics/lifecycle?${queryString}`),
+        fetch(`/api/analytics/forecast?days=7&${queryString}`),
+        fetch(`/api/analytics/access-requests?${queryString}`),
+        fetch(`/api/analytics/live-events?${queryString}`),
       ]);
 
       if (kpisRes.ok) {

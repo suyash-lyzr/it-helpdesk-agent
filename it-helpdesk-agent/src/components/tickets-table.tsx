@@ -285,10 +285,12 @@ export function TicketsTable({
               className="pl-9 w-[200px]"
             />
           </div>
-          <Button onClick={onNewTicket} className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Ticket
-          </Button>
+          {onNewTicket && (
+            <Button onClick={onNewTicket} className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Ticket
+            </Button>
+          )}
         </div>
       </div>
 

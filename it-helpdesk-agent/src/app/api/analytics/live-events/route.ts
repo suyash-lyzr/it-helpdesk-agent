@@ -5,19 +5,43 @@ import {
   generateLiveEventsFromTickets,
 } from "@/lib/analytics-store";
 import { getTickets } from "@/lib/ticket-store";
+import { applyTicketFilters } from "@/lib/filter-utils";
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const since = searchParams.get("since");
+    const startDate = searchParams.get("start_date");
+    const endDate = searchParams.get("end_date");
 
     const sinceDate = since ? new Date(since) : undefined;
 
+    const start = startDate ? new Date(startDate) : undefined;
+    if (start) start.setHours(0, 0, 0, 0);
+
+    const end = endDate ? new Date(endDate) : undefined;
+    if (end) end.setHours(23, 59, 59, 999);
+
     // Get tickets from database
-    const { tickets } = await getTickets();
+    const { tickets: allTickets } = await getTickets();
+
+    // Apply filters
+    const filteredTickets = applyTicketFilters(allTickets, {
+      team: searchParams.get("team") || undefined,
+      priority: searchParams.get("priority") || undefined,
+      category: searchParams.get("category") || undefined,
+      assignee: searchParams.get("assignee") || undefined,
+      slaStatus: searchParams.get("sla_status") || undefined,
+      source: searchParams.get("source") || undefined,
+      startDate: start,
+      endDate: end,
+    });
 
     // Generate events from real tickets
-    const ticketEvents = generateLiveEventsFromTickets(tickets, sinceDate);
+    const ticketEvents = generateLiveEventsFromTickets(
+      filteredTickets,
+      sinceDate
+    );
 
     // Get manually added events (from addLiveEvent calls)
     const manualEvents = getLiveEvents(sinceDate);
