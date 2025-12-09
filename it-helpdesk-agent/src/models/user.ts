@@ -10,6 +10,12 @@ export interface IUserAgentInfo {
   version: string;
 }
 
+export interface IUserKnowledgeBase {
+  ragId: string;
+  ragName: string;
+  baseUrl: string;
+}
+
 export interface IUser {
   lyzrUserId: string;
   email: string;
@@ -21,6 +27,7 @@ export interface IUser {
   ticketGeneratorAgent?: IUserAgentInfo;
   accessRequestAgent?: IUserAgentInfo;
   kbAgent?: IUserAgentInfo;
+  knowledgeBase?: IUserKnowledgeBase;
   schemaVersion: number;
 }
 
@@ -57,6 +64,11 @@ const UserSchema: Schema<IUserDocument> = new Schema<IUserDocument>(
     kbAgent: {
       agentId: { type: String },
       version: { type: String },
+    },
+    knowledgeBase: {
+      ragId: { type: String },
+      ragName: { type: String },
+      baseUrl: { type: String },
     },
     schemaVersion: { type: Number, default: 1 },
   },

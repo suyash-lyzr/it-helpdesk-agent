@@ -649,10 +649,10 @@ export default function KnowledgeBasePage() {
     );
   }
 
-  function handleFileUpload(files: FileList | null) {
+  async function handleFileUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
 
-    Array.from(files).forEach((file) => {
+    Array.from(files).forEach(async (file) => {
       if (file.size > 100 * 1024 * 1024) {
         toast.error(`${file.name} exceeds 100MB limit`);
         return;
@@ -681,16 +681,38 @@ export default function KnowledgeBasePage() {
         ...prev,
       ]);
 
-      // Simulate upload -> processing -> processed
-      setTimeout(() => {
+      // Call backend to upload and train KB for this user
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
         setDocuments((prev) =>
           prev.map((d) =>
             d.id === newDoc.id ? { ...d, status: "Processing" } : d
           )
         );
-      }, 1000);
 
-      setTimeout(() => {
+        const res = await fetch("/api/knowledge-base/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          const errorMessage =
+            data?.error || "Failed to upload and process document";
+
+          setDocuments((prev) =>
+            prev.map((d) =>
+              d.id === newDoc.id
+                ? { ...d, status: "Failed", error: errorMessage }
+                : d
+            )
+          );
+          toast.error(errorMessage);
+          return;
+        }
+
         setDocuments((prev) =>
           prev.map((d) =>
             d.id === newDoc.id
@@ -706,7 +728,21 @@ export default function KnowledgeBasePage() {
           )
         );
         toast.success(`${file.name} processed successfully`);
-      }, 3000);
+      } catch (error) {
+        console.error("KB upload error:", error);
+        setDocuments((prev) =>
+          prev.map((d) =>
+            d.id === newDoc.id
+              ? {
+                  ...d,
+                  status: "Failed",
+                  error: "Failed to upload and process document",
+                }
+              : d
+          )
+        );
+        toast.error("Failed to upload and process document");
+      }
     });
   }
 

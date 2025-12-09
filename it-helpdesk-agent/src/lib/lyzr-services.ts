@@ -17,6 +17,7 @@ import {
 } from "@/lib/agent-config";
 
 const LYZR_AGENT_BASE_URL = "https://agent-prod.studio.lyzr.ai";
+const LYZR_RAG_BASE_URL = "https://rag-prod.studio.lyzr.ai";
 
 // --- Encryption ---
 
@@ -30,6 +31,68 @@ export function encrypt(text: string): string {
 export function decrypt(ciphertext: string): string {
   const bytes = CryptoJS.AES.decrypt(ciphertext, ENCRYPTION_KEY);
   return bytes.toString(CryptoJS.enc.Utf8);
+}
+
+// --- Knowledge Base Management ---
+
+interface LyzrKnowledgeBaseResponse {
+  rag_id: string;
+  rag_name: string;
+  base_url: string;
+}
+
+async function createLyzrKnowledgeBase(
+  apiKey: string,
+  organizationName: string
+): Promise<LyzrKnowledgeBaseResponse> {
+  const normalizedName = organizationName
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_]/g, "");
+
+  const collectionName = `it_helpdesk_${normalizedName}`;
+
+  const requestData = {
+    user_id: apiKey,
+    llm_credential_id: "lyzr_openai",
+    embedding_credential_id: "lyzr_openai",
+    vector_db_credential_id: "lyzr_qdrant",
+    description: `IT Helpdesk Knowledge Base for ${organizationName}`,
+    collection_name: collectionName,
+    llm_model: "gpt-4o-mini",
+    embedding_model: "text-embedding-ada-002",
+    vector_store_provider: "Qdrant [Lyzr]",
+    semantic_data_model: false,
+    meta_data: {},
+  };
+
+  console.log("Creating Knowledge Base with request:", requestData);
+
+  const response = await fetch(`${LYZR_RAG_BASE_URL}/v3/rag/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+    },
+    body: JSON.stringify(requestData),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("RAG creation failed:", response.status, errorText);
+    throw new Error(
+      `Failed to create knowledge base: ${response.status} ${errorText}`
+    );
+  }
+
+  const data = await response.json();
+  console.log("RAG creation response:", data);
+
+  return {
+    rag_id: data.id,
+    rag_name: data.collection_name,
+    base_url: LYZR_RAG_BASE_URL,
+  };
 }
 
 // --- Tool Management (Ticket Manager OpenAPI tools) ---
@@ -132,6 +195,37 @@ async function ensureTicketTools(
 
 // --- Agent Management ---
 
+function buildKbAgentConfig(kb: {
+  ragId: string;
+  ragName: string;
+  baseUrl: string;
+}) {
+  // Deep clone KB_AGENT_CONFIG and inject per-user RAG details
+  const baseConfig: any = KB_AGENT_CONFIG;
+
+  const updatedFeatures =
+    baseConfig.features?.map((feature: any) => {
+      if (feature.type !== "KNOWLEDGE_BASE") return feature;
+      return {
+        ...feature,
+        config: {
+          ...feature.config,
+          lyzr_rag: {
+            ...feature.config.lyzr_rag,
+            base_url: kb.baseUrl,
+            rag_id: kb.ragId,
+            rag_name: kb.ragName,
+          },
+        },
+      };
+    }) ?? [];
+
+  return {
+    ...baseConfig,
+    features: updatedFeatures,
+  };
+}
+
 async function createLyzrAgent(
   apiKey: string,
   agentConfig: any
@@ -182,12 +276,32 @@ export async function createOrUpdateUserAndAgents(
   // Find user first
   const existingUser = await User.findOne(userIdentifier);
 
+  const organizationName = lyzrUser.name || lyzrUser.email;
+
   if (existingUser) {
     console.log(`Updating existing helpdesk user: ${existingUser.email}`);
     existingUser.lyzrApiKey = encryptedApiKey;
 
     // Ensure tools exist
     await ensureTicketTools(lyzrApiKey, existingUser);
+
+    // Ensure knowledge base exists for this user
+    if (!existingUser.knowledgeBase?.ragId) {
+      const kb = await createLyzrKnowledgeBase(lyzrApiKey, organizationName);
+      existingUser.knowledgeBase = {
+        ragId: kb.rag_id,
+        ragName: kb.rag_name,
+        baseUrl: kb.base_url,
+      };
+    }
+
+    const kbConfigForUser =
+      existingUser.knowledgeBase &&
+      buildKbAgentConfig({
+        ragId: existingUser.knowledgeBase.ragId,
+        ragName: existingUser.knowledgeBase.ragName,
+        baseUrl: existingUser.knowledgeBase.baseUrl,
+      });
 
     // Ensure each agent exists / is up to date
     if (
@@ -280,10 +394,14 @@ export async function createOrUpdateUserAndAgents(
     ) {
       const agentId = existingUser.kbAgent?.agentId
         ? existingUser.kbAgent.agentId
-        : await createLyzrAgent(lyzrApiKey, KB_AGENT_CONFIG);
+        : await createLyzrAgent(lyzrApiKey, kbConfigForUser ?? KB_AGENT_CONFIG);
 
       if (existingUser.kbAgent?.agentId) {
-        await updateLyzrAgent(lyzrApiKey, agentId, KB_AGENT_CONFIG);
+        await updateLyzrAgent(
+          lyzrApiKey,
+          agentId,
+          kbConfigForUser ?? KB_AGENT_CONFIG
+        );
       }
 
       existingUser.kbAgent = {
@@ -299,11 +417,19 @@ export async function createOrUpdateUserAndAgents(
   // --- NEW USER LOGIC ---
   console.log(`Creating new helpdesk user and agents for ${lyzrUser.email}`);
 
-  // Create tools and agents before saving user
+  // Create tools and knowledge base, then agents before saving user
   const toolIds = await createTicketManagerToolsForUser(
     lyzrApiKey,
     lyzrUser.id
   );
+
+  const kb = await createLyzrKnowledgeBase(lyzrApiKey, organizationName);
+
+  const kbConfigForUser = buildKbAgentConfig({
+    ragId: kb.rag_id,
+    ragName: kb.rag_name,
+    baseUrl: kb.base_url,
+  });
 
   const orchestratorAgentId = await createLyzrAgent(
     lyzrApiKey,
@@ -321,7 +447,7 @@ export async function createOrUpdateUserAndAgents(
     lyzrApiKey,
     ACCESS_REQUEST_AGENT_CONFIG
   );
-  const kbAgentId = await createLyzrAgent(lyzrApiKey, KB_AGENT_CONFIG);
+  const kbAgentId = await createLyzrAgent(lyzrApiKey, kbConfigForUser);
 
   const newUser = new User({
     ...userIdentifier,
@@ -348,6 +474,11 @@ export async function createOrUpdateUserAndAgents(
     kbAgent: {
       agentId: kbAgentId,
       version: LATEST_KB_AGENT_VERSION,
+    },
+    knowledgeBase: {
+      ragId: kb.rag_id,
+      ragName: kb.rag_name,
+      baseUrl: kb.base_url,
     },
   });
 
