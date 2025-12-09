@@ -487,121 +487,126 @@ export function AccessRequestAnalyticsComponent({
           </CardContent>
         </Card>
 
-        {/* Main Layout: Three Columns for Better Full-Width Utilization */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Column 1: Top Applications */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Top Applications</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs">Application</TableHead>
-                    <TableHead className="text-xs text-right">
-                      Requests
-                    </TableHead>
-                    <TableHead className="text-xs text-right">
-                      Avg Time
-                    </TableHead>
-                    <TableHead className="text-xs text-right">SLA %</TableHead>
-                    <TableHead className="text-xs w-20"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.topApplications.length > 0 ? (
-                    data.topApplications.map((app, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell className="font-medium text-xs">
-                          {app.name}
-                        </TableCell>
-                        <TableCell className="text-right text-xs tabular-nums">
-                          {app.requests}
-                        </TableCell>
-                        <TableCell className="text-right text-xs tabular-nums">
-                          {app.avgApprovalTime > 0
-                            ? formatHoursMinutes(app.avgApprovalTime)
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge
-                            variant="outline"
-                            className={`text-[10px] ${
-                              app.slaCompliance >= 90
-                                ? "bg-green-500/10 text-green-700 border-green-500/20"
-                                : app.slaCompliance >= 70
-                                ? "bg-yellow-500/10 text-yellow-700 border-yellow-500/20"
-                                : "bg-red-500/10 text-red-700 border-red-500/20"
-                            }`}
-                          >
-                            {app.slaCompliance !== null &&
-                            app.slaCompliance !== undefined
-                              ? `${app.slaCompliance.toFixed(1)}%`
+        {/* Main Layout: Two Columns - Left side stacked, Right side full height */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Left Column: Top Applications + Slowest Approvers */}
+          <div className="space-y-4">
+            {/* Top Applications */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Top Applications</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Application</TableHead>
+                      <TableHead className="text-xs text-right">
+                        Requests
+                      </TableHead>
+                      <TableHead className="text-xs text-right">
+                        Avg Time
+                      </TableHead>
+                      <TableHead className="text-xs text-right">
+                        SLA %
+                      </TableHead>
+                      <TableHead className="text-xs w-20"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {data.topApplications.length > 0 ? (
+                      data.topApplications.map((app, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-medium text-xs">
+                            {app.name}
+                          </TableCell>
+                          <TableCell className="text-right text-xs tabular-nums">
+                            {app.requests}
+                          </TableCell>
+                          <TableCell className="text-right text-xs tabular-nums">
+                            {app.avgApprovalTime > 0
+                              ? formatHoursMinutes(app.avgApprovalTime)
                               : "-"}
-                          </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] ${
+                                app.slaCompliance >= 90
+                                  ? "bg-green-500/10 text-green-700 border-green-500/20"
+                                  : app.slaCompliance >= 70
+                                  ? "bg-yellow-500/10 text-yellow-700 border-yellow-500/20"
+                                  : "bg-red-500/10 text-red-700 border-red-500/20"
+                              }`}
+                            >
+                              {app.slaCompliance !== null &&
+                              app.slaCompliance !== undefined
+                                ? `${app.slaCompliance.toFixed(1)}%`
+                                : "-"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell
+                          colSpan={4}
+                          className="text-center text-xs text-muted-foreground py-4"
+                        >
+                          No access request data available
                         </TableCell>
                       </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* Slowest Approvers */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs">Slowest Approvers</CardTitle>
+              </CardHeader>
+              <CardContent className="p-3">
+                <div className="space-y-2">
+                  {data.slowestApprovers.length > 0 ? (
+                    data.slowestApprovers.slice(0, 5).map((manager, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between text-xs"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">
+                            {manager.manager}
+                          </div>
+                          <div className="text-muted-foreground">
+                            {manager.avgApprovalTime > 0
+                              ? `${formatHoursMinutes(
+                                  manager.avgApprovalTime
+                                )} avg • ${manager.requestCount} req`
+                              : `${manager.requestCount} req`}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-[10px] px-2"
+                          onClick={() => handleSendReminder(manager.manager)}
+                        >
+                          <Send className="h-2.5 w-2.5 mr-1" />
+                          Remind
+                        </Button>
+                      </div>
                     ))
                   ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={4}
-                        className="text-center text-xs text-muted-foreground py-4"
-                      >
-                        No access request data available
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {/* Slowest Approvers */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs">Slowest Approvers</CardTitle>
-            </CardHeader>
-            <CardContent className="p-3">
-              <div className="space-y-2">
-                {data.slowestApprovers.length > 0 ? (
-                  data.slowestApprovers.slice(0, 5).map((manager, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between text-xs"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">
-                          {manager.manager}
-                        </div>
-                        <div className="text-muted-foreground">
-                          {manager.avgApprovalTime > 0
-                            ? `${formatHoursMinutes(
-                                manager.avgApprovalTime
-                              )} avg • ${manager.requestCount} req`
-                            : `${manager.requestCount} req`}
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 text-[10px] px-2"
-                        onClick={() => handleSendReminder(manager.manager)}
-                      >
-                        <Send className="h-2.5 w-2.5 mr-1" />
-                        Remind
-                      </Button>
+                    <div className="text-xs text-muted-foreground text-center py-4">
+                      No approver data available
                     </div>
-                  ))
-                ) : (
-                  <div className="text-xs text-muted-foreground text-center py-4">
-                    No approver data available
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Right Column: Recommended Automations */}
           <Card>

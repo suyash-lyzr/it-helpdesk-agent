@@ -51,11 +51,13 @@ import {
 import { toast } from "sonner";
 import { format, subDays } from "date-fns";
 import { addLiveEvent } from "@/lib/analytics-store";
+import { RequestAccessModal } from "@/components/request-access-modal";
 
 interface ReportBuilderProps {
   onGenerateReport?: (config: ReportConfig) => void;
   scheduledReports?: ScheduledReport[];
   onReportsUpdated?: () => void;
+  demoMode?: boolean;
 }
 
 interface ReportConfig {
@@ -122,12 +124,22 @@ const seedReports: ScheduledReport[] = [
   },
 ];
 
+const DEMO_STORAGE_KEY = "report-builder-demo-view";
+
 export function ReportBuilder({
   onGenerateReport,
   scheduledReports = [],
   onReportsUpdated,
+  demoMode = true,
 }: ReportBuilderProps) {
   const [open, setOpen] = React.useState(false);
+  const [isAccessModalOpen, setIsAccessModalOpen] = React.useState(false);
+  const [isDemoViewActive, setIsDemoViewActive] = React.useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(DEMO_STORAGE_KEY) === "true";
+    }
+    return false;
+  });
   const [reports, setReports] = React.useState<ScheduledReport[]>(
     scheduledReports.length > 0 ? scheduledReports : seedReports
   );
@@ -320,19 +332,57 @@ export function ReportBuilder({
     toast.success(`Report '${report.name}' downloaded (demo)`);
   };
 
+  const handleExitDemo = () => {
+    setIsDemoViewActive(false);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(DEMO_STORAGE_KEY, "false");
+    }
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <Card className="relative overflow-hidden">
+      <CardHeader className="space-y-3">
+        {/* Top row: Demo mode tag on the right */}
+        <div className="flex justify-end">
+          {demoMode && !isDemoViewActive && (
+            <Badge
+              variant="outline"
+              className="bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/40 text-xs font-normal cursor-pointer hover:bg-blue-500/30 transition-colors"
+              onClick={() => setIsAccessModalOpen(true)}
+            >
+              Demo Mode – Request Access to Unlock
+            </Badge>
+          )}
+          {isDemoViewActive && (
+            <Badge
+              variant="outline"
+              className="bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/40 flex items-center gap-1.5 px-2 py-0.5 text-xs font-normal"
+            >
+              <span>Demo Mode – Sample Data Only</span>
+              <button
+                onClick={handleExitDemo}
+                className="text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100 underline text-[10px] font-medium ml-1 transition-colors"
+                type="button"
+              >
+                Exit Demo
+              </button>
+            </Badge>
+          )}
+        </div>
+
+        {/* Second row: Heading */}
+        <div className="flex items-center gap-2">
           <FileText className="h-4 w-4" />
-          Report Builder & Export
-        </CardTitle>
+          <CardTitle>Report Builder & Export</CardTitle>
+        </div>
+
+        {/* Third row: Description */}
         <CardDescription>
           Create one-off exports or schedule recurring reports for SLA, team
           performance, and access request metrics.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 relative">
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -568,6 +618,13 @@ export function ReportBuilder({
           </div>
         )}
       </CardContent>
+
+      {/* Request Access Modal */}
+      <RequestAccessModal
+        open={isAccessModalOpen}
+        onOpenChange={setIsAccessModalOpen}
+        featureName="Enterprise Reporting Suite - Report Builder & Export"
+      />
     </Card>
   );
 }

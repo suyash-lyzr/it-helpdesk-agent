@@ -120,8 +120,19 @@ export function ForecastChart({
   demoMode = true,
 }: ForecastChartProps) {
   const [isAccessModalOpen, setIsAccessModalOpen] = React.useState(false);
-  const [isDemoViewActive, setIsDemoViewActive] = React.useState(false);
-  const [showLockedOverlay, setShowLockedOverlay] = React.useState(demoMode);
+  const [isDemoViewActive, setIsDemoViewActive] = React.useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("forecast-chart-demo-view") === "true";
+    }
+    return false;
+  });
+  const [showLockedOverlay, setShowLockedOverlay] = React.useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("forecast-chart-demo-view");
+      return demoMode && saved !== "true";
+    }
+    return demoMode;
+  });
   const anomalies = data.filter((d) => d.anomalyFlag);
 
   // Separate forecasted and detected anomalies
@@ -168,21 +179,27 @@ export function ForecastChart({
   const handleContinueWithDemo = () => {
     setIsDemoViewActive(true);
     setShowLockedOverlay(false);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("forecast-chart-demo-view", "true");
+    }
   };
 
   const handleExitDemo = () => {
     setIsDemoViewActive(false);
     setShowLockedOverlay(true);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("forecast-chart-demo-view", "false");
+    }
   };
 
   return (
     <>
       <Card className="relative overflow-hidden">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <CardTitle>Forecasting & Anomaly Detection</CardTitle>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <CardTitle>Forecasting & Anomaly Detection</CardTitle>
                 {demoMode && !isDemoViewActive && (
                   <Badge
                     variant="outline"
@@ -207,57 +224,57 @@ export function ForecastChart({
                     </button>
                   </Badge>
                 )}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="max-w-xs text-xs">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs text-xs">
                       Predictions may be forecasted (future risk) or detected
                       (observed spike). Reasons explain likely causes and
                       suggested actions.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <CardDescription className="mt-1">
+                7-day ticket volume forecast with confidence bands
+              </CardDescription>
             </div>
-            <CardDescription className="mt-1">
-              7-day ticket volume forecast with confidence bands
-            </CardDescription>
-          </div>
-          {anomalies.length > 0 && (
-            <div className="flex items-center gap-2">
+            {anomalies.length > 0 && (
+              <div className="flex items-center gap-2">
                 <Badge
                   variant="destructive"
                   className="flex items-center gap-1"
                 >
-                <AlertTriangle className="h-3 w-3" />
-                {anomalies.length} Anomaly{anomalies.length > 1 ? "ies" : ""}
-              </Badge>
-              {forecastedAnomalies.length > 0 && (
+                  <AlertTriangle className="h-3 w-3" />
+                  {anomalies.length} Anomaly{anomalies.length > 1 ? "ies" : ""}
+                </Badge>
+                {forecastedAnomalies.length > 0 && (
                   <Badge
                     variant="outline"
                     className="text-xs bg-purple-500/10 text-purple-700 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-400"
                   >
-                  {forecastedAnomalies.length} Forecasted
-                </Badge>
-              )}
-              {detectedAnomalies.length > 0 && (
-                <Badge variant="destructive" className="text-xs">
-                  {detectedAnomalies.length} Detected
-                </Badge>
-              )}
-            </div>
-          )}
-        </div>
-      </CardHeader>
+                    {forecastedAnomalies.length} Forecasted
+                  </Badge>
+                )}
+                {detectedAnomalies.length > 0 && (
+                  <Badge variant="destructive" className="text-xs">
+                    {detectedAnomalies.length} Detected
+                  </Badge>
+                )}
+              </div>
+            )}
+          </div>
+        </CardHeader>
         <CardContent className="relative">
-        <ChartContainer config={chartConfig} className="h-[250px] w-full">
+          <ChartContainer config={chartConfig} className="h-[250px] w-full">
             <AreaChart
               data={chartData}
               margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
             >
-            <defs>
-              <linearGradient id="fillConfidence" x1="0" y1="0" x2="0" y2="1">
+              <defs>
+                <linearGradient id="fillConfidence" x1="0" y1="0" x2="0" y2="1">
                   <stop
                     offset="5%"
                     stopColor="var(--color-confidenceUpper)"
@@ -268,73 +285,73 @@ export function ForecastChart({
                     stopColor="var(--color-confidenceLower)"
                     stopOpacity={0.1}
                   />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis />
-            <ChartTooltip content={<ChartTooltipContent />} />
-            <Area
-              type="monotone"
-              dataKey="confidenceUpper"
-              stroke="var(--color-confidenceUpper)"
-              fill="url(#fillConfidence)"
-              strokeWidth={0}
-            />
-            <Area
-              type="monotone"
-              dataKey="confidenceLower"
-              stroke="var(--color-confidenceLower)"
-              fill="url(#fillConfidence)"
-              strokeWidth={0}
-            />
-            <Area
-              type="monotone"
-              dataKey="predicted"
-              stroke="var(--color-predicted)"
-              fill="none"
-              strokeWidth={2}
-            />
-            {chartData.map((point, index) => {
-              if (point.anomaly) {
-                return (
-                  <ReferenceLine
-                    key={index}
-                    x={point.date}
-                    stroke="red"
-                    strokeDasharray="5 5"
-                    label={{ value: "Anomaly", position: "top" }}
-                  />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Area
+                type="monotone"
+                dataKey="confidenceUpper"
+                stroke="var(--color-confidenceUpper)"
+                fill="url(#fillConfidence)"
+                strokeWidth={0}
+              />
+              <Area
+                type="monotone"
+                dataKey="confidenceLower"
+                stroke="var(--color-confidenceLower)"
+                fill="url(#fillConfidence)"
+                strokeWidth={0}
+              />
+              <Area
+                type="monotone"
+                dataKey="predicted"
+                stroke="var(--color-predicted)"
+                fill="none"
+                strokeWidth={2}
+              />
+              {chartData.map((point, index) => {
+                if (point.anomaly) {
+                  return (
+                    <ReferenceLine
+                      key={index}
+                      x={point.date}
+                      stroke="red"
+                      strokeDasharray="5 5"
+                      label={{ value: "Anomaly", position: "top" }}
+                    />
                   );
-              }
+                }
                 return null;
-            })}
-          </AreaChart>
-        </ChartContainer>
+              })}
+            </AreaChart>
+          </ChartContainer>
 
-        {anomalies.length > 0 && (
-          <div className="mt-5 space-y-3">
-            <div className="flex items-center gap-1.5">
-              <h4 className="text-sm font-semibold">Reason / Context</h4>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="max-w-xs text-xs">
+          {anomalies.length > 0 && (
+            <div className="mt-5 space-y-3">
+              <div className="flex items-center gap-1.5">
+                <h4 className="text-sm font-semibold">Reason / Context</h4>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs text-xs">
                       Why this prediction? The model uses historical ticket
                       trends, scheduled change data, external integration
                       signals (Okta/GWorkspace/Jira/ServiceNow), and recent
                       event spikes to surface likely future risks.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
 
-            {/* Sort anomalies: detected first, then forecasted, most urgent on top */}
-            {[...detectedAnomalies, ...forecastedAnomalies]
-              .sort((a, b) => {
-                // Sort by impact (high first), then by date
+              {/* Sort anomalies: detected first, then forecasted, most urgent on top */}
+              {[...detectedAnomalies, ...forecastedAnomalies]
+                .sort((a, b) => {
+                  // Sort by impact (high first), then by date
                   const impactOrder = { high: 3, medium: 2, low: 1 };
                   const aImpact = impactOrder[a.anomalyImpact || "low"];
                   const bImpact = impactOrder[b.anomalyImpact || "low"];
@@ -342,103 +359,103 @@ export function ForecastChart({
                   return (
                     new Date(b.date).getTime() - new Date(a.date).getTime()
                   );
-              })
-              .map((anomaly, index) => {
+                })
+                .map((anomaly, index) => {
                   const isForecasted =
                     anomaly.anomalyType === "forecasted" ||
                     !anomaly.anomalyType;
                   const isDetected = anomaly.anomalyType === "detected";
 
-                return (
-                  <div
-                    key={index}
-                    className={`rounded-md border p-3 ${
-                      isDetected
-                        ? "border-destructive/20 bg-destructive/5 dark:border-destructive/20 dark:bg-destructive/10"
-                        : "border-purple-500/20 bg-purple-500/5 dark:border-purple-500/20 dark:bg-purple-500/10"
-                    }`}
-                  >
-                    {/* Header: Badge, Date, Confidence, Impact */}
-                    <div className="flex items-center justify-between gap-3 mb-2">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <Badge
-                          variant={isDetected ? "destructive" : "outline"}
-                          className={`text-[10px] px-1.5 py-0 h-4 ${
-                            isForecasted
-                              ? "bg-purple-500/10 text-purple-700 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-400"
-                              : ""
-                          }`}
-                        >
-                          {isForecasted ? "Forecasted" : "Detected"}
-                        </Badge>
-                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                          {format(new Date(anomaly.date), "MMM d, yyyy")}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        {anomaly.anomalyConfidence && (
+                  return (
+                    <div
+                      key={index}
+                      className={`rounded-md border p-3 ${
+                        isDetected
+                          ? "border-destructive/20 bg-destructive/5 dark:border-destructive/20 dark:bg-destructive/10"
+                          : "border-purple-500/20 bg-purple-500/5 dark:border-purple-500/20 dark:bg-purple-500/10"
+                      }`}
+                    >
+                      {/* Header: Badge, Date, Confidence, Impact */}
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <Badge
+                            variant={isDetected ? "destructive" : "outline"}
+                            className={`text-[10px] px-1.5 py-0 h-4 ${
+                              isForecasted
+                                ? "bg-purple-500/10 text-purple-700 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-400"
+                                : ""
+                            }`}
+                          >
+                            {isForecasted ? "Forecasted" : "Detected"}
+                          </Badge>
+                          <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                            {format(new Date(anomaly.date), "MMM d, yyyy")}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {anomaly.anomalyConfidence && (
                             <ConfidenceBadge
                               confidence={anomaly.anomalyConfidence}
                             />
-                        )}
-                        {anomaly.anomalyImpact && (
-                          <ImpactBadge impact={anomaly.anomalyImpact} />
-                        )}
+                          )}
+                          {anomaly.anomalyImpact && (
+                            <ImpactBadge impact={anomaly.anomalyImpact} />
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Headline */}
-                    <h5 className="font-semibold text-sm mb-2 leading-tight">
+                      {/* Headline */}
+                      <h5 className="font-semibold text-sm mb-2 leading-tight">
                         {anomaly.anomalyHeadline ||
                           anomaly.anomalyReason ||
                           "Anomaly detected"}
-                    </h5>
+                      </h5>
 
-                    {/* Reasons */}
+                      {/* Reasons */}
                       {anomaly.anomalyReasons &&
                         anomaly.anomalyReasons.length > 0 && (
-                      <ul className="space-y-0.5 mb-2.5 text-xs text-muted-foreground">
-                        {anomaly.anomalyReasons.map((reason, idx) => (
+                          <ul className="space-y-0.5 mb-2.5 text-xs text-muted-foreground">
+                            {anomaly.anomalyReasons.map((reason, idx) => (
                               <li
                                 key={idx}
                                 className="flex items-start gap-1.5"
                               >
-                            <span className="mt-0.5 text-[10px]">•</span>
+                                <span className="mt-0.5 text-[10px]">•</span>
                                 <span className="leading-relaxed">
                                   {reason}
                                 </span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
 
-                    {/* Actions */}
+                      {/* Actions */}
                       {anomaly.anomalyActions &&
                         anomaly.anomalyActions.length > 0 && (
-                      <div className="flex items-center gap-1.5 flex-wrap mt-2.5 pt-2 border-t border-border/50">
-                        {anomaly.anomalyActions.map((action, idx) => {
+                          <div className="flex items-center gap-1.5 flex-wrap mt-2.5 pt-2 border-t border-border/50">
+                            {anomaly.anomalyActions.map((action, idx) => {
                               const isDisabled = isDemoViewActive;
-                          if (action.label === "Create Incident") {
-                            return (
+                              if (action.label === "Create Incident") {
+                                return (
                                   <Tooltip key={idx}>
                                     <TooltipTrigger asChild>
                                       <span>
-                              <Button
+                                        <Button
                                           variant={
                                             action.primary
                                               ? "default"
                                               : "outline"
                                           }
-                                size="sm"
-                                className="text-[11px] h-6 px-2"
+                                          size="sm"
+                                          className="text-[11px] h-6 px-2"
                                           onClick={() =>
                                             handleCreateIncident(anomaly)
                                           }
                                           disabled={isDisabled}
-                              >
-                                <Bell className="h-2.5 w-2.5 mr-1" />
-                                {action.label}
-                              </Button>
+                                        >
+                                          <Bell className="h-2.5 w-2.5 mr-1" />
+                                          {action.label}
+                                        </Button>
                                       </span>
                                     </TooltipTrigger>
                                     {isDisabled && (
@@ -450,30 +467,30 @@ export function ForecastChart({
                                     )}
                                   </Tooltip>
                                 );
-                          } else if (action.label.includes("Notify")) {
+                              } else if (action.label.includes("Notify")) {
                                 const teamMatch =
                                   action.label.match(/Notify (.+)/);
                                 const team = teamMatch ? teamMatch[1] : "Team";
-                            return (
+                                return (
                                   <Tooltip key={idx}>
                                     <TooltipTrigger asChild>
                                       <span>
-                              <Button
+                                        <Button
                                           variant={
                                             action.primary
                                               ? "default"
                                               : "outline"
                                           }
-                                size="sm"
-                                className="text-[11px] h-6 px-2"
+                                          size="sm"
+                                          className="text-[11px] h-6 px-2"
                                           onClick={() =>
                                             handleNotifyTeam(team, anomaly)
                                           }
                                           disabled={isDisabled}
-                              >
-                                <Send className="h-2.5 w-2.5 mr-1" />
-                                {action.label}
-                              </Button>
+                                        >
+                                          <Send className="h-2.5 w-2.5 mr-1" />
+                                          {action.label}
+                                        </Button>
                                       </span>
                                     </TooltipTrigger>
                                     {isDisabled && (
@@ -485,17 +502,17 @@ export function ForecastChart({
                                     )}
                                   </Tooltip>
                                 );
-                          }
-                          return (
+                              }
+                              return (
                                 <Tooltip key={idx}>
                                   <TooltipTrigger asChild>
                                     <span>
-                            <Button
+                                      <Button
                                         variant={
                                           action.primary ? "default" : "outline"
                                         }
-                              size="sm"
-                              className="text-[11px] h-6 px-2"
+                                        size="sm"
+                                        className="text-[11px] h-6 px-2"
                                         onClick={() =>
                                           !isDisabled &&
                                           onAnomalyAction?.(
@@ -506,9 +523,9 @@ export function ForecastChart({
                                           )
                                         }
                                         disabled={isDisabled}
-                            >
-                              {action.label}
-                            </Button>
+                                      >
+                                        {action.label}
+                                      </Button>
                                     </span>
                                   </TooltipTrigger>
                                   {isDisabled && (
@@ -520,21 +537,21 @@ export function ForecastChart({
                                   )}
                                 </Tooltip>
                               );
-                        })}
-                      </div>
-                    )}
+                            })}
+                          </div>
+                        )}
 
-                    {/* Provenance */}
-                    {anomaly.anomalyProvenance && (
-                      <p className="text-[10px] text-muted-foreground/70 mt-2 leading-tight">
-                        {anomaly.anomalyProvenance}
-                      </p>
-                    )}
-                  </div>
+                      {/* Provenance */}
+                      {anomaly.anomalyProvenance && (
+                        <p className="text-[10px] text-muted-foreground/70 mt-2 leading-tight">
+                          {anomaly.anomalyProvenance}
+                        </p>
+                      )}
+                    </div>
                   );
-              })}
-          </div>
-        )}
+                })}
+            </div>
+          )}
 
           {/* Demo Mode Overlay */}
           {demoMode && showLockedOverlay && (
@@ -584,8 +601,8 @@ export function ForecastChart({
               </div>
             </div>
           )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
 
       {/* Request Access Modal */}
       <RequestAccessModal

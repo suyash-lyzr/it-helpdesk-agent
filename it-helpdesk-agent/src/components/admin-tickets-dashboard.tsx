@@ -360,30 +360,80 @@ export function AdminTicketsDashboard({
 
   const filteredTickets = React.useMemo(() => {
     return tickets.filter((t) => {
+      // Team filter
       if (
         filters.team &&
         filters.team !== "all" &&
         t.suggested_team !== filters.team
       )
         return false;
+
+      // Priority filter
       if (
         filters.priority &&
         filters.priority !== "all" &&
         t.priority !== filters.priority
       )
         return false;
+
+      // Category filter
       if (
         filters.category &&
         filters.category !== "all" &&
         t.ticket_type !== filters.category
       )
         return false;
+
+      // Source filter
       if (
         filters.source &&
         filters.source !== "all" &&
         t.source !== filters.source
       )
         return false;
+
+      // Assignee filter
+      if (filters.assignee && filters.assignee !== "all") {
+        if (!t.assignee || t.assignee !== filters.assignee) return false;
+      }
+
+      // SLA Status filter
+      if (filters.slaStatus && filters.slaStatus !== "all") {
+        const now = new Date();
+        const slaDueDate = t.sla_due_at ? new Date(t.sla_due_at) : null;
+        const isResolved = t.status === "resolved" || t.status === "closed";
+
+        if (filters.slaStatus === "meeting") {
+          // Meeting SLA: resolved before SLA due date, or not yet breached
+          if (isResolved) {
+            if (!slaDueDate || !t.resolved_at) return false;
+            const resolvedDate = new Date(t.resolved_at);
+            if (resolvedDate > slaDueDate) return false; // Was breached
+          } else {
+            if (!slaDueDate || now > slaDueDate) return false; // Currently breached
+          }
+        } else if (filters.slaStatus === "breached") {
+          // Breached: resolved after SLA due date, or currently breached
+          if (!slaDueDate) return false;
+          if (isResolved) {
+            if (!t.resolved_at) return false;
+            const resolvedDate = new Date(t.resolved_at);
+            if (resolvedDate <= slaDueDate) return false; // Didn't breach
+          } else {
+            if (now <= slaDueDate) return false; // Not breached yet
+          }
+        } else if (filters.slaStatus === "at_risk") {
+          // At risk: unresolved and within 25% of SLA deadline
+          if (isResolved || !slaDueDate) return false;
+          const createdDate = new Date(t.created_at);
+          const totalTime = slaDueDate.getTime() - createdDate.getTime();
+          const elapsed = now.getTime() - createdDate.getTime();
+          const percentElapsed = (elapsed / totalTime) * 100;
+          if (percentElapsed < 75 || now > slaDueDate) return false; // Not at risk or already breached
+        }
+      }
+
+      // Date range filter
       if (filters.startDate) {
         const created = new Date(t.created_at);
         const start = new Date(filters.startDate);
@@ -395,6 +445,7 @@ export function AdminTicketsDashboard({
         end.setHours(23, 59, 59, 999);
         if (created > end) return false;
       }
+
       return true;
     });
   }, [tickets, filters]);
@@ -432,7 +483,12 @@ export function AdminTicketsDashboard({
       <div className="flex flex-col gap-3 py-3 md:gap-4 md:py-4">
         {/* Filters - Top Right */}
         <div className="flex justify-end px-6 lg:px-8">
-          <AnalyticsFilters onFiltersChange={setFilters} />
+          <AnalyticsFilters
+            onFiltersChange={setFilters}
+            availableAssignees={Array.from(
+              new Set(tickets.filter((t) => t.assignee).map((t) => t.assignee!))
+            ).sort()}
+          />
         </div>
 
         {/* Executive Summary KPIs */}
@@ -600,32 +656,13 @@ export function AdminTicketsDashboard({
           <AlertRules />
         </div>
 
-        {/* All Tickets Table */}
+        {/* Tickets Table */}
         <div className="px-6 lg:px-8">
-          <div className="border rounded-lg">
-            <div className="p-4 border-b">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold">All Tickets</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Full visibility into every ticket across the helpdesk
-                  </p>
-                </div>
-                {onRefresh && (
-                  <Button variant="outline" size="sm" onClick={onRefresh}>
-                    Refresh
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="p-4">
-              <TicketsTable
-                data={filteredTickets}
-                isLoading={isLoading}
-                onRowClick={onTicketClick || setSelectedTicket}
-              />
-            </div>
-          </div>
+          <TicketsTable
+            data={filteredTickets}
+            isLoading={isLoading}
+            onRowClick={onTicketClick || setSelectedTicket}
+          />
         </div>
 
         {/* Ticket Detail Sidebar */}

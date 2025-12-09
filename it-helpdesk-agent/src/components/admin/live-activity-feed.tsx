@@ -5,7 +5,6 @@ import { format, formatDistanceToNow, subHours, subDays } from "date-fns";
 import {
   Activity,
   Circle,
-  Play,
   Ticket,
   AlertTriangle,
   CheckCircle2,
@@ -54,12 +53,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  LiveEvent,
-  replayScenarios,
-  replayScenario,
-  addLiveEvent,
-} from "@/lib/analytics-store";
+import { LiveEvent, addLiveEvent } from "@/lib/analytics-store";
 import { toast } from "sonner";
 import { Ticket as TicketType } from "@/lib/ticket-types";
 
@@ -83,7 +77,10 @@ type EventCategory =
 
 type TimeRange = "1h" | "6h" | "24h" | "7d";
 
-const eventIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+const eventIcons: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
   ticket_created: Ticket,
   ticket_updated: Activity,
   ticket_assigned: Activity,
@@ -141,8 +138,6 @@ export function LiveActivityFeed({
     React.useState<EventCategory>("all");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [timeRange, setTimeRange] = React.useState<TimeRange>("24h");
-  const [selectedScenario, setSelectedScenario] = React.useState<string>("");
-  const [isReplaying, setIsReplaying] = React.useState(false);
   const [showCriticalOnly, setShowCriticalOnly] = React.useState(false);
   const [selectedEvent, setSelectedEvent] = React.useState<LiveEvent | null>(
     null
@@ -157,7 +152,8 @@ export function LiveActivityFeed({
     // Category filter
     if (selectedCategory !== "all") {
       filtered = filtered.filter(
-        (e) => e.category === selectedCategory || e.category === selectedCategory
+        (e) =>
+          e.category === selectedCategory || e.category === selectedCategory
       );
     }
 
@@ -196,27 +192,6 @@ export function LiveActivityFeed({
 
     return filtered;
   }, [events, selectedCategory, searchQuery, timeRange, showCriticalOnly]);
-
-  const handleReplay = async () => {
-    if (!selectedScenario) return;
-    setIsReplaying(true);
-    try {
-      await replayScenario(selectedScenario, (event) => {
-        // Events are added automatically by replayScenario
-      });
-      const scenario = replayScenarios.find((s) => s.id === selectedScenario);
-      toast.success(
-        `Replay finished: ${scenario?.name} (${scenario?.events.length} events)`
-      );
-      setSelectedScenario("");
-      onRefresh?.();
-    } catch (error) {
-      console.error("Error replaying scenario:", error);
-      toast.error("Failed to replay scenario");
-    } finally {
-      setIsReplaying(false);
-    }
-  };
 
   const handleCreateIncident = (event: LiveEvent) => {
     const incidentId = `INC-${Math.floor(Math.random() * 10000)
@@ -314,7 +289,8 @@ export function LiveActivityFeed({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs text-xs">
-                      Live operational events from the helpdesk and integrations.
+                      Live operational events from the helpdesk and
+                      integrations.
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -336,31 +312,6 @@ export function LiveActivityFeed({
                 onClick={onRefresh}
               >
                 <RefreshCw className="h-3 w-3" />
-              </Button>
-              <Select
-                value={selectedScenario}
-                onValueChange={setSelectedScenario}
-                disabled={isReplaying}
-              >
-                <SelectTrigger className="w-40 h-7 text-xs">
-                  <SelectValue placeholder="Replay scenario" />
-                </SelectTrigger>
-                <SelectContent>
-                  {replayScenarios.map((scenario) => (
-                    <SelectItem key={scenario.id} value={scenario.id}>
-                      {scenario.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                onClick={handleReplay}
-                disabled={!selectedScenario || isReplaying}
-                size="sm"
-                className="h-7 text-xs"
-              >
-                <Play className="h-3 w-3 mr-1" />
-                {isReplaying ? "Replaying..." : "Replay"}
               </Button>
             </div>
           </div>
@@ -433,37 +384,34 @@ export function LiveActivityFeed({
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Activity className="h-12 w-12 text-muted-foreground/50 mb-3" />
                 <p className="text-sm font-medium text-muted-foreground mb-1">
-                  No events yet
+                  No events found
                 </p>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Use Replay to simulate operational scenarios.
+                <p className="text-xs text-muted-foreground">
+                  {searchQuery || selectedCategory !== "all" || showCriticalOnly
+                    ? "Try adjusting your filters to see more events."
+                    : "Activity feed will show ticket updates, SLA warnings, and integration events."}
                 </p>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setSelectedScenario("vpn-outage");
-                    handleReplay();
-                  }}
-                >
-                  <Play className="h-3 w-3 mr-1" />
-                  Play demo event
-                </Button>
               </div>
             ) : (
               <div className="space-y-2 pr-4">
                 {filteredEvents.map((event) => {
                   const Icon = getEventIcon(event);
                   const color = getEventColor(event);
-                  const timeAgo = formatDistanceToNow(new Date(event.timestamp), {
-                    addSuffix: true,
-                  });
+                  const timeAgo = formatDistanceToNow(
+                    new Date(event.timestamp),
+                    {
+                      addSuffix: true,
+                    }
+                  );
 
                   return (
                     <div
                       key={event.id}
                       className="flex items-start gap-3 rounded-md border p-3 hover:bg-accent transition-colors"
                       role="article"
-                      aria-label={`${event.headline || event.description} - ${timeAgo}`}
+                      aria-label={`${
+                        event.headline || event.description
+                      } - ${timeAgo}`}
                     >
                       {/* Color dot / Icon */}
                       <div className="flex-shrink-0 mt-0.5">
@@ -508,25 +456,7 @@ export function LiveActivityFeed({
 
                       {/* Actions */}
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        {event.ticketId && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0"
-                                onClick={() => handleViewTicket(event)}
-                                aria-label={`View ticket ${event.ticketId}`}
-                              >
-                                <Eye className="h-3 w-3" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="text-xs">View Ticket</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                        {event.requestId && (
+                        {event.requestId ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
@@ -543,7 +473,24 @@ export function LiveActivityFeed({
                               <p className="text-xs">View Access Request</p>
                             </TooltipContent>
                           </Tooltip>
-                        )}
+                        ) : event.ticketId ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => handleViewTicket(event)}
+                                aria-label={`View ticket ${event.ticketId}`}
+                              >
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-xs">View Ticket</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : null}
                         {(event.type === "ai_anomaly" ||
                           event.severity === "critical" ||
                           event.severity === "high") && (
@@ -566,23 +513,23 @@ export function LiveActivityFeed({
                         )}
                         {(event.type === "access_request_submitted" ||
                           event.type === "approval_pending") && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0"
-                                  onClick={() => handleRemind(event)}
-                                  aria-label="Send reminder"
-                                >
-                                  <Bell className="h-3 w-3" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs">Remind</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => handleRemind(event)}
+                                aria-label="Send reminder"
+                              >
+                                <Bell className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-xs">Remind</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                         {(event.type === "access_request_submitted" ||
                           event.type === "access_request_reminder") && (
                           <Tooltip>
@@ -642,7 +589,6 @@ export function LiveActivityFeed({
                 </div>
               </div>
             </div>
-            <p className="text-[10px]">Demo events are simulated.</p>
           </div>
         </CardContent>
       </Card>
@@ -676,7 +622,10 @@ export function LiveActivityFeed({
                 <div>
                   <p className="text-xs text-muted-foreground">Time</p>
                   <p className="font-medium">
-                    {format(new Date(selectedEvent.timestamp), "MMM d, yyyy • HH:mm:ss")}
+                    {format(
+                      new Date(selectedEvent.timestamp),
+                      "MMM d, yyyy • HH:mm:ss"
+                    )}
                   </p>
                 </div>
               )}
@@ -729,7 +678,10 @@ export function LiveActivityFeed({
                 <div>
                   <p className="text-xs text-muted-foreground">Time</p>
                   <p className="font-medium">
-                    {format(new Date(selectedEvent.timestamp), "MMM d, yyyy • HH:mm:ss")}
+                    {format(
+                      new Date(selectedEvent.timestamp),
+                      "MMM d, yyyy • HH:mm:ss"
+                    )}
                   </p>
                 </div>
               )}

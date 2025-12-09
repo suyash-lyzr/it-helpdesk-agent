@@ -46,6 +46,7 @@ import {
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { addLiveEvent } from "@/lib/analytics-store";
+import { RequestAccessModal } from "@/components/request-access-modal";
 
 interface AlertRule {
   id: string;
@@ -121,10 +122,23 @@ const seedRules: AlertRule[] = [
   },
 ];
 
-export function AlertRules() {
+interface AlertRulesProps {
+  demoMode?: boolean;
+}
+
+const DEMO_STORAGE_KEY = "alert-rules-demo-view";
+
+export function AlertRules({ demoMode = true }: AlertRulesProps = {}) {
   const [rules, setRules] = React.useState<AlertRule[]>(seedRules);
   const [open, setOpen] = React.useState(false);
   const [editingRule, setEditingRule] = React.useState<AlertRule | null>(null);
+  const [isAccessModalOpen, setIsAccessModalOpen] = React.useState(false);
+  const [isDemoViewActive, setIsDemoViewActive] = React.useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(DEMO_STORAGE_KEY) === "true";
+    }
+    return false;
+  });
   const [ruleName, setRuleName] = React.useState("");
   const [conditionType, setConditionType] = React.useState("");
   const [threshold, setThreshold] = React.useState("");
@@ -201,13 +215,19 @@ export function AlertRules() {
       return `P1 unresolved > ${thresh} hour${thresh !== "1" ? "s" : ""}`;
     }
     if (type === "sla_breach") {
-      return `SLA breach > ${thresh} in ${timeWin} day${timeWin !== "1" ? "s" : ""}`;
+      return `SLA breach > ${thresh} in ${timeWin} day${
+        timeWin !== "1" ? "s" : ""
+      }`;
     }
     if (type === "access_pending") {
-      return `Access approvals pending > ${thresh} hour${thresh !== "1" ? "s" : ""}`;
+      return `Access approvals pending > ${thresh} hour${
+        thresh !== "1" ? "s" : ""
+      }`;
     }
     if (type === "repeat_incidents") {
-      return `Repeat incidents from same user > ${thresh} time${thresh !== "1" ? "s" : ""} in ${timeWin} day${timeWin !== "1" ? "s" : ""}`;
+      return `Repeat incidents from same user > ${thresh} time${
+        thresh !== "1" ? "s" : ""
+      } in ${timeWin} day${timeWin !== "1" ? "s" : ""}`;
     }
     return condition.label;
   };
@@ -236,7 +256,9 @@ export function AlertRules() {
     }
 
     const ticketId = rule.action.includes("ticket")
-      ? `TKT-${Math.floor(Math.random() * 10000).toString().padStart(4, "0")}`
+      ? `TKT-${Math.floor(Math.random() * 10000)
+          .toString()
+          .padStart(4, "0")}`
       : undefined;
 
     addLiveEvent({
@@ -253,9 +275,7 @@ export function AlertRules() {
 
     setRules((prev) =>
       prev.map((r) =>
-        r.id === rule.id
-          ? { ...r, lastTriggered: new Date().toISOString() }
-          : r
+        r.id === rule.id ? { ...r, lastTriggered: new Date().toISOString() } : r
       )
     );
 
@@ -285,23 +305,57 @@ export function AlertRules() {
     toast.success("Alert rule deleted (demo)");
   };
 
+  const handleExitDemo = () => {
+    setIsDemoViewActive(false);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(DEMO_STORAGE_KEY, "false");
+    }
+  };
+
   return (
-    <Card>
-      <CardHeader>
+    <Card className="relative overflow-hidden">
+      <CardHeader className="space-y-3">
+        {/* Top row: Demo mode tag on the right */}
+        <div className="flex justify-end">
+          {demoMode && !isDemoViewActive && (
+            <Badge
+              variant="outline"
+              className="bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/40 text-xs font-normal cursor-pointer hover:bg-blue-500/30 transition-colors"
+              onClick={() => setIsAccessModalOpen(true)}
+            >
+              Demo Mode – Request Access to Unlock
+            </Badge>
+          )}
+          {isDemoViewActive && (
+            <Badge
+              variant="outline"
+              className="bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/40 flex items-center gap-1.5 px-2 py-0.5 text-xs font-normal"
+            >
+              <span>Demo Mode – Sample Data Only</span>
+              <button
+                onClick={handleExitDemo}
+                className="text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100 underline text-[10px] font-medium ml-1 transition-colors"
+                type="button"
+              >
+                Exit Demo
+              </button>
+            </Badge>
+          )}
+        </div>
+
+        {/* Second row: Heading and Create Rule button */}
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-4 w-4" />
-              Alerts & Notification Rules
-            </CardTitle>
-            <CardDescription>
-              Create simple alert rules to notify teams or run demo actions when conditions are met.
-            </CardDescription>
+          <div className="flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            <CardTitle>Alerts & Notification Rules</CardTitle>
           </div>
-          <Dialog open={open} onOpenChange={(isOpen) => {
-            setOpen(isOpen);
-            if (!isOpen) resetForm();
-          }}>
+          <Dialog
+            open={open}
+            onOpenChange={(isOpen) => {
+              setOpen(isOpen);
+              if (!isOpen) resetForm();
+            }}
+          >
             <DialogTrigger asChild>
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-2" />
@@ -349,7 +403,10 @@ export function AlertRules() {
                       </Select>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs">Select a simple condition. Complex rules can be added later.</p>
+                      <p className="text-xs">
+                        Select a simple condition. Complex rules can be added
+                        later.
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                   {selectedCondition?.requiresThreshold && (
@@ -401,16 +458,22 @@ export function AlertRules() {
                       </Select>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs">Demo actions are simulated and will append events to Live Activity.</p>
+                      <p className="text-xs">
+                        Demo actions are simulated and will append events to
+                        Live Activity.
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => {
-                  setOpen(false);
-                  resetForm();
-                }}>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setOpen(false);
+                    resetForm();
+                  }}
+                >
                   Cancel
                 </Button>
                 <Button onClick={handleCreateRule}>
@@ -420,8 +483,14 @@ export function AlertRules() {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Third row: Description */}
+        <CardDescription>
+          Create simple alert rules to notify teams or run demo actions when
+          conditions are met.
+        </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="relative">
         {rules.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
             <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -450,12 +519,17 @@ export function AlertRules() {
                           className="text-[10px] w-fit bg-orange-500/10 text-orange-700 border-orange-500/20"
                         >
                           <AlertTriangle className="h-2.5 w-2.5 mr-1" />
-                          Triggered {formatDistanceToNow(new Date(rule.lastTriggered), { addSuffix: true })}
+                          Triggered{" "}
+                          {formatDistanceToNow(new Date(rule.lastTriggered), {
+                            addSuffix: true,
+                          })}
                         </Badge>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm">{rule.conditionSummary}</TableCell>
+                  <TableCell className="text-sm">
+                    {rule.conditionSummary}
+                  </TableCell>
                   <TableCell className="text-sm">{rule.action}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -464,7 +538,10 @@ export function AlertRules() {
                         onCheckedChange={() => toggleRule(rule.id)}
                         aria-label={`Toggle ${rule.name}`}
                       />
-                      <Badge variant={rule.enabled ? "default" : "outline"} className="text-xs">
+                      <Badge
+                        variant={rule.enabled ? "default" : "outline"}
+                        className="text-xs"
+                      >
                         {rule.enabled ? "Active" : "Inactive"}
                       </Badge>
                     </div>
@@ -528,6 +605,13 @@ export function AlertRules() {
           </Table>
         )}
       </CardContent>
+
+      {/* Request Access Modal */}
+      <RequestAccessModal
+        open={isAccessModalOpen}
+        onOpenChange={setIsAccessModalOpen}
+        featureName="Enterprise Automation Suite - Alerts & Notification Rules"
+      />
     </Card>
   );
 }

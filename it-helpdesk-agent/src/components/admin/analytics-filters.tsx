@@ -1,47 +1,53 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { useSearchParams, useRouter } from "next/navigation"
-import { Calendar, X, Filter } from "lucide-react"
-import { format, subDays } from "date-fns"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import * as React from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Calendar, X, Filter } from "lucide-react";
+import { format, subDays } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/components/ui/popover";
 
 interface AnalyticsFiltersProps {
-  onFiltersChange?: (filters: FilterState) => void
+  onFiltersChange?: (filters: FilterState) => void;
+  availableAssignees?: string[];
 }
 
 export interface FilterState {
-  startDate?: string
-  endDate?: string
-  team?: string
-  priority?: string
-  category?: string
-  assignee?: string
-  slaStatus?: string
-  source?: string
+  startDate?: string;
+  endDate?: string;
+  team?: string;
+  priority?: string;
+  category?: string;
+  assignee?: string;
+  slaStatus?: string;
+  source?: string;
 }
 
-export function AnalyticsFilters({ onFiltersChange }: AnalyticsFiltersProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+export function AnalyticsFilters({
+  onFiltersChange,
+  availableAssignees = [],
+}: AnalyticsFiltersProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [filters, setFilters] = React.useState<FilterState>({
-    startDate: searchParams.get("start_date") || format(subDays(new Date(), 7), "yyyy-MM-dd"),
+    startDate:
+      searchParams.get("start_date") ||
+      format(subDays(new Date(), 7), "yyyy-MM-dd"),
     endDate: searchParams.get("end_date") || format(new Date(), "yyyy-MM-dd"),
     team: searchParams.get("team") || "all",
     priority: searchParams.get("priority") || "all",
@@ -49,23 +55,23 @@ export function AnalyticsFilters({ onFiltersChange }: AnalyticsFiltersProps) {
     assignee: searchParams.get("assignee") || "all",
     slaStatus: searchParams.get("sla_status") || "all",
     source: searchParams.get("source") || "all",
-  })
+  });
 
   const updateFilters = (newFilters: Partial<FilterState>) => {
-    const updated = { ...filters, ...newFilters }
-    setFilters(updated)
+    const updated = { ...filters, ...newFilters };
+    setFilters(updated);
 
     // Update URL
-    const params = new URLSearchParams()
+    const params = new URLSearchParams();
     Object.entries(updated).forEach(([key, value]) => {
       if (value && value !== "all") {
-        params.set(key, value)
+        params.set(key, value);
       }
-    })
-    router.push(`?${params.toString()}`, { scroll: false })
+    });
+    router.push(`?${params.toString()}`, { scroll: false });
 
-    onFiltersChange?.(updated)
-  }
+    onFiltersChange?.(updated);
+  };
 
   const clearFilters = () => {
     const defaultFilters: FilterState = {
@@ -77,17 +83,17 @@ export function AnalyticsFilters({ onFiltersChange }: AnalyticsFiltersProps) {
       assignee: "all",
       slaStatus: "all",
       source: "all",
-    }
-    setFilters(defaultFilters)
-    router.push("?", { scroll: false })
-    onFiltersChange?.(defaultFilters)
-  }
+    };
+    setFilters(defaultFilters);
+    router.push("?", { scroll: false });
+    onFiltersChange?.(defaultFilters);
+  };
 
   const activeFilterCount = Object.values(filters).filter(
     (v) => v && v !== "all"
-  ).length
+  ).length;
 
-  const [isOpen, setIsOpen] = React.useState(false)
+  const [isOpen, setIsOpen] = React.useState(false);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -131,7 +137,9 @@ export function AnalyticsFilters({ onFiltersChange }: AnalyticsFiltersProps) {
                   <Input
                     type="date"
                     value={filters.startDate}
-                    onChange={(e) => updateFilters({ startDate: e.target.value })}
+                    onChange={(e) =>
+                      updateFilters({ startDate: e.target.value })
+                    }
                     className="pl-9 h-9 text-xs"
                   />
                 </div>
@@ -159,8 +167,12 @@ export function AnalyticsFilters({ onFiltersChange }: AnalyticsFiltersProps) {
                 <SelectContent>
                   <SelectItem value="all">All Teams</SelectItem>
                   <SelectItem value="Network">Network</SelectItem>
-                  <SelectItem value="Endpoint Support">Endpoint Support</SelectItem>
-                  <SelectItem value="Application Support">Application Support</SelectItem>
+                  <SelectItem value="Endpoint Support">
+                    Endpoint Support
+                  </SelectItem>
+                  <SelectItem value="Application Support">
+                    Application Support
+                  </SelectItem>
                   <SelectItem value="IAM">IAM</SelectItem>
                   <SelectItem value="Security">Security</SelectItem>
                   <SelectItem value="DevOps">DevOps</SelectItem>
@@ -215,9 +227,17 @@ export function AnalyticsFilters({ onFiltersChange }: AnalyticsFiltersProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Assignees</SelectItem>
-                  <SelectItem value="John Doe">John Doe</SelectItem>
-                  <SelectItem value="Jane Smith">Jane Smith</SelectItem>
-                  <SelectItem value="Bob Johnson">Bob Johnson</SelectItem>
+                  {availableAssignees.length > 0 ? (
+                    availableAssignees.map((assignee) => (
+                      <SelectItem key={assignee} value={assignee}>
+                        {assignee}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="unassigned" disabled>
+                      No assignees found
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -262,6 +282,5 @@ export function AnalyticsFilters({ onFiltersChange }: AnalyticsFiltersProps) {
         </div>
       </PopoverContent>
     </Popover>
-  )
+  );
 }
-
