@@ -771,9 +771,9 @@ export default function KnowledgeBasePage() {
                   <TabsTrigger value="improve-with-ai">
                     Improve with AI
                   </TabsTrigger>
-                  <TabsTrigger value="ai-configuration">
+                  {/* <TabsTrigger value="ai-configuration">
                     AI Configuration
-                  </TabsTrigger>
+                  </TabsTrigger> */}
                 </TabsList>
 
                 <TabsContent
