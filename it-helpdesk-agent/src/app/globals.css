@@ -34,6 +34,11 @@
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.9683 0.0069 247.8956);
   --sidebar-accent-foreground: oklch(0.2077 0.0398 265.7549);
+  /* Light mode: purple for selected, light gray for hover */
+  --sidebar-accent-active: oklch(0.5308 0.2636 281.3504);
+  --sidebar-accent-active-foreground: oklch(1 0 0);
+  --sidebar-accent-hover: oklch(0.9458 0.023 288.66);
+  --sidebar-accent-hover-foreground: oklch(0.2077 0.0398 265.7549);
   --sidebar-border: oklch(0.9288 0.0126 255.5078);
   --sidebar-ring: oklch(0.5325 0.2397 288.128);
   --font-sans: "Switzer", ui-sans-serif, sans-serif, system-ui;
@@ -219,7 +224,7 @@ body {
 
 /* Custom sidebar overrides matching HR Helpdesk reference */
 @layer components {
-  /* Active sidebar menu buttons use primary purple */
+  /* Active sidebar menu buttons use primary purple (light and dark mode) */
   [data-sidebar="menu-button"][data-active="true"],
   [data-slot="sidebar-menu-button"][data-active="true"],
   .peer\/menu-button[data-active="true"] {
@@ -233,7 +238,7 @@ body {
   [data-slot="sidebar-menu-button"][data-active="true"]:hover,
   .peer\/menu-button[data-active="true"]:hover {
     background-color: var(--sidebar-accent-active) !important;
-    opacity: 0.8 !important;
+    opacity: 0.9 !important;
     color: var(--sidebar-accent-active-foreground) !important;
   }
 
@@ -244,7 +249,7 @@ body {
     transition: all 0.2s ease-in-out !important;
   }
 
-  /* Hover state for inactive items - subtle grey from reference */
+  /* Hover state for inactive items - subtle grey from reference (light and dark mode) */
   [data-sidebar="menu-button"]:not([data-active="true"]):hover,
   [data-slot="sidebar-menu-button"]:not([data-active="true"]):hover,
   .peer\/menu-button:not([data-active="true"]):hover {

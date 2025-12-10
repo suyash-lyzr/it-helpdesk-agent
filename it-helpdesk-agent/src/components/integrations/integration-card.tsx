@@ -23,7 +23,7 @@ interface IntegrationCardProps {
 // Logo URLs - using publicly available CDN URLs for company logos
 const getIntegrationLogo = (providerId: string): string | null => {
   const logos: Record<string, string> = {
-    jira: "https://pbs.twimg.com/profile_images/1785701767357120512/d0vRt0Gk.png",
+    jira: "https://pnghdpro.com/wp-content/themes/pnghdpro/download/social-media-and-brands/jira-app-icon.png",
     servicenow:
       "https://logosandtypes.com/wp-content/uploads/2020/12/servicenow.svg",
     okta: "https://logos-world.net/wp-content/uploads/2021/04/Okta-Emblem.png",
@@ -59,7 +59,7 @@ export function IntegrationCard({
 
   const handleClick = () => {
     // Always navigate to detail page when card is clicked
-        router.push(`/integrations/${integration.meta.id}`);
+    router.push(`/integrations/${integration.meta.id}`);
   };
 
   return (
@@ -85,16 +85,16 @@ export function IntegrationCard({
               </span>
             )}
           </div>
-            <Badge
+          <Badge
             variant={isConnected ? "default" : "secondary"}
             className={
               isConnected
                 ? "text-xs bg-green-500 hover:bg-green-600"
                 : "text-xs"
             }
-            >
-              {getStatusLabel()}
-            </Badge>
+          >
+            {getStatusLabel()}
+          </Badge>
         </div>
         <h3 className="text-sm font-semibold mb-2 line-clamp-1">
           {integration.meta.name}

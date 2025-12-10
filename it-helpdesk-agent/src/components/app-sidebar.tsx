@@ -97,24 +97,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu className="group-data-[state=collapsed]:mt-0 relative z-0">
           <SidebarMenuItem>
             <SidebarMenuButton
+              asChild
               size="lg"
               className="data-[slot=sidebar-menu-button]:!p-1.5 group-data-[state=collapsed]:!p-2 group-data-[state=collapsed]:justify-center relative z-0"
             >
-              <div className="flex items-center gap-2 group-data-[state=collapsed]:flex-col group-data-[state=collapsed]:gap-1">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden">
-                  <Image
-                    src="/lyzr_logo.png"
-                    alt="Lyzr Logo"
-                    width={32}
-                    height={32}
-                    className="object-contain"
-                  />
+              <a href="/">
+                <div className="flex items-center gap-2 group-data-[state=collapsed]:flex-col group-data-[state=collapsed]:gap-1">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden">
+                    <Image
+                      src="/lyzr_logo.png"
+                      alt="Lyzr Logo"
+                      width={32}
+                      height={32}
+                      className="object-contain"
+                    />
+                  </div>
+                  <div className="flex flex-col group-data-[state=collapsed]:hidden">
+                    <span className="text-sm font-semibold">IT Helpdesk</span>
+                    <span className="text-xs text-muted-foreground">Agent</span>
+                  </div>
                 </div>
-                <div className="flex flex-col group-data-[state=collapsed]:hidden">
-                  <span className="text-sm font-semibold">IT Helpdesk</span>
-                  <span className="text-xs text-muted-foreground">Agent</span>
-                </div>
-              </div>
+              </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
