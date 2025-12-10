@@ -16,6 +16,7 @@ import {
   Info,
   Send,
   Lock,
+  Sparkles,
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -590,11 +591,14 @@ export function ForecastChart({
                       check demo view
                     </Button>
                     <Button
-                      onClick={() => setIsAccessModalOpen(true)}
-                      className="flex-1"
+                      onClick={() => {
+                        window.open("https://www.lyzr.ai/book-demo/", "_blank");
+                      }}
+                      className="flex-1 bg-gradient-to-r from-[#603BFC] to-[#A94FA1] hover:opacity-90 text-white"
                       size="default"
                     >
-                      Request Access
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Book a Demo to Unlock
                     </Button>
                   </div>
                 </div>

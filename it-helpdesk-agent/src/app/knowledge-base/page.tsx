@@ -69,6 +69,9 @@ import {
   ChevronRight,
   ChevronDown,
   Zap,
+  Lock,
+  Crown,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
@@ -186,21 +189,210 @@ const initialSuggestions: AISuggestion[] = [];
 const initialDuplicates: DuplicatePair[] = [];
 const initialInsertAudit: InsertAuditEntry[] = [];
 
+// Dummy marketing data for locked premium feature
+const dummyAIInsights: AIInsight = {
+  topTopics: [
+    "Password Reset",
+    "VPN Connection",
+    "Email Configuration",
+    "Software Installation",
+    "Network Troubleshooting",
+    "Account Access",
+    "Printer Setup",
+    "Security Policies",
+  ],
+  gaps: [],
+  duplicateWarnings: 2,
+};
+
+const dummyCoverageGaps: CoverageGap[] = [
+  {
+    id: "1",
+    title: "Multi-factor authentication setup",
+    occurrences: 47,
+    slaImpact: true,
+  },
+  {
+    id: "2",
+    title: "Remote desktop connection issues",
+    occurrences: 32,
+    slaImpact: false,
+  },
+  {
+    id: "3",
+    title: "Cloud storage synchronization",
+    occurrences: 28,
+    slaImpact: false,
+  },
+  {
+    id: "4",
+    title: "Mobile device management",
+    occurrences: 19,
+    slaImpact: true,
+  },
+];
+
+const dummySuggestions: AISuggestion[] = [
+  {
+    id: "1",
+    title: "How to Set Up Multi-Factor Authentication",
+    summary:
+      "Step-by-step guide for configuring MFA on company devices and applications.",
+    draft: `# How to Set Up Multi-Factor Authentication
+
+Multi-factor authentication (MFA) adds an extra layer of security to your accounts. Follow these steps to set it up:
+
+## Prerequisites
+- Access to your company email
+- Mobile device with authenticator app installed
+- Admin approval (if required)
+
+## Steps
+1. Navigate to your account settings
+2. Select "Security" from the menu
+3. Click "Enable Multi-Factor Authentication"
+4. Choose your preferred method (Authenticator app recommended)
+5. Scan the QR code with your authenticator app
+6. Enter the verification code to confirm setup
+
+## Troubleshooting
+- If you lose access to your authenticator, contact IT support
+- Backup codes are provided during setup - store them securely`,
+    ticketCount: 47,
+    priority: "High",
+    confidence: 0.92,
+    status: "pending",
+    lastSeen: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    category: ["Security", "Authentication"],
+    tags: ["MFA", "Security", "Setup"],
+    exampleTickets: [
+      {
+        id: "t1",
+        title: "Need help setting up MFA",
+        excerpt: "I'm having trouble configuring MFA on my account...",
+        timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        id: "t2",
+        title: "MFA setup instructions",
+        excerpt: "Can someone provide step-by-step MFA setup?",
+        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    ],
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "2",
+    title: "Troubleshooting Remote Desktop Connection Issues",
+    summary:
+      "Common solutions for RDP connection problems and network configuration.",
+    draft: `# Troubleshooting Remote Desktop Connection Issues
+
+Remote Desktop Protocol (RDP) allows you to connect to your work computer from another location. If you're experiencing connection issues, try these solutions:
+
+## Common Issues and Solutions
+
+### Issue: "Remote Desktop can't connect"
+- Check if Remote Desktop is enabled on the target computer
+- Verify network connectivity
+- Ensure firewall allows RDP traffic (port 3389)
+
+### Issue: "Authentication failed"
+- Verify your credentials are correct
+- Check if your account has remote access permissions
+- Ensure your account is not locked
+
+### Issue: Slow or laggy connection
+- Check your internet connection speed
+- Close unnecessary applications on the remote computer
+- Reduce display quality settings in RDP client
+
+## Still having issues?
+Contact IT support with your error message and we'll help you resolve it.`,
+    ticketCount: 32,
+    priority: "Medium",
+    confidence: 0.87,
+    status: "pending",
+    lastSeen: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    category: ["Network", "Remote Access"],
+    tags: ["RDP", "Remote Desktop", "Troubleshooting"],
+    exampleTickets: [
+      {
+        id: "t3",
+        title: "Can't connect via Remote Desktop",
+        excerpt: "Getting connection timeout error when trying to RDP...",
+        timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    ],
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "3",
+    title: "Cloud Storage Sync Troubleshooting Guide",
+    summary:
+      "Resolve synchronization issues with OneDrive, Google Drive, and Dropbox.",
+    draft: `# Cloud Storage Sync Troubleshooting Guide
+
+Cloud storage services help keep your files synchronized across devices. If sync isn't working properly, follow these steps:
+
+## Quick Fixes
+1. Check your internet connection
+2. Restart the sync application
+3. Verify you have enough storage space
+4. Check if files are in use by another application
+
+## Advanced Troubleshooting
+- Clear sync cache
+- Re-authenticate your account
+- Check sync folder permissions
+- Review sync status in application settings
+
+## Prevention
+- Keep applications updated
+- Regularly check sync status
+- Avoid moving files while syncing`,
+    ticketCount: 28,
+    priority: "Medium",
+    confidence: 0.85,
+    status: "pending",
+    lastSeen: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    category: ["Cloud Services", "File Management"],
+    tags: ["Sync", "Cloud Storage", "OneDrive"],
+    exampleTickets: [],
+    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+const dummyDuplicates: DuplicatePair[] = [
+  {
+    id: "1",
+    doc1: { id: "d1", title: "VPN Setup Guide" },
+    doc2: { id: "d2", title: "VPN Configuration Instructions" },
+    similarity: 87,
+  },
+  {
+    id: "2",
+    doc1: { id: "d3", title: "Email Troubleshooting" },
+    doc2: { id: "d4", title: "Email Issues Resolution" },
+    similarity: 76,
+  },
+];
+
 export default function KnowledgeBasePage() {
   const [documents, setDocuments] =
     React.useState<Document[]>(initialDocuments);
-  const [aiInsights] = React.useState<AIInsight>(initialAIInsights);
+  const [aiInsights] = React.useState<AIInsight>(dummyAIInsights);
   const [selectedRows, setSelectedRows] = React.useState<Set<string>>(
     new Set()
   );
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(true);
 
-  // Improve with AI state
+  // Improve with AI state - using dummy data for marketing
   const [suggestions, setSuggestions] =
-    React.useState<AISuggestion[]>(initialSuggestions);
-  const [coverageGaps] = React.useState<CoverageGap[]>(initialCoverageGaps);
-  const [duplicates] = React.useState<DuplicatePair[]>(initialDuplicates);
+    React.useState<AISuggestion[]>(dummySuggestions);
+  const [coverageGaps] = React.useState<CoverageGap[]>(dummyCoverageGaps);
+  const [duplicates] = React.useState<DuplicatePair[]>(dummyDuplicates);
   const [insertAudit, setInsertAudit] =
     React.useState<InsertAuditEntry[]>(initialInsertAudit);
   const [selectedSuggestion, setSelectedSuggestion] =
@@ -225,6 +417,7 @@ export default function KnowledgeBasePage() {
   const [showBulkInsertConfirm, setShowBulkInsertConfirm] =
     React.useState(false);
   const [isExampleTicketsOpen, setIsExampleTicketsOpen] = React.useState(false);
+  const [showUpsellModal, setShowUpsellModal] = React.useState(false);
 
   // AI Configuration states
   const [systemInstructions, setSystemInstructions] = React.useState(
@@ -1032,20 +1225,40 @@ export default function KnowledgeBasePage() {
                 </TabsContent>
 
                 <TabsContent value="improve-with-ai" className="space-y-4">
-                  <Card>
+                  {/* Premium Badge */}
+                  <Card className="border-2 border-[#603BFC]/30 bg-gradient-to-br from-[#603BFC]/5 to-[#A94FA1]/5">
                     <CardContent className="p-8">
                       <div className="flex flex-col items-center gap-4 text-center">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-[#603BFC]/10 to-[#A94FA1]/10">
-                          <Zap className="h-6 w-6 text-[#603BFC]" />
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-[#603BFC]/10 to-[#A94FA1]/10">
+                            <Zap className="h-6 w-6 text-[#603BFC]" />
+                          </div>
+                          <Badge className="bg-gradient-to-r from-[#603BFC] to-[#A94FA1] text-white border-0">
+                            <Crown className="h-3 w-3 mr-1" />
+                            Premium
+                          </Badge>
                         </div>
                         <div>
                           <h3 className="text-lg font-semibold mb-2">
                             AI-Powered Knowledge Gap Analysis
                           </h3>
-                          <p className="text-sm text-muted-foreground max-w-md">
-                            Coming soon. Upload documents and create tickets to
-                            enable intelligent gap detection.
+                          <p className="text-sm text-muted-foreground max-w-md mb-4">
+                            Automatically identify knowledge gaps, generate
+                            article suggestions, and improve your knowledge base
+                            coverage.
                           </p>
+                          <Button
+                            onClick={() => {
+                              window.open(
+                                "https://www.lyzr.ai/book-demo/",
+                                "_blank"
+                              );
+                            }}
+                            className="bg-gradient-to-r from-[#603BFC] to-[#A94FA1] hover:opacity-90 text-white"
+                          >
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Book a Demo to Unlock
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
@@ -1103,8 +1316,9 @@ export default function KnowledgeBasePage() {
                     <div className="space-y-4">
                       <Card>
                         <CardHeader className="pb-3">
-                          <CardTitle className="text-base">
+                          <CardTitle className="text-base flex items-center gap-2">
                             Coverage map — high-level overview
+                            <Lock className="h-4 w-4 text-[#603BFC]" />
                           </CardTitle>
                           <CardDescription className="text-xs">
                             View topic coverage and identify knowledge gaps in
@@ -1166,9 +1380,7 @@ export default function KnowledgeBasePage() {
                               variant="ghost"
                               size="sm"
                               className="mt-2 text-xs"
-                              onClick={() => {
-                                // Navigate to coverage report
-                              }}
+                              onClick={() => setShowUpsellModal(true)}
                             >
                               <ExternalLink className="h-3 w-3 mr-1" />
                               View topic coverage report
@@ -1180,8 +1392,9 @@ export default function KnowledgeBasePage() {
                       {/* Duplicate Detection */}
                       <Card>
                         <CardHeader className="pb-3">
-                          <CardTitle className="text-base">
+                          <CardTitle className="text-base flex items-center gap-2">
                             Duplicate detection
+                            <Lock className="h-4 w-4 text-[#603BFC]" />
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -1209,6 +1422,7 @@ export default function KnowledgeBasePage() {
                                     size="sm"
                                     variant="outline"
                                     className="text-xs"
+                                    onClick={() => setShowUpsellModal(true)}
                                   >
                                     Review
                                   </Button>
@@ -1226,8 +1440,9 @@ export default function KnowledgeBasePage() {
                         <CardHeader className="pb-3">
                           <div className="flex items-center justify-between">
                             <div>
-                              <CardTitle className="text-base">
+                              <CardTitle className="text-base flex items-center gap-2">
                                 Knowledge gaps & suggestions — actionable drafts
+                                <Lock className="h-4 w-4 text-[#603BFC]" />
                               </CardTitle>
                               <CardDescription className="text-xs mt-1">
                                 AI-generated article suggestions based on recent
@@ -1239,7 +1454,7 @@ export default function KnowledgeBasePage() {
                               <Button
                                 size="sm"
                                 variant="default"
-                                onClick={() => setShowBulkInsertConfirm(true)}
+                                onClick={() => setShowUpsellModal(true)}
                                 className="text-xs"
                               >
                                 Insert Selected ({selectedSuggestions.size})
@@ -1269,33 +1484,24 @@ export default function KnowledgeBasePage() {
                               filteredSuggestions.map((suggestion) => (
                                 <Card
                                   key={suggestion.id}
-                                  className={`cursor-pointer transition-all ${
+                                  className={`cursor-pointer transition-all relative ${
                                     selectedSuggestion?.id === suggestion.id
                                       ? "border-[#603BFC] shadow-md"
                                       : "hover:shadow-sm"
                                   }`}
-                                  onClick={() =>
-                                    handleSelectSuggestion(suggestion)
-                                  }
+                                  onClick={() => setShowUpsellModal(true)}
                                 >
                                   <CardContent className="p-3">
                                     <div className="flex items-start gap-2">
                                       <Checkbox
-                                        checked={selectedSuggestions.has(
-                                          suggestion.id
-                                        )}
-                                        onCheckedChange={(checked) => {
-                                          const newSet = new Set(
-                                            selectedSuggestions
-                                          );
-                                          if (checked) {
-                                            newSet.add(suggestion.id);
-                                          } else {
-                                            newSet.delete(suggestion.id);
-                                          }
-                                          setSelectedSuggestions(newSet);
+                                        checked={false}
+                                        onCheckedChange={() => {
+                                          setShowUpsellModal(true);
                                         }}
-                                        onClick={(e) => e.stopPropagation()}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setShowUpsellModal(true);
+                                        }}
                                         className="mt-1"
                                       />
                                       <div className="flex-1 space-y-2">
@@ -1312,16 +1518,14 @@ export default function KnowledgeBasePage() {
                                                   className="h-6 w-6"
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    handleSelectSuggestion(
-                                                      suggestion
-                                                    );
+                                                    setShowUpsellModal(true);
                                                   }}
                                                 >
                                                   <Eye className="h-3 w-3" />
                                                 </Button>
                                               </TooltipTrigger>
                                               <TooltipContent>
-                                                Preview
+                                                Preview (Premium)
                                               </TooltipContent>
                                             </Tooltip>
                                             <Tooltip>
@@ -1332,16 +1536,14 @@ export default function KnowledgeBasePage() {
                                                   className="h-6 w-6"
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    handleSelectSuggestion(
-                                                      suggestion
-                                                    );
+                                                    setShowUpsellModal(true);
                                                   }}
                                                 >
                                                   <Zap className="h-3 w-3" />
                                                 </Button>
                                               </TooltipTrigger>
                                               <TooltipContent>
-                                                Auto-generate draft
+                                                Auto-generate draft (Premium)
                                               </TooltipContent>
                                             </Tooltip>
                                             <Tooltip>
@@ -1352,29 +1554,14 @@ export default function KnowledgeBasePage() {
                                                   className="h-6 w-6"
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setInsertingSuggestionId(
-                                                      suggestion.id
-                                                    );
-                                                    setEditingTitle(
-                                                      suggestion.title
-                                                    );
-                                                    setEditingDraft(
-                                                      suggestion.draft
-                                                    );
-                                                    setEditingCategory(
-                                                      suggestion.category || []
-                                                    );
-                                                    setEditingTags(
-                                                      suggestion.tags || []
-                                                    );
-                                                    setShowInsertConfirm(true);
+                                                    setShowUpsellModal(true);
                                                   }}
                                                 >
                                                   <CheckCircle2 className="h-3 w-3" />
                                                 </Button>
                                               </TooltipTrigger>
                                               <TooltipContent>
-                                                Insert into KB
+                                                Insert into KB (Premium)
                                               </TooltipContent>
                                             </Tooltip>
                                             <Tooltip>
@@ -1385,16 +1572,14 @@ export default function KnowledgeBasePage() {
                                                   className="h-6 w-6"
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    handleArchiveSuggestion(
-                                                      suggestion.id
-                                                    );
+                                                    setShowUpsellModal(true);
                                                   }}
                                                 >
                                                   <XCircle className="h-3 w-3" />
                                                 </Button>
                                               </TooltipTrigger>
                                               <TooltipContent>
-                                                Ignore
+                                                Ignore (Premium)
                                               </TooltipContent>
                                             </Tooltip>
                                           </div>
@@ -1857,6 +2042,100 @@ export default function KnowledgeBasePage() {
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleBulkInsert}>
                 Insert All
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Premium Upsell Modal */}
+        <AlertDialog open={showUpsellModal} onOpenChange={setShowUpsellModal}>
+          <AlertDialogContent className="max-w-2xl">
+            <AlertDialogHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-[#603BFC]/20 to-[#A94FA1]/20">
+                  <Crown className="h-6 w-6 text-[#603BFC]" />
+                </div>
+                <div>
+                  <AlertDialogTitle className="text-2xl">
+                    Unlock AI-Powered Knowledge Base
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-base mt-1">
+                    Upgrade to Premium to access advanced AI features
+                  </AlertDialogDescription>
+                </div>
+              </div>
+            </AlertDialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-[#603BFC]" />
+                    AI Features
+                  </h4>
+                  <ul className="space-y-1.5 text-sm text-muted-foreground">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-3 w-3 text-[#603BFC]" />
+                      Intelligent gap detection
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-3 w-3 text-[#603BFC]" />
+                      Auto-generated article drafts
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-3 w-3 text-[#603BFC]" />
+                      Coverage analysis & insights
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-3 w-3 text-[#603BFC]" />
+                      Duplicate document detection
+                    </li>
+                  </ul>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-[#603BFC]" />
+                    Benefits
+                  </h4>
+                  <ul className="space-y-1.5 text-sm text-muted-foreground">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-3 w-3 text-[#603BFC]" />
+                      Reduce ticket volume by 40%
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-3 w-3 text-[#603BFC]" />
+                      Improve knowledge base coverage
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-3 w-3 text-[#603BFC]" />
+                      Save hours of manual work
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-3 w-3 text-[#603BFC]" />
+                      Proactive knowledge management
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-4 border border-[#603BFC]/20">
+                <p className="text-sm font-medium mb-1">
+                  See it in action with a personalized demo
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Our team will show you how AI-powered features can transform
+                  your knowledge base management.
+                </p>
+              </div>
+            </div>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+              <AlertDialogCancel>Maybe Later</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  window.open("https://www.lyzr.ai/book-demo/", "_blank");
+                }}
+                className="bg-gradient-to-r from-[#603BFC] to-[#A94FA1] hover:opacity-90 w-full sm:w-auto"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Book a Demo
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
