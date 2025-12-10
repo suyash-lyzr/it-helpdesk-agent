@@ -75,7 +75,9 @@ import {
   Link as LinkIcon,
   CheckCircle,
   XCircle,
+  Copy,
 } from "lucide-react";
+import { ServiceNowCredentialsForm } from "@/components/integrations/servicenow-credentials-form";
 
 type ProviderParam = IntegrationProvider;
 
@@ -193,11 +195,23 @@ export default function IntegrationDetailPage() {
         // Check if user just returned from OAuth callback
         if (typeof window !== "undefined") {
           const params = new URLSearchParams(window.location.search);
+          const tokensSaved = params.get("tokensSaved");
           const connected = params.get("connected");
           const error = params.get("error");
 
-          if (connected === "1" && provider === "servicenow") {
-            toast.success("ServiceNow OAuth completed successfully!");
+          if (tokensSaved === "1" && provider === "servicenow") {
+            toast.success(
+              "Tokens saved! Click 'Connect' to activate the integration."
+            );
+            // Clean up URL
+            window.history.replaceState({}, "", `/integrations/${provider}`);
+            // Refresh integration status
+            const updated = await fetchIntegrations();
+            const updatedCurrent =
+              updated.find((i) => i.meta.id === provider) ?? null;
+            setIntegration(updatedCurrent);
+          } else if (connected === "1" && provider === "servicenow") {
+            toast.success("ServiceNow integration connected successfully!");
             // Clean up URL
             window.history.replaceState({}, "", `/integrations/${provider}`);
             // Refresh integration status
@@ -1525,8 +1539,8 @@ export default function IntegrationDetailPage() {
                   ServiceNow Integration
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Create and track incidents, changes, and service requests in
-                  your ServiceNow instance.
+                  Sync incidents, change requests, and CMDB data with ServiceNow
+                  for end-to-end IT workflows.
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -1556,7 +1570,7 @@ export default function IntegrationDetailPage() {
                     </Button>
                   </>
                 )}
-                {integration.status !== "connected" && (
+                {/* {integration.status !== "connected" && (
                   <Button
                     size="sm"
                     disabled={busy || !isAdmin}
@@ -1564,14 +1578,9 @@ export default function IntegrationDetailPage() {
                   >
                     Start OAuth Setup
                   </Button>
-                )}
+                )} */}
               </div>
             </div>
-
-            <p className="text-sm text-muted-foreground">
-              Sync incidents, change requests, and CMDB data with ServiceNow for
-              end-to-end IT workflows.
-            </p>
 
             {/* What this integration enables */}
             <Card>
@@ -1605,183 +1614,90 @@ export default function IntegrationDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Setup Steps - Only show when NOT connected */}
+            {/* ServiceNow Setup Instructions - Show when not connected */}
             {integration.status !== "connected" && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Setup Steps (Required once)</CardTitle>
+                  <CardTitle>ServiceNow OAuth Setup Instructions</CardTitle>
                   <CardDescription>
-                    Choose your preferred connection method
+                    Follow these steps to create an OAuth application in
+                    ServiceNow
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold mb-3">
+                        Quick steps (Auth Code)
+                      </h4>
+                      <ol className="list-decimal list-inside space-y-2 ml-2 text-sm">
+                        <li>
+                          In ServiceNow: System OAuth → Application Registry →
+                          New → 'Create an OAuth API endpoint for external
+                          client'.
+                        </li>
+                        <li>
+                          Name: <strong>Lyzr Integration</strong>. Redirect URI:{" "}
+                          <div className="mt-2 flex items-center gap-2">
+                            <code className="px-2 py-1 bg-muted rounded text-xs font-mono">
+                              {typeof window !== "undefined"
+                                ? `${window.location.origin}/oauth/callback/servicenow`
+                                : "http://localhost:3000/oauth/callback/servicenow"}
+                            </code>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const uri =
+                                  typeof window !== "undefined"
+                                    ? `${window.location.origin}/oauth/callback/servicenow`
+                                    : "http://localhost:3000/oauth/callback/servicenow";
+                                navigator.clipboard.writeText(uri);
+                                toast.success(
+                                  "Redirect URI copied to clipboard"
+                                );
+                              }}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </li>
+                        <li>Save → copy Client ID & Client Secret.</li>
+                        <li>
+                          Paste Client ID & Secret here and click 'Save
+                          Credentials'.
+                        </li>
+                        <li>
+                          Click 'Start OAuth Setup' to authorize Lyzr. After
+                          authorizing you'll be redirected back.
+                        </li>
+                      </ol>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* ServiceNow Credentials Form - Show when not connected */}
+            {integration.status !== "connected" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Connect ServiceNow</CardTitle>
+                  <CardDescription>
+                    Enter your ServiceNow OAuth credentials to connect
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Tabs defaultValue="oauth" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="oauth">
-                        Option A — Recommended: OAuth Connect
-                      </TabsTrigger>
-                      <TabsTrigger value="api-token">
-                        Option B — Alternative: Integration User + MID/API Token
-                      </TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="oauth" className="space-y-4 mt-4">
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-3">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
-                            1
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">
-                              Click Start OAuth Setup
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Use the button in the header above to begin the
-                              OAuth flow
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
-                            2
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">
-                              Authenticate with ServiceNow admin credentials
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Login using your ServiceNow administrator account
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
-                            3
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">
-                              Grant the requested scopes
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Authorize Lyzr to access your ServiceNow instance
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-xs mt-0.5">
-                            4
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">
-                              Integration active
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              You&apos;ll be redirected back and the integration
-                              will be active
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="pt-3 border-t">
-                        <p className="text-xs text-muted-foreground mb-3">
-                          OAuth is recommended for production — secure and
-                          supports token rotation.
-                        </p>
-                        <Button
-                          onClick={handleServiceNowOAuth}
-                          disabled={busy || !isAdmin}
-                          className="w-full"
-                        >
-                          Start OAuth Setup
-                        </Button>
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="api-token" className="space-y-4 mt-4">
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="sn-url">ServiceNow Base URL</Label>
-                          <Input
-                            id="sn-url"
-                            placeholder="https://your-instance.service-now.com"
-                            value={servicenowApiTokenUrl}
-                            onChange={(e) =>
-                              setServicenowApiTokenUrl(e.target.value)
-                            }
-                            disabled={!isAdmin || busy}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="sn-email">
-                            Integration user (service account) email
-                          </Label>
-                          <Input
-                            id="sn-email"
-                            type="email"
-                            placeholder="integration.user@company.com"
-                            value={servicenowApiTokenEmail}
-                            onChange={(e) =>
-                              setServicenowApiTokenEmail(e.target.value)
-                            }
-                            disabled={!isAdmin || busy}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="sn-token">
-                            API token / password (masked)
-                          </Label>
-                          <Input
-                            id="sn-token"
-                            type="password"
-                            placeholder="Enter your ServiceNow API token"
-                            value={servicenowApiToken}
-                            onChange={(e) =>
-                              setServicenowApiToken(e.target.value)
-                            }
-                            disabled={!isAdmin || busy}
-                            required
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Generate an API token from your ServiceNow account
-                            settings
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="sn-scope">
-                            Instance scope (optional)
-                          </Label>
-                          <Input
-                            id="sn-scope"
-                            placeholder="global"
-                            value={servicenowInstanceScope}
-                            onChange={(e) =>
-                              setServicenowInstanceScope(e.target.value)
-                            }
-                            disabled={!isAdmin || busy}
-                          />
-                        </div>
-                        <Button
-                          onClick={handleServiceNowConnectApiToken}
-                          disabled={
-                            !isAdmin ||
-                            busy ||
-                            !servicenowApiTokenUrl ||
-                            !servicenowApiTokenEmail ||
-                            !servicenowApiToken
-                          }
-                          className="w-full"
-                        >
-                          Connect using API Token
-                        </Button>
-                      </div>
-                      <div className="pt-3 border-t">
-                        <p className="text-xs text-muted-foreground">
-                          Use this if your org uses integration service accounts
-                          or restricts external OAuth.
-                        </p>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
+                  <ServiceNowCredentialsForm
+                    isAdmin={isAdmin}
+                    onSaveSuccess={async () => {
+                      // Refresh integration status
+                      const updated = await fetchIntegrations();
+                      const updatedCurrent =
+                        updated.find((i) => i.meta.id === provider) ?? null;
+                      setIntegration(updatedCurrent);
+                    }}
+                  />
                 </CardContent>
               </Card>
             )}

@@ -288,3 +288,93 @@ export async function createServiceNowIncident(body: {
     body: JSON.stringify(body),
   });
 }
+
+// ServiceNow save credentials
+export async function saveServiceNowCredentials(body: {
+  instance: string;
+  clientId: string;
+  clientSecret?: string;
+  grantType?: "authorization_code" | "client_credentials";
+  redirectUri?: string;
+}): Promise<{
+  ok: boolean;
+  saved?: boolean;
+  message?: string;
+}> {
+  return apiFetch<{
+    ok: boolean;
+    saved?: boolean;
+    message?: string;
+  }>("/api/integrations/servicenow/save", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+// ServiceNow get state
+export async function getServiceNowState(): Promise<{
+  instance: string | null;
+  clientId: string | null;
+  grantType: string | null;
+  connected: boolean;
+  savedAt?: string;
+}> {
+  return apiFetch<{
+    instance: string | null;
+    clientId: string | null;
+    grantType: string | null;
+    connected: boolean;
+    savedAt?: string;
+  }>("/api/integrations/servicenow/state");
+}
+
+// ServiceNow start OAuth
+export async function startServiceNowOAuthFlow(): Promise<{
+  ok: boolean;
+  authorizeUrl?: string;
+  state?: string;
+  message?: string;
+}> {
+  return apiFetch<{
+    ok: boolean;
+    authorizeUrl?: string;
+    state?: string;
+    message?: string;
+  }>("/api/integrations/servicenow/start-oauth", {
+    method: "POST",
+  });
+}
+
+// ServiceNow exchange token
+export async function exchangeServiceNowToken(body: {
+  code?: string;
+  grantType?: "authorization_code" | "client_credentials";
+}): Promise<{
+  ok: boolean;
+  tokensSaved?: boolean;
+  message?: string;
+}> {
+  return apiFetch<{
+    ok: boolean;
+    tokensSaved?: boolean;
+    message?: string;
+  }>("/api/integrations/servicenow/token", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+// ServiceNow connect
+export async function connectServiceNow(): Promise<{
+  ok: boolean;
+  connected?: boolean;
+  message?: string;
+}> {
+  return apiFetch<{
+    ok: boolean;
+    connected?: boolean;
+    message?: string;
+  }>("/api/integrations/servicenow/connect", {
+    method: "POST",
+  });
+}

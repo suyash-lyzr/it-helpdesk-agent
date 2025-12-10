@@ -10,6 +10,13 @@ export interface IntegrationOAuth {
   connectedAt?: Date;
   lastTestAt?: Date;
   metadata?: Record<string, any>;
+  // ServiceNow credentials (encrypted)
+  clientId?: string;
+  encryptedClientSecret?: string;
+  grantType?: "authorization_code" | "client_credentials";
+  redirectUri?: string;
+  savedAt?: Date;
+  oauthState?: string; // For CSRF protection
 }
 
 const IntegrationOAuthSchema = new Schema<IntegrationOAuth>(
@@ -23,6 +30,16 @@ const IntegrationOAuthSchema = new Schema<IntegrationOAuth>(
     connectedAt: { type: Date },
     lastTestAt: { type: Date },
     metadata: { type: Schema.Types.Mixed, default: {} },
+    // ServiceNow credentials
+    clientId: { type: String },
+    encryptedClientSecret: { type: String },
+    grantType: {
+      type: String,
+      enum: ["authorization_code", "client_credentials"],
+    },
+    redirectUri: { type: String },
+    savedAt: { type: Date },
+    oauthState: { type: String },
   },
   {
     versionKey: false,

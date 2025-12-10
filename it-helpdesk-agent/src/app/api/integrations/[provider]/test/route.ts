@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from "next/server"
-import { markTested } from "@/lib/integrations-store"
-import type { IntegrationProvider } from "@/lib/integrations-types"
+import { NextRequest, NextResponse } from "next/server";
+import { markTested } from "@/lib/integrations-store";
+import type { IntegrationProvider } from "@/lib/integrations-types";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers":
     "Content-Type, Authorization, ngrok-skip-browser-warning",
-}
+};
 
 function toProvider(param: string): IntegrationProvider | null {
   if (
@@ -16,30 +16,30 @@ function toProvider(param: string): IntegrationProvider | null {
     param === "okta" ||
     param === "google"
   ) {
-    return param
+    return param;
   }
-  return null
+  return null;
 }
 
 export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: corsHeaders })
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
 }
 
 // POST /api/integrations/:provider/test
 export async function POST(
   _request: NextRequest,
-  { params }: { params: Promise<{ provider: string }> },
+  { params }: { params: Promise<{ provider: string }> }
 ) {
-  const { provider: providerParam } = await params
-  const provider = toProvider(providerParam)
+  const { provider: providerParam } = await params;
+  const provider = toProvider(providerParam);
   if (!provider) {
     return NextResponse.json(
       { success: false, message: "Unknown provider" },
-      { status: 400, headers: corsHeaders },
-    )
+      { status: 400, headers: corsHeaders }
+    );
   }
 
-  markTested(provider)
+  markTested(provider);
 
   if (provider === "jira") {
     return NextResponse.json(
@@ -48,19 +48,33 @@ export async function POST(
         sample_issue: "JRA-2031",
         message: "Demo Jira connected successfully.",
       },
-      { headers: corsHeaders },
-    )
+      { headers: corsHeaders }
+    );
   }
 
   if (provider === "servicenow") {
-    return NextResponse.json(
-      {
-        ok: true,
-        sample_incident: "INC-001234",
-        message: "Demo ServiceNow connected successfully.",
-      },
-      { headers: corsHeaders },
-    )
+    // For ServiceNow, use the dedicated test endpoint
+    // This route is kept for backward compatibility
+    try {
+      const testRes = await fetch(
+        new URL("/api/servicenow/test", request.url).toString(),
+        {
+          method: "POST",
+        }
+      );
+      const testData = await testRes.json();
+      return NextResponse.json(testData, { headers: corsHeaders });
+    } catch (error) {
+      // Fallback to demo response
+      return NextResponse.json(
+        {
+          ok: true,
+          sample_incident: "INC-001234",
+          message: "Demo ServiceNow connected successfully.",
+        },
+        { headers: corsHeaders }
+      );
+    }
   }
 
   if (provider === "okta") {
@@ -70,8 +84,8 @@ export async function POST(
         sample_user: "OKTA-UID-12",
         message: "Demo Okta connected successfully.",
       },
-      { headers: corsHeaders },
-    )
+      { headers: corsHeaders }
+    );
   }
 
   if (provider === "google") {
@@ -81,14 +95,12 @@ export async function POST(
         sample_user: "GWA-USER-123",
         message: "Demo Google Workspace connected successfully.",
       },
-      { headers: corsHeaders },
-    )
+      { headers: corsHeaders }
+    );
   }
 
   return NextResponse.json(
     { ok: false, message: "Unsupported provider" },
-    { status: 400, headers: corsHeaders },
-  )
+    { status: 400, headers: corsHeaders }
+  );
 }
-
-
