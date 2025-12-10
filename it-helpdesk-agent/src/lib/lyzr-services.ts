@@ -418,73 +418,165 @@ export async function createOrUpdateUserAndAgents(
   console.log(`Creating new helpdesk user and agents for ${lyzrUser.email}`);
 
   // Create tools and knowledge base, then agents before saving user
-  const toolIds = await createTicketManagerToolsForUser(
-    lyzrApiKey,
-    lyzrUser.id
-  );
+  // Wrap each creation in try-catch to allow partial success
+  let toolIds: string[] = [];
+  try {
+    toolIds = await createTicketManagerToolsForUser(lyzrApiKey, lyzrUser.id);
+    console.log(`✓ Created ticket tools for ${lyzrUser.email}`);
+  } catch (error) {
+    console.error(
+      `⚠ Failed to create ticket tools for ${lyzrUser.email}:`,
+      error instanceof Error ? error.message : error
+    );
+  }
 
-  const kb = await createLyzrKnowledgeBase(lyzrApiKey, organizationName);
+  let kb: LyzrKnowledgeBaseResponse | null = null;
+  let kbConfigForUser = null;
+  try {
+    kb = await createLyzrKnowledgeBase(lyzrApiKey, organizationName);
+    kbConfigForUser = buildKbAgentConfig({
+      ragId: kb.rag_id,
+      ragName: kb.rag_name,
+      baseUrl: kb.base_url,
+    });
+    console.log(`✓ Created knowledge base for ${lyzrUser.email}`);
+  } catch (error) {
+    console.error(
+      `⚠ Failed to create knowledge base for ${lyzrUser.email}:`,
+      error instanceof Error ? error.message : error
+    );
+  }
 
-  const kbConfigForUser = buildKbAgentConfig({
-    ragId: kb.rag_id,
-    ragName: kb.rag_name,
-    baseUrl: kb.base_url,
-  });
+  let orchestratorAgentId = "";
+  try {
+    orchestratorAgentId = await createLyzrAgent(
+      lyzrApiKey,
+      ORCHESTRATOR_AGENT_CONFIG
+    );
+    console.log(`✓ Created orchestrator agent for ${lyzrUser.email}`);
+  } catch (error) {
+    console.error(
+      `⚠ Failed to create orchestrator agent for ${lyzrUser.email}:`,
+      error instanceof Error ? error.message : error
+    );
+  }
 
-  const orchestratorAgentId = await createLyzrAgent(
-    lyzrApiKey,
-    ORCHESTRATOR_AGENT_CONFIG
-  );
-  const troubleshootingAgentId = await createLyzrAgent(
-    lyzrApiKey,
-    TROUBLESHOOTING_AGENT_CONFIG
-  );
-  const ticketGeneratorAgentId = await createLyzrAgent(
-    lyzrApiKey,
-    TICKET_GENERATOR_AGENT_CONFIG
-  );
-  const accessRequestAgentId = await createLyzrAgent(
-    lyzrApiKey,
-    ACCESS_REQUEST_AGENT_CONFIG
-  );
-  const kbAgentId = await createLyzrAgent(lyzrApiKey, kbConfigForUser);
+  let troubleshootingAgentId = "";
+  try {
+    troubleshootingAgentId = await createLyzrAgent(
+      lyzrApiKey,
+      TROUBLESHOOTING_AGENT_CONFIG
+    );
+    console.log(`✓ Created troubleshooting agent for ${lyzrUser.email}`);
+  } catch (error) {
+    console.error(
+      `⚠ Failed to create troubleshooting agent for ${lyzrUser.email}:`,
+      error instanceof Error ? error.message : error
+    );
+  }
 
-  const newUser = new User({
+  let ticketGeneratorAgentId = "";
+  try {
+    ticketGeneratorAgentId = await createLyzrAgent(
+      lyzrApiKey,
+      TICKET_GENERATOR_AGENT_CONFIG
+    );
+    console.log(`✓ Created ticket generator agent for ${lyzrUser.email}`);
+  } catch (error) {
+    console.error(
+      `⚠ Failed to create ticket generator agent for ${lyzrUser.email}:`,
+      error instanceof Error ? error.message : error
+    );
+  }
+
+  let accessRequestAgentId = "";
+  try {
+    accessRequestAgentId = await createLyzrAgent(
+      lyzrApiKey,
+      ACCESS_REQUEST_AGENT_CONFIG
+    );
+    console.log(`✓ Created access request agent for ${lyzrUser.email}`);
+  } catch (error) {
+    console.error(
+      `⚠ Failed to create access request agent for ${lyzrUser.email}:`,
+      error instanceof Error ? error.message : error
+    );
+  }
+
+  let kbAgentId = "";
+  try {
+    kbAgentId = await createLyzrAgent(
+      lyzrApiKey,
+      kbConfigForUser ?? KB_AGENT_CONFIG
+    );
+    console.log(`✓ Created KB agent for ${lyzrUser.email}`);
+  } catch (error) {
+    console.error(
+      `⚠ Failed to create KB agent for ${lyzrUser.email}:`,
+      error instanceof Error ? error.message : error
+    );
+  }
+
+  // Create user with whatever resources were successfully created
+  const newUserData: any = {
     ...userIdentifier,
     email: lyzrUser.email,
     displayName: lyzrUser.name || lyzrUser.email.split("@")[0],
     lyzrApiKey: encryptedApiKey,
-    tools: { version: "1.0.0", toolIds },
-    orchestratorAgent: {
+  };
+
+  if (toolIds.length > 0) {
+    newUserData.tools = { version: "1.0.0", toolIds };
+  }
+
+  if (orchestratorAgentId) {
+    newUserData.orchestratorAgent = {
       agentId: orchestratorAgentId,
       version: LATEST_ORCHESTRATOR_AGENT_VERSION,
-    },
-    troubleshootingAgent: {
+    };
+  }
+
+  if (troubleshootingAgentId) {
+    newUserData.troubleshootingAgent = {
       agentId: troubleshootingAgentId,
       version: LATEST_TROUBLESHOOTING_AGENT_VERSION,
-    },
-    ticketGeneratorAgent: {
+    };
+  }
+
+  if (ticketGeneratorAgentId) {
+    newUserData.ticketGeneratorAgent = {
       agentId: ticketGeneratorAgentId,
       version: LATEST_TICKET_GENERATOR_AGENT_VERSION,
-    },
-    accessRequestAgent: {
+    };
+  }
+
+  if (accessRequestAgentId) {
+    newUserData.accessRequestAgent = {
       agentId: accessRequestAgentId,
       version: LATEST_ACCESS_REQUEST_AGENT_VERSION,
-    },
-    kbAgent: {
+    };
+  }
+
+  if (kbAgentId) {
+    newUserData.kbAgent = {
       agentId: kbAgentId,
       version: LATEST_KB_AGENT_VERSION,
-    },
-    knowledgeBase: {
+    };
+  }
+
+  if (kb) {
+    newUserData.knowledgeBase = {
       ragId: kb.rag_id,
       ragName: kb.rag_name,
       baseUrl: kb.base_url,
-    },
-  });
+    };
+  }
 
+  const newUser = new User(newUserData);
   await newUser.save();
+
   console.log(
-    `✓ Successfully created helpdesk user and agents for ${lyzrUser.email}`
+    `✓ Successfully created user ${lyzrUser.email} (with partial Lyzr resources)`
   );
   return newUser;
 }
