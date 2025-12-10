@@ -288,6 +288,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear local auth state immediately
       clearAuthData({ markInitialized: true });
 
+      // Clear chat history from localStorage
+      localStorage.removeItem("it-helpdesk-messages");
+      localStorage.removeItem("it-helpdesk-session-id");
+
       // Try to logout from SDK if it was initialized
       try {
         const { default: lyzr } = await import("lyzr-agent");
@@ -302,6 +306,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Logout failed:", error);
       clearAuthData({ markInitialized: true });
+      // Still clear chat history even if logout fails
+      localStorage.removeItem("it-helpdesk-messages");
+      localStorage.removeItem("it-helpdesk-session-id");
     }
   };
 
