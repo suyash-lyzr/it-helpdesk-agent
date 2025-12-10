@@ -227,10 +227,20 @@ body {
   /* Active sidebar menu buttons use primary purple (light and dark mode) */
   [data-sidebar="menu-button"][data-active="true"],
   [data-slot="sidebar-menu-button"][data-active="true"],
-  .peer\/menu-button[data-active="true"] {
+  .peer\/menu-button[data-active="true"],
+  [data-sidebar="menu-button"][data-active="true"] > *,
+  [data-slot="sidebar-menu-button"][data-active="true"] > * {
     background-color: var(--sidebar-accent-active) !important;
     color: var(--sidebar-accent-active-foreground) !important;
     transition: all 0.2s ease-in-out !important;
+  }
+
+  /* Ensure icons and text in active buttons are white */
+  [data-sidebar="menu-button"][data-active="true"] svg,
+  [data-slot="sidebar-menu-button"][data-active="true"] svg,
+  [data-sidebar="menu-button"][data-active="true"] span,
+  [data-slot="sidebar-menu-button"][data-active="true"] span {
+    color: var(--sidebar-accent-active-foreground) !important;
   }
 
   /* Hover state for active buttons */
@@ -256,6 +266,32 @@ body {
     background-color: var(--sidebar-accent-hover) !important;
     color: var(--sidebar-accent-hover-foreground) !important;
     transition: all 0.2s ease-in-out !important;
+  }
+
+  /* Ensure hover effect works on links inside buttons */
+  [data-sidebar="menu-button"]:not([data-active="true"]):hover a,
+  [data-slot="sidebar-menu-button"]:not([data-active="true"]):hover a {
+    color: var(--sidebar-accent-hover-foreground) !important;
+  }
+
+  /* Handle cases where asChild renders as anchor tag */
+  a[data-sidebar="menu-button"][data-active="true"],
+  a[data-slot="sidebar-menu-button"][data-active="true"] {
+    background-color: var(--sidebar-accent-active) !important;
+    color: var(--sidebar-accent-active-foreground) !important;
+  }
+
+  a[data-sidebar="menu-button"][data-active="true"] svg,
+  a[data-slot="sidebar-menu-button"][data-active="true"] svg,
+  a[data-sidebar="menu-button"][data-active="true"] span,
+  a[data-slot="sidebar-menu-button"][data-active="true"] span {
+    color: var(--sidebar-accent-active-foreground) !important;
+  }
+
+  a[data-sidebar="menu-button"]:not([data-active="true"]):hover,
+  a[data-slot="sidebar-menu-button"]:not([data-active="true"]):hover {
+    background-color: var(--sidebar-accent-hover) !important;
+    color: var(--sidebar-accent-hover-foreground) !important;
   }
 }
 
