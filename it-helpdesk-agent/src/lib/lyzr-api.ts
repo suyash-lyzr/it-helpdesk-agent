@@ -47,7 +47,7 @@ export async function streamChatWithAgent(
   agentId: string,
   message: string,
   userId: string,
-  systemPromptVariables: Record<string, any> = {},
+  systemPromptVariables: Record<string, unknown> = {},
   sessionId?: string
 ): Promise<ReadableStream> {
   const finalSessionId =

@@ -9,7 +9,7 @@ export interface IntegrationOAuth {
   connected: boolean;
   connectedAt?: Date;
   lastTestAt?: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   // ServiceNow credentials (encrypted)
   clientId?: string;
   encryptedClientSecret?: string;

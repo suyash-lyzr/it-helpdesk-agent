@@ -253,12 +253,12 @@ export async function startServiceNowOAuth(): Promise<{
 export async function testServiceNowConnection(): Promise<{
   success: boolean;
   message: string;
-  data?: any;
+  data?: unknown;
 }> {
   return apiFetch<{
     success: boolean;
     message: string;
-    data?: any;
+    data?: unknown;
   }>("/api/servicenow/test", {
     method: "POST",
   });

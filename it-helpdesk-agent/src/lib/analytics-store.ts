@@ -936,7 +936,7 @@ export function getAccessRequestAnalytics(
   const previousPeriodStart = subDays(periodStart, periodDays);
 
   // Helper function to parse dates (handles MongoDB format and regular dates)
-  const parseDate = (dateValue: any): Date | null => {
+  const parseDate = (dateValue: unknown): Date | null => {
     if (!dateValue) return null;
     try {
       // Handle MongoDB date format { $date: "..." }
@@ -945,9 +945,9 @@ export function getAccessRequestAnalytics(
         dateValue !== null &&
         "$date" in dateValue
       ) {
-        return new Date((dateValue as any).$date);
+        return new Date((dateValue as { $date: string }).$date);
       }
-      return new Date(dateValue);
+      return new Date(dateValue as string | number | Date);
     } catch {
       return null;
     }

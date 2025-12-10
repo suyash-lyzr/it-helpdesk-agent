@@ -87,7 +87,9 @@ export async function createTicket(data: CreateTicketRequest): Promise<Ticket> {
     !assignee &&
     data.collected_details?.manager_name
   ) {
-    assignee = String((data.collected_details as any).manager_name);
+    assignee = String(
+      (data.collected_details as { manager_name?: string }).manager_name
+    );
   }
 
   const doc = await TicketModel.create({
@@ -152,9 +154,9 @@ export async function getTicketById(
 ): Promise<Ticket | null> {
   await connectToDatabase();
 
-  const filter: FilterQuery<Ticket> = { id };
+  const filter: FilterQuery<Ticket> & { lyzrUserId?: string } = { id };
   if (lyzrUserId) {
-    (filter as any).lyzrUserId = lyzrUserId;
+    filter.lyzrUserId = lyzrUserId;
   }
 
   const doc = await TicketModel.findOne(filter).lean<TicketDoc>();
@@ -173,9 +175,9 @@ export async function updateTicket(
     updated_at: new Date(),
   };
 
-  const filter: FilterQuery<Ticket> = { id };
+  const filter: FilterQuery<Ticket> & { lyzrUserId?: string } = { id };
   if (lyzrUserId) {
-    (filter as any).lyzrUserId = lyzrUserId;
+    filter.lyzrUserId = lyzrUserId;
   }
 
   const doc = (await TicketModel.findOneAndUpdate(filter, update, {
@@ -192,9 +194,9 @@ export async function deleteTicket(
 ): Promise<boolean> {
   await connectToDatabase();
 
-  const filter: FilterQuery<Ticket> = { id };
+  const filter: FilterQuery<Ticket> & { lyzrUserId?: string } = { id };
   if (lyzrUserId) {
-    (filter as any).lyzrUserId = lyzrUserId;
+    filter.lyzrUserId = lyzrUserId;
   }
 
   const result = await TicketModel.deleteOne(filter);
@@ -210,9 +212,9 @@ export async function getTicketCounts(lyzrUserId?: string): Promise<{
 }> {
   await connectToDatabase();
 
-  const baseFilter: FilterQuery<Ticket> = {};
+  const baseFilter: FilterQuery<Ticket> & { lyzrUserId?: string } = {};
   if (lyzrUserId) {
-    (baseFilter as any).lyzrUserId = lyzrUserId;
+    baseFilter.lyzrUserId = lyzrUserId;
   }
 
   const [total, open, inProgress, resolved, closed] = await Promise.all([
@@ -221,7 +223,7 @@ export async function getTicketCounts(lyzrUserId?: string): Promise<{
     TicketModel.countDocuments({ ...baseFilter, status: "in_progress" }),
     TicketModel.countDocuments({ ...baseFilter, status: "resolved" }),
     TicketModel.countDocuments({ ...baseFilter, status: "closed" }),
-    ]);
+  ]);
 
   return {
     total,
@@ -239,7 +241,7 @@ export async function searchTickets(
   await connectToDatabase();
   const regex = new RegExp(query, "i");
 
-  const criteria: FilterQuery<Ticket> = {
+  const criteria: FilterQuery<Ticket> & { lyzrUserId?: string } = {
     $or: [
       { title: regex },
       { description: regex },
@@ -249,7 +251,7 @@ export async function searchTickets(
   };
 
   if (lyzrUserId) {
-    (criteria as any).lyzrUserId = lyzrUserId;
+    criteria.lyzrUserId = lyzrUserId;
   }
 
   const docs = await TicketModel.find(criteria)

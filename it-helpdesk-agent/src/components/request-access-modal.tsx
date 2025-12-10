@@ -105,7 +105,7 @@ export function RequestAccessModal({
           <DialogTitle>Request Access to {featureName}</DialogTitle>
           <DialogDescription>
             Get access to premium IT Operations Intelligence features. Fill in
-            your details and we'll contact you shortly.
+            your details and we&apos;ll contact you shortly.
           </DialogDescription>
         </DialogHeader>
 

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import {
   Bot,
@@ -99,7 +100,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               size="lg"
               className="data-[slot=sidebar-menu-button]:!p-1.5 group-data-[state=collapsed]:!p-2 group-data-[state=collapsed]:justify-center relative z-0"
             >
-              <a href="/">
+              <Link href="/">
                 <div className="flex items-center gap-2 group-data-[state=collapsed]:flex-col group-data-[state=collapsed]:gap-1">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden">
                     <Image
@@ -115,7 +116,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <span className="text-xs text-muted-foreground">Agent</span>
                   </div>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -150,10 +151,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           </span>
                         </span>
                       ) : (
-                        <a href={item.url}>
+                        <Link href={item.url}>
                           <item.icon className="h-4 w-4" />
                           <span>{item.title}</span>
-                        </a>
+                        </Link>
                       )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>

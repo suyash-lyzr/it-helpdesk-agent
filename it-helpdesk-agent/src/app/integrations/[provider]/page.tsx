@@ -1633,8 +1633,8 @@ export default function IntegrationDetailPage() {
                       <ol className="list-decimal list-inside space-y-2 ml-2 text-sm">
                         <li>
                           In ServiceNow: System OAuth → Application Registry →
-                          New → 'Create an OAuth API endpoint for external
-                          client'.
+                          New → &apos;Create an OAuth API endpoint for external
+                          client&apos;.
                         </li>
                         <li>
                           Name: <strong>Lyzr Integration</strong>. Redirect URI:{" "}
@@ -1664,12 +1664,12 @@ export default function IntegrationDetailPage() {
                         </li>
                         <li>Save → copy Client ID & Client Secret.</li>
                         <li>
-                          Paste Client ID & Secret here and click 'Save
-                          Credentials'.
+                          Paste Client ID & Secret here and click &apos;Save
+                          Credentials&apos;.
                         </li>
                         <li>
-                          Click 'Start OAuth Setup' to authorize Lyzr. After
-                          authorizing you'll be redirected back.
+                          Click &apos;Start OAuth Setup&apos; to authorize Lyzr.
+                          After authorizing you&apos;ll be redirected back.
                         </li>
                       </ol>
                     </div>

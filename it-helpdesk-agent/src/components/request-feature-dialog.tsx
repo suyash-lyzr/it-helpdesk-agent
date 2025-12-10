@@ -86,7 +86,7 @@ export function RequestFeatureDialog({
         <DialogHeader>
           <DialogTitle>Request a feature</DialogTitle>
           <DialogDescription>
-            Share what you'd like to see improved, or schedule a{" "}
+            Share what you&apos;d like to see improved, or schedule a{" "}
             <a
               href="https://www.lyzr.ai/book-demo/"
               target="_blank"
