@@ -2,14 +2,22 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Bot, Send, Loader2 } from "lucide-react";
+import { Bot, Send, Loader2, Github, Sun, Moon, Monitor } from "lucide-react";
 import { toast } from "sonner";
+import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage } from "@/components/chat-message";
 import { SuggestedQuestions } from "@/components/suggested-questions";
+import { RequestFeatureDialog } from "@/components/request-feature-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   generateSessionId,
   generateMessageId,
@@ -22,8 +30,10 @@ export function ChatInterface() {
   const [inputValue, setInputValue] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
   const [sessionId, setSessionId] = React.useState<string>("");
+  const [isFeatureDialogOpen, setIsFeatureDialogOpen] = React.useState(false);
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const { theme, setTheme } = useTheme();
 
   // Initialize session ID on mount
   React.useEffect(() => {
@@ -120,7 +130,7 @@ export function ChatInterface() {
           for (const line of lines) {
             if (!line.startsWith("data:")) continue;
             // Preserve leading spaces in tokens; only strip the literal prefix
-            let payload = line.startsWith("data: ")
+            const payload = line.startsWith("data: ")
               ? line.slice(6)
               : line.slice(5);
             if (payload.trim() === "[DONE]") {
@@ -209,12 +219,63 @@ export function ChatInterface() {
             </p>
           </div>
         </div>
-        {messages.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={clearChat}>
-            Clear Chat
+        <div className="flex items-center gap-2">
+          {messages.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearChat}>
+              Clear Chat
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsFeatureDialogOpen(true)}
+          >
+            Request Feature
           </Button>
-        )}
+          <Button variant="ghost" size="icon" asChild>
+            <a
+              href="https://github.com/suyash-lyzr/it-helpdesk-agent"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="GitHub Repository"
+            >
+              <Github className="h-5 w-5" />
+            </a>
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Theme">
+                {theme === "light" ? (
+                  <Sun className="h-5 w-5" />
+                ) : theme === "dark" ? (
+                  <Moon className="h-5 w-5" />
+                ) : (
+                  <Monitor className="h-5 w-5" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setTheme("light")}>
+                <Sun className="mr-2 h-4 w-4" />
+                Light
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme("dark")}>
+                <Moon className="mr-2 h-4 w-4" />
+                Dark
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme("system")}>
+                <Monitor className="mr-2 h-4 w-4" />
+                System
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
+
+      <RequestFeatureDialog
+        open={isFeatureDialogOpen}
+        onOpenChange={setIsFeatureDialogOpen}
+      />
 
       {/* Chat Area - Scrollable */}
       <div className="flex-1 overflow-hidden">

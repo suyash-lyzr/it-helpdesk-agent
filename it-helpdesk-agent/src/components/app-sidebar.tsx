@@ -8,9 +8,9 @@ import {
   Ticket,
   FileText,
   Settings,
-  HelpCircle,
   LogOut,
   Puzzle,
+  CalendarDays,
 } from "lucide-react";
 
 import { useAuth } from "@/lib/AuthProvider";
@@ -35,6 +35,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 
 const navMain = [
@@ -60,18 +62,7 @@ const navMain = [
   },
 ];
 
-const navSecondary = [
-  {
-    title: "Settings",
-    icon: Settings,
-    url: "#",
-  },
-  {
-    title: "Help",
-    icon: HelpCircle,
-    url: "#",
-  },
-];
+// Removed navSecondary - Settings and Help buttons
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
@@ -97,8 +88,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   };
 
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader>
+    <Sidebar
+      collapsible="icon"
+      className="border-r border-sidebar-border/50"
+      {...props}
+    >
+      <SidebarHeader className="relative">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -123,6 +118,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <div className="absolute top-2 right-2">
+          <SidebarTrigger className="h-7 w-7 rounded-md bg-transparent hover:bg-muted/40" />
+        </div>
       </SidebarHeader>
 
       <SidebarContent>
@@ -170,16 +168,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>
-              {navSecondary.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title}>
-                    <a href={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Book Demo">
+                  <a
+                    href="https://www.lyzr.ai/book-demo/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2"
+                  >
+                    <CalendarDays className="h-4 w-4" />
+                    <span>Book Demo</span>
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -251,6 +252,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      {/* Clickable rail on the edge to collapse / expand like HR Helpdesk */}
+      <SidebarRail />
     </Sidebar>
   );
 }
