@@ -29,7 +29,7 @@ function getLyzrUserIdFromRequest(request: NextRequest): string | null {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { assetId: string } }
+  { params }: { params: Promise<{ assetId: string }> }
 ) {
   try {
     const lyzrUserId = getLyzrUserIdFromRequest(request);
@@ -44,7 +44,7 @@ export async function GET(
       );
     }
 
-    const { assetId } = params;
+    const { assetId } = await params;
     const asset = getAssetById(assetId);
 
     if (!asset) {

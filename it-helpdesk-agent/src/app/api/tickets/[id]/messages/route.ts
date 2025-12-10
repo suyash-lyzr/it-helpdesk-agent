@@ -48,7 +48,7 @@ function getLyzrUserIdFromRequest(request: NextRequest): string | null {
 // GET /api/tickets/[id]/messages - Get all messages for a ticket
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const lyzrUserId = getLyzrUserIdFromRequest(request);
@@ -65,7 +65,7 @@ export async function GET(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Verify ticket exists
     const ticket = await getTicketById(id, lyzrUserId);
@@ -108,7 +108,7 @@ export async function GET(
 // POST /api/tickets/[id]/messages - Create a new message
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const lyzrUserId = getLyzrUserIdFromRequest(request);
@@ -123,7 +123,7 @@ export async function POST(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Verify ticket exists
     const ticket = await getTicketById(id, lyzrUserId);
