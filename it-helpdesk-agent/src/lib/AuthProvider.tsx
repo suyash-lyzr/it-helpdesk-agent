@@ -69,9 +69,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Reset auth tracking refs
       authCallInProgress.current = false;
       lastSuccessfulAuthCall.current = null;
-      // Clear sessionStorage auth flag
+      // Clear ALL sessionStorage auth flags
       if (typeof window !== "undefined") {
-        sessionStorage.removeItem("auth_verified");
+        sessionStorage.removeItem("session_trusted");
+        sessionStorage.removeItem("auth_email");
+        sessionStorage.removeItem("auth_name");
+        sessionStorage.removeItem("auth_verified"); // Legacy cleanup
       }
       if (options?.markInitialized) {
         setIsInitialized(true);
@@ -94,9 +97,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsInitialized(true);
       Cookies.set("user_id", tokenData.user_id, { expires: 7 });
       Cookies.set("token", tokenData.api_key, { expires: 7 });
-      // Persist auth state in sessionStorage for faster page loads
+      // Mark session as trusted for browser session - avoids SDK popup on refresh
       if (typeof window !== "undefined") {
-        sessionStorage.setItem("auth_verified", "true");
+        sessionStorage.setItem("session_trusted", "true");
         if (userEmail) sessionStorage.setItem("auth_email", userEmail);
         if (userName) sessionStorage.setItem("auth_name", userName);
       }
@@ -213,23 +216,88 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async () => {
     if (typeof window === "undefined") return;
     try {
+      setIsLoading(true);
+      setIsInitialized(false);
+
       const { default: lyzr } = await import("lyzr-agent");
-      await lyzr.logout(); // Ensure clean state before attempting login
+
+      // Initialize SDK (will show the login modal)
       await lyzr.init("pk_c14a2728e715d9ea67bf");
-      await clearAuthData();
-      await checkAuth();
-      await lyzr.getKeys(); // This will trigger the login modal
+
+      // Set up auth state change listener
+      lyzr.onAuthStateChange((isAuth: boolean) => {
+        if (isAuth) {
+          void checkAuth();
+        } else {
+          clearAuthData({ markInitialized: true });
+        }
+      });
+
+      // Trigger login flow which will show SDK modal and get tokens
+      const tokenData = (await lyzr.getKeys()) as unknown as TokenData[];
+
+      if (tokenData && tokenData[0]) {
+        // Get user details
+        let userEmail: string | null = null;
+        let userName: string | null = null;
+
+        try {
+          const userKeys = await lyzr.getKeysUser();
+          userEmail = userKeys?.data?.user?.email;
+          userName = userKeys?.data?.user?.name;
+        } catch (error) {
+          console.error("Error fetching user keys:", error);
+        }
+
+        const nameFromEmail = userEmail
+          ? userEmail.split("@")[0].charAt(0).toUpperCase() +
+            userEmail.split("@")[0].slice(1)
+          : "User";
+        const finalUserName = userName || nameFromEmail;
+
+        // Sync with backend
+        await fetch("/api/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user: {
+              id: tokenData[0].user_id,
+              email: userEmail,
+              name: finalUserName,
+            },
+            lyzrApiKey: tokenData[0].api_key,
+          }),
+        });
+
+        // Set auth data and mark as initialized
+        setAuthData(tokenData[0], userEmail, finalUserName);
+        setIsLoading(false);
+      } else {
+        throw new Error("No token data received from login");
+      }
     } catch (error) {
       console.error("Login failed:", error);
+      setIsLoading(false);
+      setIsInitialized(true);
     }
   };
 
   const logout = async () => {
     if (typeof window === "undefined") return;
     try {
-      const { default: lyzr } = await import("lyzr-agent");
-      await lyzr.logout();
+      // Clear local auth state immediately
       clearAuthData({ markInitialized: true });
+
+      // Try to logout from SDK if it was initialized
+      try {
+        const { default: lyzr } = await import("lyzr-agent");
+        await lyzr.logout();
+      } catch (err) {
+        // SDK might not be initialized, that's ok
+        console.log("SDK not initialized, skipping SDK logout");
+      }
+
+      // Redirect to home
       window.location.href = window.location.origin;
     } catch (error) {
       console.error("Logout failed:", error);
@@ -240,61 +308,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const init = async () => {
       if (typeof window === "undefined") return;
-      try {
-        const { default: lyzr } = await import("lyzr-agent");
-        await lyzr.init("pk_c14a2728e715d9ea67bf");
 
-        const unsubscribe = lyzr.onAuthStateChange((isAuth: boolean) => {
-          if (isAuth) {
-            void checkAuth();
-          } else {
-            clearAuthData({ markInitialized: true });
-          }
-        });
+      // Check for trusted session BEFORE initializing SDK to prevent popup
+      const userIdCookie = Cookies.get("user_id");
+      const tokenCookie = Cookies.get("token");
+      const sessionTrusted =
+        sessionStorage.getItem("session_trusted") === "true";
+      const storedEmail = sessionStorage.getItem("auth_email");
+      const storedName = sessionStorage.getItem("auth_name");
 
-        // Warm-restore from stored state to avoid SDK popup:
-        // 1) If cookies + auth_verified flag exist, hydrate state from storage without hitting SDK.
-        // 2) If cookies exist but no verified flag, run checkAuth (may prompt if session really expired).
-        // 3) If no cookies, just mark initialized so UI can show login screen without SDK popup.
-        const userIdCookie = Cookies.get("user_id");
-        const tokenCookie = Cookies.get("token");
-        const authVerified = sessionStorage.getItem("auth_verified") === "true";
-        const storedEmail = sessionStorage.getItem("auth_email");
-        const storedName = sessionStorage.getItem("auth_name");
-
-        if (userIdCookie && tokenCookie && authVerified) {
-          // Fast restore from storage, no SDK call
-          setAuthData(
-            {
-              _id: "",
-              api_key: tokenCookie,
-              user_id: userIdCookie,
-              organization_id: "",
-              usage_id: "",
-              policy_id: "",
-            },
-            storedEmail,
-            storedName
-          );
-          setIsInitialized(true);
-          setIsLoading(false);
-        } else if (userIdCookie && tokenCookie) {
-          // Have cookies but no verified flag — do a real check (may show SDK UI if session expired)
-          void checkAuth();
-        } else {
-          // No prior session; mark initialized so UI can show login screen without SDK popup
-          setIsLoading(false);
-          setIsInitialized(true);
-        }
-
-        return () => unsubscribe();
-      } catch (err) {
-        console.error("Lyzr init failed:", err);
-        clearAuthData({ markInitialized: true });
+      if (userIdCookie && tokenCookie && sessionTrusted) {
+        // Trusted session exists - restore immediately WITHOUT initializing SDK
+        console.log("✓ Restoring trusted session from cache (no SDK init)");
+        setAuthData(
+          {
+            _id: "",
+            api_key: tokenCookie,
+            user_id: userIdCookie,
+            organization_id: "",
+            usage_id: "",
+            policy_id: "",
+          },
+          storedEmail,
+          storedName
+        );
+        setIsInitialized(true);
+        setIsLoading(false);
+        return; // Exit early - don't initialize SDK
       }
+
+      // No trusted session - mark initialized so our login UI shows (no SDK init yet)
+      console.log(
+        "No trusted session found, showing login UI (SDK not initialized)"
+      );
+      setIsLoading(false);
+      setIsInitialized(true);
     };
     void init();
-  }, [checkAuth, clearAuthData]);
+  }, [setAuthData]);
 
   return (
     <AuthContext.Provider
