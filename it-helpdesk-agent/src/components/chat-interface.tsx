@@ -2,7 +2,16 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Bot, Send, Loader2, Github, Sun, Moon, Monitor } from "lucide-react";
+import {
+  Bot,
+  Send,
+  Loader2,
+  Github,
+  Sun,
+  Moon,
+  Monitor,
+  LogOut,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
 
@@ -18,6 +27,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/lib/AuthProvider";
 import {
   generateSessionId,
   generateMessageId,
@@ -34,6 +45,7 @@ export function ChatInterface() {
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const { theme, setTheme } = useTheme();
+  const { displayName, email, logout } = useAuth();
 
   // Initialize session ID on mount
   React.useEffect(() => {
@@ -266,6 +278,35 @@ export function ChatInterface() {
               <DropdownMenuItem onClick={() => setTheme("system")}>
                 <Monitor className="mr-2 h-4 w-4" />
                 System
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full"
+                aria-label="Profile"
+              >
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-[#603BFC] text-white text-xs font-medium">
+                    {displayName
+                      ? displayName
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()
+                          .slice(0, 2)
+                      : "U"}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => logout()}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
