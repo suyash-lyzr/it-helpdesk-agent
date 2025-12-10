@@ -1,7 +1,7 @@
 import { Schema, model, models } from "mongoose";
 import { TicketMessage } from "../ticket-message-types";
 
-const TicketMessageSchema = new Schema<TicketMessage>(
+const TicketMessageSchema = new Schema(
   {
     id: { type: String, required: true, unique: true, index: true },
     ticket_id: { type: String, required: true, index: true },
@@ -13,7 +13,12 @@ const TicketMessageSchema = new Schema<TicketMessage>(
     author_name: { type: String },
     body: { type: String, required: true },
     is_internal_note: { type: Boolean, default: false },
-    created_at: { type: Date, required: true, default: Date.now, index: true },
+    created_at: {
+      type: Date,
+      required: true,
+      default: () => new Date(),
+      index: true,
+    },
   },
   { versionKey: false }
 );

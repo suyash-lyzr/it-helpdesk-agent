@@ -1,7 +1,7 @@
 import { Schema, model, models } from "mongoose";
 import { Ticket } from "../ticket-types";
 
-const TicketSchema = new Schema<Ticket>(
+const TicketSchema = new Schema(
   {
     id: { type: String, required: true, unique: true, index: true },
     // Owner within this IT Helpdesk app (per Lyzr user)

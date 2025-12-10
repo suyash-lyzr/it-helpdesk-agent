@@ -25,7 +25,14 @@ interface ServiceNowIncidentResponse {
 async function createServiceNowIncident(
   accessToken: string,
   instanceUrl: string,
-  ticket: { title: string; description: string; priority: string }
+  ticket: {
+    title: string;
+    description: string;
+    priority: string;
+    user_name?: string;
+    status?: string;
+    suggested_team?: string;
+  }
 ): Promise<{ sys_id: string; number: string }> {
   const incidentData = {
     short_description: ticket.title,

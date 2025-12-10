@@ -9,6 +9,9 @@ if (!MONGODB_URI) {
   );
 }
 
+// TypeScript assertion: MONGODB_URI is guaranteed to be a string after the check above
+const MONGODB_URI_STRING: string = MONGODB_URI;
+
 type MongooseCache = {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
@@ -29,7 +32,7 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
   }
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, {
+    cached.promise = mongoose.connect(MONGODB_URI_STRING, {
       dbName: MONGODB_DB,
       maxPoolSize: 5,
     });

@@ -1,7 +1,11 @@
 // In-memory ticket store for managing tickets
 // Can be replaced with a database in production
 
-import { FilterQuery, LeanDocument } from "mongoose";
+import mongoose from "mongoose";
+
+// Type definitions for mongoose v9+
+type FilterQuery<T> = Record<string, unknown> & Partial<T>;
+type LeanDocument<T> = T;
 import { connectToDatabase } from "./db";
 import { TicketModel } from "./models/ticket";
 import {
@@ -139,11 +143,11 @@ export async function getTickets(
       .sort({ created_at: -1 })
       .skip(offset)
       .limit(limit)
-      .lean<TicketDoc>(),
+      .lean(),
   ]);
 
   return {
-    tickets: docs.map(mapTicket),
+    tickets: (docs as TicketDoc[]).map(mapTicket),
     total,
   };
 }
@@ -159,8 +163,8 @@ export async function getTicketById(
     filter.lyzrUserId = lyzrUserId;
   }
 
-  const doc = await TicketModel.findOne(filter).lean<TicketDoc>();
-  return doc ? mapTicket(doc) : null;
+  const doc = await TicketModel.findOne(filter).lean();
+  return doc ? mapTicket(doc as TicketDoc) : null;
 }
 
 export async function updateTicket(
@@ -254,9 +258,7 @@ export async function searchTickets(
     criteria.lyzrUserId = lyzrUserId;
   }
 
-  const docs = await TicketModel.find(criteria)
-    .sort({ created_at: -1 })
-    .lean<TicketDoc>();
+  const docs = await TicketModel.find(criteria).sort({ created_at: -1 }).lean();
 
-  return docs.map(mapTicket);
+  return (docs as TicketDoc[]).map(mapTicket);
 }
