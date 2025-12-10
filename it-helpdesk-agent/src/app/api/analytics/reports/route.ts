@@ -20,12 +20,44 @@ const scheduledReports: Array<{
   lastRun?: string;
 }> = [];
 
+function getLyzrUserIdFromRequest(request: NextRequest): string | null {
+  // 1) Primary source: browser UI cookie set by AuthProvider
+  const cookieUserId = request.cookies.get("user_id")?.value;
+  if (cookieUserId && cookieUserId.trim() !== "") {
+    return cookieUserId.trim();
+  }
+
+  // 2) Fallback for server-to-server / Lyzr tools: explicit headers
+  const headerUserId =
+    request.headers.get("x-lyzr-user-id") ||
+    request.headers.get("x-user-id") ||
+    request.headers.get("user_id");
+
+  if (headerUserId && headerUserId.trim() !== "") {
+    return headerUserId.trim();
+  }
+
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { metrics, filters, format, schedule } = body;
 
-    const { tickets } = await getTickets();
+    const lyzrUserId = getLyzrUserIdFromRequest(request);
+    if (!lyzrUserId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Missing user context. A valid user_id cookie or x-lyzr-user-id header is required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const { tickets } = await getTickets({ lyzrUserId });
 
     // Build report data based on selected metrics
     const reportData: Record<string, unknown> = {};

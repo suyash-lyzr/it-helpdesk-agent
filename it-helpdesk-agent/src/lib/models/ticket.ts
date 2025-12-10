@@ -4,6 +4,8 @@ import { Ticket } from "../ticket-types";
 const TicketSchema = new Schema<Ticket>(
   {
     id: { type: String, required: true, unique: true, index: true },
+    // Owner within this IT Helpdesk app (per Lyzr user)
+    lyzrUserId: { type: String, required: true, index: true },
     ticket_type: {
       type: String,
       enum: ["incident", "access_request", "request"],

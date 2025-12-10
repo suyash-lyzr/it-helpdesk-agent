@@ -20,7 +20,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers":
-    "Content-Type, Authorization, ngrok-skip-browser-warning",
+    "Content-Type, Authorization, ngrok-skip-browser-warning, x-lyzr-user-id, x-user-id, user_id",
 };
 
 // Handle preflight requests
@@ -31,15 +31,49 @@ export async function OPTIONS() {
   });
 }
 
+function getLyzrUserIdFromRequest(request: NextRequest): string | null {
+  // 1) Primary source: browser UI cookie set by AuthProvider
+  const cookieUserId = request.cookies.get("user_id")?.value;
+  if (cookieUserId && cookieUserId.trim() !== "") {
+    return cookieUserId.trim();
+  }
+
+  // 2) Fallback for server-to-server / Lyzr tools: explicit headers
+  const headerUserId =
+    request.headers.get("x-lyzr-user-id") ||
+    request.headers.get("x-user-id") ||
+    request.headers.get("user_id");
+
+  if (headerUserId && headerUserId.trim() !== "") {
+    return headerUserId.trim();
+  }
+
+  return null;
+}
+
 // GET /api/tickets - List all tickets with optional filters
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
+    const lyzrUserId = getLyzrUserIdFromRequest(request);
+    if (!lyzrUserId) {
+      return NextResponse.json(
+        {
+          success: false,
+          data: [],
+          total: 0,
+          message:
+            "Missing user context. A valid user_id cookie or x-lyzr-user-id header is required.",
+        },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
     // Check if it's a search query
     const query = searchParams.get("q") || searchParams.get("search");
     if (query) {
-      const results = await searchTickets(query);
+      const results = await searchTickets(query, lyzrUserId);
       return NextResponse.json(
         {
           success: true,
@@ -54,7 +88,7 @@ export async function GET(request: NextRequest) {
     // Check if requesting counts only
     const countsOnly = searchParams.get("counts_only") === "true";
     if (countsOnly) {
-      const counts = await getTicketCounts();
+      const counts = await getTicketCounts(lyzrUserId);
       return NextResponse.json(
         {
           success: true,
@@ -66,7 +100,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build query parameters
-    const params: TicketQueryParams = {};
+    const params: TicketQueryParams = { lyzrUserId };
 
     const status = searchParams.get("status");
     if (status && isValidStatus(status)) {
@@ -126,7 +160,20 @@ export async function GET(request: NextRequest) {
 // POST /api/tickets - Create a new ticket
 export async function POST(request: NextRequest) {
   try {
+    const lyzrUserId = getLyzrUserIdFromRequest(request);
+    if (!lyzrUserId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Missing user context. A valid user_id cookie or x-lyzr-user-id header is required to create tickets.",
+        },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
     console.log("=== TICKET CREATION REQUEST ===");
+    console.log("Resolved lyzrUserId:", lyzrUserId);
     console.log("Headers:", Object.fromEntries(request.headers.entries()));
     const body = await request.json();
     console.log("Request body:", JSON.stringify(body, null, 2));
@@ -136,6 +183,7 @@ export async function POST(request: NextRequest) {
       ticket_type: body.ticket_type,
       title: body.title,
       description: body.description,
+      lyzrUserId,
       user_name: body.user_name,
       app_or_system: body.app_or_system,
       priority: body.priority,

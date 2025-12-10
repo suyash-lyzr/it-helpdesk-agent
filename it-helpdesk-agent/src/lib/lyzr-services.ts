@@ -121,6 +121,8 @@ async function createTicketManagerToolsForUser(
     openapi_schema: updatedTools,
     default_headers: {
       "Content-Type": "application/json",
+      // Ensure all ticket tool calls are scoped to this Lyzr user
+      "x-lyzr-user-id": userId,
     },
     default_query_params: {},
     default_body_params: {},
@@ -167,7 +169,7 @@ async function ensureTicketTools(
   apiKey: string,
   user: IUserDocument
 ): Promise<string[]> {
-  const currentVersion = "1.0.0";
+  const currentVersion = "1.0.1"; // Bumped to force recreation with x-lyzr-user-id header
 
   if (
     !user.tools ||
@@ -526,7 +528,7 @@ export async function createOrUpdateUserAndAgents(
   };
 
   if (toolIds.length > 0) {
-    newUserData.tools = { version: "1.0.0", toolIds };
+    newUserData.tools = { version: "1.0.1", toolIds };
   }
 
   if (orchestratorAgentId) {

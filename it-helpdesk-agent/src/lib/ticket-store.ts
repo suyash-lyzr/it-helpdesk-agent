@@ -16,6 +16,7 @@ const DEFAULT_LIMIT = 50;
 
 type TicketDoc = LeanDocument<
   Ticket & {
+    lyzrUserId?: string;
     external_ids?: Map<string, string> | Record<string, string>;
     created_at: Date | string;
     updated_at: Date | string;
@@ -41,6 +42,7 @@ const mapTicket = (doc: TicketDoc): Ticket => {
       : undefined;
 
   return {
+    lyzrUserId: doc.lyzrUserId,
     id: doc.id,
     ticket_type: doc.ticket_type,
     title: doc.title,
@@ -85,10 +87,11 @@ export async function createTicket(data: CreateTicketRequest): Promise<Ticket> {
     !assignee &&
     data.collected_details?.manager_name
   ) {
-    assignee = data.collected_details.manager_name;
+    assignee = String((data.collected_details as any).manager_name);
   }
 
   const doc = await TicketModel.create({
+    lyzrUserId: data.lyzrUserId || "unknown",
     id: generateTicketId(),
     ticket_type: data.ticket_type,
     title: data.title,
@@ -119,6 +122,7 @@ export async function getTickets(
 
   const filter: FilterQuery<Ticket> = {};
 
+  if (params?.lyzrUserId) filter.lyzrUserId = params.lyzrUserId;
   if (params?.status) filter.status = params.status;
   if (params?.priority) filter.priority = params.priority;
   if (params?.ticket_type) filter.ticket_type = params.ticket_type;
@@ -142,15 +146,25 @@ export async function getTickets(
   };
 }
 
-export async function getTicketById(id: string): Promise<Ticket | null> {
+export async function getTicketById(
+  id: string,
+  lyzrUserId?: string
+): Promise<Ticket | null> {
   await connectToDatabase();
-  const doc = await TicketModel.findOne({ id }).lean<TicketDoc>();
+
+  const filter: FilterQuery<Ticket> = { id };
+  if (lyzrUserId) {
+    (filter as any).lyzrUserId = lyzrUserId;
+  }
+
+  const doc = await TicketModel.findOne(filter).lean<TicketDoc>();
   return doc ? mapTicket(doc) : null;
 }
 
 export async function updateTicket(
   id: string,
-  data: UpdateTicketRequest
+  data: UpdateTicketRequest,
+  lyzrUserId?: string
 ): Promise<Ticket | null> {
   await connectToDatabase();
 
@@ -159,7 +173,12 @@ export async function updateTicket(
     updated_at: new Date(),
   };
 
-  const doc = (await TicketModel.findOneAndUpdate({ id }, update, {
+  const filter: FilterQuery<Ticket> = { id };
+  if (lyzrUserId) {
+    (filter as any).lyzrUserId = lyzrUserId;
+  }
+
+  const doc = (await TicketModel.findOneAndUpdate(filter, update, {
     new: true,
     lean: true,
   })) as TicketDoc | null;
@@ -167,13 +186,22 @@ export async function updateTicket(
   return doc ? mapTicket(doc) : null;
 }
 
-export async function deleteTicket(id: string): Promise<boolean> {
+export async function deleteTicket(
+  id: string,
+  lyzrUserId?: string
+): Promise<boolean> {
   await connectToDatabase();
-  const result = await TicketModel.deleteOne({ id });
+
+  const filter: FilterQuery<Ticket> = { id };
+  if (lyzrUserId) {
+    (filter as any).lyzrUserId = lyzrUserId;
+  }
+
+  const result = await TicketModel.deleteOne(filter);
   return result.deletedCount === 1;
 }
 
-export async function getTicketCounts(): Promise<{
+export async function getTicketCounts(lyzrUserId?: string): Promise<{
   total: number;
   open: number;
   in_progress: number;
@@ -182,12 +210,17 @@ export async function getTicketCounts(): Promise<{
 }> {
   await connectToDatabase();
 
+  const baseFilter: FilterQuery<Ticket> = {};
+  if (lyzrUserId) {
+    (baseFilter as any).lyzrUserId = lyzrUserId;
+  }
+
   const [total, open, inProgress, resolved, closed] = await Promise.all([
-      TicketModel.estimatedDocumentCount(),
-      TicketModel.countDocuments({ status: "open" }),
-      TicketModel.countDocuments({ status: "in_progress" }),
-      TicketModel.countDocuments({ status: "resolved" }),
-      TicketModel.countDocuments({ status: "closed" }),
+    TicketModel.countDocuments(baseFilter),
+    TicketModel.countDocuments({ ...baseFilter, status: "open" }),
+    TicketModel.countDocuments({ ...baseFilter, status: "in_progress" }),
+    TicketModel.countDocuments({ ...baseFilter, status: "resolved" }),
+    TicketModel.countDocuments({ ...baseFilter, status: "closed" }),
     ]);
 
   return {
@@ -199,18 +232,27 @@ export async function getTicketCounts(): Promise<{
   };
 }
 
-export async function searchTickets(query: string): Promise<Ticket[]> {
+export async function searchTickets(
+  query: string,
+  lyzrUserId?: string
+): Promise<Ticket[]> {
   await connectToDatabase();
   const regex = new RegExp(query, "i");
 
-  const docs = await TicketModel.find({
+  const criteria: FilterQuery<Ticket> = {
     $or: [
       { title: regex },
       { description: regex },
       { user_name: regex },
       { app_or_system: regex },
     ],
-  })
+  };
+
+  if (lyzrUserId) {
+    (criteria as any).lyzrUserId = lyzrUserId;
+  }
+
+  const docs = await TicketModel.find(criteria)
     .sort({ created_at: -1 })
     .lean<TicketDoc>();
 

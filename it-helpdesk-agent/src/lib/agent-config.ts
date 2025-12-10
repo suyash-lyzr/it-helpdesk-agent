@@ -391,6 +391,16 @@ export const ticketManagerTools = {
         operationId: "getTickets",
         parameters: [
           {
+            name: "x-lyzr-user-id",
+            in: "header",
+            description:
+              "Internal owner identifier for scoping tickets to a specific user. Automatically set by per-user tools; UI calls rely on cookies instead.",
+            required: false,
+            schema: {
+              type: "string",
+            },
+          },
+          {
             name: "status",
             in: "query",
             description: "Filter tickets by status",
@@ -427,7 +437,14 @@ export const ticketManagerTools = {
             required: false,
             schema: {
               type: "string",
-              enum: ["IT Helpdesk", "Network", "Security", "DevOps"],
+              enum: [
+                "Network",
+                "Endpoint Support",
+                "Application Support",
+                "IAM",
+                "Security",
+                "DevOps",
+              ],
             },
           },
           {
@@ -491,6 +508,18 @@ export const ticketManagerTools = {
         description:
           "Create a new IT support ticket. Use this when a user issue needs to be escalated or when an access request needs to be processed. The ticket will be assigned a unique ID automatically.",
         operationId: "createTicket",
+        parameters: [
+          {
+            name: "x-lyzr-user-id",
+            in: "header",
+            description:
+              "Internal owner identifier for this ticket. Automatically set by per-user tools; UI calls rely on cookies instead.",
+            required: false,
+            schema: {
+              type: "string",
+            },
+          },
+        ],
         requestBody: {
           required: true,
           content: {
@@ -753,7 +782,14 @@ export const ticketManagerTools = {
           },
           suggested_team: {
             type: "string",
-            enum: ["IT Helpdesk", "Network", "Security", "DevOps"],
+            enum: [
+              "Network",
+              "Endpoint Support",
+              "Application Support",
+              "IAM",
+              "Security",
+              "DevOps",
+            ],
             description: "Team that should handle this ticket",
           },
           status: {
@@ -812,8 +848,15 @@ export const ticketManagerTools = {
           },
           suggested_team: {
             type: "string",
-            enum: ["IT Helpdesk", "Network", "Security", "DevOps"],
-            default: "IT Helpdesk",
+            enum: [
+              "Network",
+              "Endpoint Support",
+              "Application Support",
+              "IAM",
+              "Security",
+              "DevOps",
+            ],
+            default: "Application Support",
           },
         },
       },
@@ -846,7 +889,14 @@ export const ticketManagerTools = {
           },
           suggested_team: {
             type: "string",
-            enum: ["IT Helpdesk", "Network", "Security", "DevOps"],
+            enum: [
+              "Network",
+              "Endpoint Support",
+              "Application Support",
+              "IAM",
+              "Security",
+              "DevOps",
+            ],
           },
           status: {
             type: "string",

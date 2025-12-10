@@ -7,8 +7,40 @@ import {
 import { getTickets } from "@/lib/ticket-store";
 import { applyTicketFilters } from "@/lib/filter-utils";
 
+function getLyzrUserIdFromRequest(request: NextRequest): string | null {
+  // 1) Primary source: browser UI cookie set by AuthProvider
+  const cookieUserId = request.cookies.get("user_id")?.value;
+  if (cookieUserId && cookieUserId.trim() !== "") {
+    return cookieUserId.trim();
+  }
+
+  // 2) Fallback for server-to-server / Lyzr tools: explicit headers
+  const headerUserId =
+    request.headers.get("x-lyzr-user-id") ||
+    request.headers.get("x-user-id") ||
+    request.headers.get("user_id");
+
+  if (headerUserId && headerUserId.trim() !== "") {
+    return headerUserId.trim();
+  }
+
+  return null;
+}
+
 export async function GET(request: NextRequest) {
   try {
+    const lyzrUserId = getLyzrUserIdFromRequest(request);
+    if (!lyzrUserId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Missing user context. A valid user_id cookie or x-lyzr-user-id header is required.",
+        },
+        { status: 400 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const since = searchParams.get("since");
     const startDate = searchParams.get("start_date");
@@ -23,7 +55,7 @@ export async function GET(request: NextRequest) {
     if (end) end.setHours(23, 59, 59, 999);
 
     // Get tickets from database
-    const { tickets: allTickets } = await getTickets();
+    const { tickets: allTickets } = await getTickets({ lyzrUserId });
 
     // Apply filters
     const filteredTickets = applyTicketFilters(allTickets, {

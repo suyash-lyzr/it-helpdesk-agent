@@ -12,7 +12,8 @@ import {
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Authorization, x-lyzr-user-id, x-user-id, user_id",
 };
 
 // Handle preflight requests
@@ -23,14 +24,46 @@ export async function OPTIONS() {
   });
 }
 
+function getLyzrUserIdFromRequest(request: NextRequest): string | null {
+  // 1) Primary source: browser UI cookie set by AuthProvider
+  const cookieUserId = request.cookies.get("user_id")?.value;
+  if (cookieUserId && cookieUserId.trim() !== "") {
+    return cookieUserId.trim();
+  }
+
+  // 2) Fallback for server-to-server / Lyzr tools: explicit headers
+  const headerUserId =
+    request.headers.get("x-lyzr-user-id") ||
+    request.headers.get("x-user-id") ||
+    request.headers.get("user_id");
+
+  if (headerUserId && headerUserId.trim() !== "") {
+    return headerUserId.trim();
+  }
+
+  return null;
+}
+
 // GET /api/tickets/[id] - Get a single ticket by ID
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const lyzrUserId = getLyzrUserIdFromRequest(request);
+    if (!lyzrUserId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Missing user context. A valid user_id cookie or x-lyzr-user-id header is required.",
+        },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
     const { id } = params;
-    const ticket = await getTicketById(id);
+    const ticket = await getTicketById(id, lyzrUserId);
 
     if (!ticket) {
       return NextResponse.json(
@@ -68,11 +101,23 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const lyzrUserId = getLyzrUserIdFromRequest(request);
+    if (!lyzrUserId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Missing user context. A valid user_id cookie or x-lyzr-user-id header is required.",
+        },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
     const { id } = params;
     const body = await request.json();
 
     // Check if ticket exists
-    const existingTicket = await getTicketById(id);
+    const existingTicket = await getTicketById(id, lyzrUserId);
     if (!existingTicket) {
       return NextResponse.json(
         {
@@ -255,7 +300,7 @@ export async function PUT(
       updateData.csat_comment = body.csat_comment;
     }
 
-    const updatedTicket = await updateTicket(id, updateData);
+    const updatedTicket = await updateTicket(id, updateData, lyzrUserId);
 
     return NextResponse.json(
       {
@@ -283,9 +328,21 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const lyzrUserId = getLyzrUserIdFromRequest(request);
+    if (!lyzrUserId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Missing user context. A valid user_id cookie or x-lyzr-user-id header is required.",
+        },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
     const { id } = params;
 
-    const deleted = await deleteTicket(id);
+    const deleted = await deleteTicket(id, lyzrUserId);
 
     if (!deleted) {
       return NextResponse.json(

@@ -36,6 +36,12 @@ export interface TicketGeneratorInput {
 // Full ticket structure stored in the system
 export interface Ticket {
   id: string;
+  /**
+   * Internal owner of the ticket in this app.
+   * This maps to the authenticated Lyzr user (lyzrUserId)
+   * so that all tickets, counts and analytics are scoped per-user.
+   */
+  lyzrUserId?: string;
   ticket_type: TicketType;
   title: string;
   description: string;
@@ -68,6 +74,12 @@ export interface CreateTicketRequest {
   ticket_type: TicketType;
   title: string;
   description: string;
+  /**
+   * Optional owner for server-to-server calls.
+   * In the app we always derive this from the authenticated user
+   * (cookie or headers) and do not rely on clients to set it.
+   */
+  lyzrUserId?: string;
   user_name?: string;
   app_or_system?: string;
   priority?: TicketPriority;
@@ -137,6 +149,11 @@ export interface TicketQueryParams {
   suggested_team?: SuggestedTeam;
   limit?: number;
   offset?: number;
+  /**
+   * Internal owner filter – when present, all queries are scoped
+   * to this Lyzr user ID so each user only sees their own tickets.
+   */
+  lyzrUserId?: string;
 }
 
 // Helper function to generate ticket ID
