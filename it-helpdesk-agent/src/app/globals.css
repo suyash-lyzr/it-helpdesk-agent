@@ -58,43 +58,44 @@
 }
 
 .dark {
-  /* Sleek near-black base with subtle purple accents (less blue) */
-  --background: oklch(0.11 0.02 260);
-  --foreground: oklch(0.97 0.02 260);
-  --card: oklch(0.16 0.02 270);
-  --card-foreground: oklch(0.97 0.02 260);
-  --popover: oklch(0.16 0.02 270);
-  --popover-foreground: oklch(0.97 0.02 260);
-  --primary: oklch(0.63 0.26 291); /* vibrant purple for CTAs */
+  /* Exact colors from HR Helpdesk reference */
+  --background: oklch(0.1408 0.0044 285.8229);
+  --foreground: oklch(0.9842 0.0034 247.8575);
+  --card: oklch(24.565% 0.00944 285.65);
+  --card-foreground: oklch(0.9842 0.0034 247.8575);
+  --popover: oklch(0.2103 0.0059 285.8852);
+  --popover-foreground: oklch(0.9842 0.0034 247.8575);
+  --primary: oklch(0.5976 0.2311 286.3572);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.22 0.02 260);
-  --secondary-foreground: oklch(0.96 0.02 260);
-  --muted: oklch(0.22 0.02 260);
-  --muted-foreground: oklch(0.7 0.03 255);
-  --accent: oklch(0.22 0.02 260);
-  --accent-foreground: oklch(0.96 0.02 260);
-  --destructive: oklch(0.4 0.12 25);
+  --secondary: oklch(0.2739 0.0055 286.0326);
+  --secondary-foreground: oklch(0.9842 0.0034 247.8575);
+  --muted: oklch(0.2739 0.0055 286.0326);
+  --muted-foreground: oklch(0.7118 0.0129 286.0665);
+  --accent: oklch(0.2739 0.0055 286.0326);
+  --accent-foreground: oklch(0.9842 0.0034 247.8575);
+  --destructive: oklch(0.3958 0.1331 25.723);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.26 0.02 260);
-  --input: oklch(0.26 0.02 260);
-  --ring: oklch(0.63 0.26 291);
-  --chart-1: oklch(0.63 0.26 291);
-  --chart-2: oklch(0.66 0.18 325);
-  --chart-3: oklch(0.6 0.16 340);
-  --chart-4: oklch(0.82 0.16 84);
-  --chart-5: oklch(0.5 0.19 28);
-  --sidebar: oklch(0.09 0.02 260);
-  --sidebar-foreground: oklch(0.96 0.02 260);
-  --sidebar-primary: oklch(0.63 0.26 291);
+  --border: oklch(0.2739 0.0055 286.0326);
+  --input: oklch(0.2739 0.0055 286.0326);
+  --ring: oklch(0.5325 0.2397 288.128);
+  --chart-1: oklch(0.5976 0.2311 286.3572);
+  --chart-2: oklch(0.6541 0.1593 325.1735);
+  --chart-3: oklch(0.582 0.1263 336.9481);
+  --chart-4: oklch(0.8369 0.1644 84.4286);
+  --chart-5: oklch(0.5054 0.1905 27.5181);
+  --sidebar: oklch(0.1408 0.0044 285.8229);
+  --sidebar-foreground: oklch(0.9842 0.0034 247.8575);
+  --sidebar-primary: oklch(0.5976 0.2311 286.3572);
   --sidebar-primary-foreground: oklch(1 0 0);
-  /* Rich purple pill for active state in sidebar - tuned closer to HR reference */
-  --sidebar-accent: oklch(0.6 0.24 295);
-  --sidebar-accent-foreground: oklch(0.98 0.02 260);
-  /* Softer, lighter purple for hover state */
-  --sidebar-hover: oklch(0.45 0.18 295);
-  --sidebar-hover-foreground: oklch(0.98 0.02 260);
-  --sidebar-border: oklch(0.23 0.02 260);
-  --sidebar-ring: oklch(0.63 0.26 291);
+  /* Sidebar accent colors from HR reference */
+  --sidebar-accent: oklch(0.2103 0.0059 285.8852);
+  --sidebar-accent-foreground: oklch(0.9842 0.0034 247.8575);
+  --sidebar-accent-hover: oklch(0.2103 0.0059 285.8852);
+  --sidebar-accent-hover-foreground: oklch(0.9842 0.0034 247.8575);
+  --sidebar-accent-active: var(--primary);
+  --sidebar-accent-active-foreground: var(--primary-foreground);
+  --sidebar-border: oklch(0.2739 0.0055 286.0326);
+  --sidebar-ring: oklch(0.5325 0.2397 288.128);
   --font-sans: "Switzer", ui-sans-serif, sans-serif, system-ui;
   --font-serif: "Switzer", ui-serif, serif, system-ui;
   --font-mono: monospace;
@@ -111,7 +112,7 @@
     0px 4px 6px -1px hsl(0 0% 0% / 0.1);
   --shadow-xl: 0px 4px 2px 0px hsl(0 0% 0% / 0.1),
     0px 8px 10px -1px hsl(0 0% 0% / 0.1);
-  --shadow-2xl: 0px 4px 2px 0px hsl(0 0% 0% / 0.25);
+  --shadow-2xl: 0px 4px 24px 0px hsl(0 0% 0% / 0.5);
 }
 
 @theme inline {
@@ -202,10 +203,55 @@ body {
   background-repeat: no-repeat;
 }
 
-/* Softer purple hover color for sidebar items (not active) */
-.dark [data-sidebar="menu-button"]:not([data-active="true"]):hover {
-  background-color: var(--sidebar-hover);
-  color: var(--sidebar-hover-foreground);
+/* Remove gap between sidebar and main content */
+[data-variant="inset"][data-slot="sidebar-container"] {
+  padding: 0 !important;
+  padding-right: 0 !important;
+}
+
+[data-slot="sidebar-container"] {
+  padding-right: 0 !important;
+}
+
+[data-variant="inset"][data-slot="sidebar-inner"] {
+  border-right: 1px solid var(--sidebar-border) !important;
+}
+
+/* Custom sidebar overrides matching HR Helpdesk reference */
+@layer components {
+  /* Active sidebar menu buttons use primary purple */
+  [data-sidebar="menu-button"][data-active="true"],
+  [data-slot="sidebar-menu-button"][data-active="true"],
+  .peer\/menu-button[data-active="true"] {
+    background-color: var(--sidebar-accent-active) !important;
+    color: var(--sidebar-accent-active-foreground) !important;
+    transition: all 0.2s ease-in-out !important;
+  }
+
+  /* Hover state for active buttons */
+  [data-sidebar="menu-button"][data-active="true"]:hover,
+  [data-slot="sidebar-menu-button"][data-active="true"]:hover,
+  .peer\/menu-button[data-active="true"]:hover {
+    background-color: var(--sidebar-accent-active) !important;
+    opacity: 0.8 !important;
+    color: var(--sidebar-accent-active-foreground) !important;
+  }
+
+  /* Smooth transitions for sidebar buttons */
+  [data-sidebar="menu-button"],
+  [data-slot="sidebar-menu-button"],
+  .peer\/menu-button {
+    transition: all 0.2s ease-in-out !important;
+  }
+
+  /* Hover state for inactive items - subtle grey from reference */
+  [data-sidebar="menu-button"]:not([data-active="true"]):hover,
+  [data-slot="sidebar-menu-button"]:not([data-active="true"]):hover,
+  .peer\/menu-button:not([data-active="true"]):hover {
+    background-color: var(--sidebar-accent-hover) !important;
+    color: var(--sidebar-accent-hover-foreground) !important;
+    transition: all 0.2s ease-in-out !important;
+  }
 }
 
 ::selection {

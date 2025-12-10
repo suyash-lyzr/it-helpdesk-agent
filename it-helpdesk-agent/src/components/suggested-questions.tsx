@@ -1,6 +1,7 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
+import { ArrowUpRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const suggestedQuestions = [
   "How do I set up VPN on my Mac?",
@@ -10,28 +11,27 @@ const suggestedQuestions = [
   "I need Figma full access for design work",
   "I forgot my password and nothing works",
   "What can you help me with?",
-]
+];
 
 interface SuggestedQuestionsProps {
-  onSelect: (question: string) => void
+  onSelect: (question: string) => void;
 }
 
 export function SuggestedQuestions({ onSelect }: SuggestedQuestionsProps) {
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="w-full max-w-3xl mx-auto">
+      <div className="flex flex-wrap justify-center gap-3">
         {suggestedQuestions.map((question, index) => (
-          <Button
+          <button
             key={index}
-            variant="outline"
-            className="h-auto min-h-[52px] py-3 px-4 text-left justify-start whitespace-normal text-sm font-medium hover:border-primary hover:bg-accent/50 transition-colors"
+            className="h-auto py-2.5 px-5 rounded-full bg-primary/10 dark:bg-primary/15 hover:bg-primary/15 dark:hover:bg-primary/20 text-primary dark:text-primary border-0 font-normal text-sm transition-colors flex items-center gap-2 cursor-pointer"
             onClick={() => onSelect(question)}
           >
-            {question}
-          </Button>
+            <ArrowUpRight className="h-4 w-4 shrink-0" />
+            <span className="whitespace-normal text-center">{question}</span>
+          </button>
         ))}
       </div>
     </div>
-  )
+  );
 }
-

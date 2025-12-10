@@ -35,7 +35,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 
@@ -88,19 +87,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   };
 
   return (
-    <Sidebar
-      collapsible="icon"
-      className="border-r border-sidebar-border/50"
-      {...props}
-    >
-      <SidebarHeader className="relative">
-        <SidebarMenu>
+    <Sidebar collapsible="icon" {...props}>
+      <SidebarHeader className="relative flex flex-col gap-2 p-2">
+        {/* Expand/Collapse trigger - top-left when collapsed, top-right when expanded */}
+        <div className="absolute top-2 right-2 z-10 group-data-[state=collapsed]:relative group-data-[state=collapsed]:top-0 group-data-[state=collapsed]:right-auto group-data-[state=collapsed]:left-0 group-data-[state=collapsed]:self-start group-data-[state=collapsed]:z-auto">
+          <SidebarTrigger className="h-7 w-7 rounded-md bg-transparent hover:bg-muted/40" />
+        </div>
+        {/* Logo and text - below trigger when collapsed */}
+        <SidebarMenu className="group-data-[state=collapsed]:mt-0 relative z-0">
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
+              className="data-[slot=sidebar-menu-button]:!p-1.5 group-data-[state=collapsed]:!p-2 group-data-[state=collapsed]:justify-center relative z-0"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 group-data-[state=collapsed]:flex-col group-data-[state=collapsed]:gap-1">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden">
                   <Image
                     src="/lyzr_logo.png"
@@ -110,7 +110,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     className="object-contain"
                   />
                 </div>
-                <div className="flex flex-col">
+                <div className="flex flex-col group-data-[state=collapsed]:hidden">
                   <span className="text-sm font-semibold">IT Helpdesk</span>
                   <span className="text-xs text-muted-foreground">Agent</span>
                 </div>
@@ -118,9 +118,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <div className="absolute top-2 right-2">
-          <SidebarTrigger className="h-7 w-7 rounded-md bg-transparent hover:bg-muted/40" />
-        </div>
       </SidebarHeader>
 
       <SidebarContent>
@@ -252,8 +249,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
-      {/* Clickable rail on the edge to collapse / expand like HR Helpdesk */}
-      <SidebarRail />
     </Sidebar>
   );
 }

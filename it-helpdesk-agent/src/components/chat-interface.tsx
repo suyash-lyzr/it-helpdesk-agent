@@ -339,7 +339,7 @@ export function ChatInterface() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask a follow-up question..."
+              placeholder="Ask a question about IT support, access permissions, or technical issues…"
               className="min-h-[52px] max-h-32 resize-none pr-14 rounded-xl border-border text-base"
               disabled={isLoading}
             />
