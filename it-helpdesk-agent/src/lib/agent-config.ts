@@ -378,8 +378,8 @@ export const ticketManagerTools = {
   },
   servers: [
     {
-      url: "https://nervily-chordamesodermic-renda.ngrok-free.dev",
-      description: "Development server (replace with your ngrok URL)",
+      url: "https://it-helpdesk-agent.vercel.app",
+      description: "Production server",
     },
   ],
   paths: {

@@ -102,8 +102,7 @@ async function createTicketManagerToolsForUser(
   userId: string
 ): Promise<string[]> {
   const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "https://nervily-chordamesodermic-renda.ngrok-free.dev";
+    process.env.NEXT_PUBLIC_APP_URL || "https://it-helpdesk-agent.vercel.app";
 
   // Update the tools schema with the correct server URL
   const updatedTools = {
