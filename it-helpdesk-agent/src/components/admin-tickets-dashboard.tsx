@@ -44,6 +44,8 @@ import {
   addLiveEvent,
   AccessRequestAnalytics,
 } from "@/lib/analytics-store";
+import { useAuth } from "@/lib/AuthProvider";
+import { shouldShowPremiumLock } from "@/lib/demo-utils";
 
 interface AdminTicketsDashboardProps {
   tickets: Ticket[];
@@ -60,6 +62,9 @@ export function AdminTicketsDashboard({
   isLoading,
   onTicketClick,
 }: AdminTicketsDashboardProps) {
+  const { email } = useAuth();
+  const showPremiumLock = shouldShowPremiumLock(email);
+
   const [selectedTicket, setSelectedTicket] = React.useState<Ticket | null>(
     null
   );
@@ -584,6 +589,7 @@ export function AdminTicketsDashboard({
           {forecastData.length > 0 && (
             <ForecastChart
               data={forecastData}
+              demoMode={showPremiumLock}
               onAnomalyAction={(anomaly, action) => {
                 if (action === "create_incident") {
                   // Already handled in ForecastChart component with toast
@@ -664,6 +670,7 @@ export function AdminTicketsDashboard({
         {/* Reports & Alerts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 px-6 lg:px-8">
           <ReportBuilder
+            demoMode={showPremiumLock}
             onGenerateReport={handleReportGenerate}
             scheduledReports={scheduledReports}
             onReportsUpdated={() => {
@@ -678,7 +685,7 @@ export function AdminTicketsDashboard({
                 .catch(console.error);
             }}
           />
-          <AlertRules />
+          <AlertRules demoMode={showPremiumLock} />
         </div>
 
         {/* Tickets Table */}

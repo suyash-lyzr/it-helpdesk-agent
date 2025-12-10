@@ -92,6 +92,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { useAuth } from "@/lib/AuthProvider";
+import { shouldShowPremiumLock } from "@/lib/demo-utils";
 
 // Types
 type DocumentStatus = "Uploading" | "Processing" | "Processed" | "Failed";
@@ -379,6 +381,9 @@ const dummyDuplicates: DuplicatePair[] = [
 ];
 
 export default function KnowledgeBasePage() {
+  const { email } = useAuth();
+  const showPremiumLock = shouldShowPremiumLock(email);
+
   const [documents, setDocuments] =
     React.useState<Document[]>(initialDocuments);
   const [aiInsights] = React.useState<AIInsight>(dummyAIInsights);
@@ -1225,44 +1230,46 @@ export default function KnowledgeBasePage() {
                 </TabsContent>
 
                 <TabsContent value="improve-with-ai" className="space-y-4">
-                  {/* Premium Badge */}
-                  <Card className="border-2 border-[#603BFC]/30 bg-gradient-to-br from-[#603BFC]/5 to-[#A94FA1]/5">
-                    <CardContent className="p-8">
-                      <div className="flex flex-col items-center gap-4 text-center">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-[#603BFC]/10 to-[#A94FA1]/10">
-                            <Zap className="h-6 w-6 text-[#603BFC]" />
+                  {/* Premium Badge - Only show for non-demo accounts */}
+                  {showPremiumLock && (
+                    <Card className="border-2 border-[#603BFC]/30 bg-gradient-to-br from-[#603BFC]/5 to-[#A94FA1]/5">
+                      <CardContent className="p-8">
+                        <div className="flex flex-col items-center gap-4 text-center">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-[#603BFC]/10 to-[#A94FA1]/10">
+                              <Zap className="h-6 w-6 text-[#603BFC]" />
+                            </div>
+                            <Badge className="bg-gradient-to-r from-[#603BFC] to-[#A94FA1] text-white border-0">
+                              <Crown className="h-3 w-3 mr-1" />
+                              Premium
+                            </Badge>
                           </div>
-                          <Badge className="bg-gradient-to-r from-[#603BFC] to-[#A94FA1] text-white border-0">
-                            <Crown className="h-3 w-3 mr-1" />
-                            Premium
-                          </Badge>
+                          <div>
+                            <h3 className="text-lg font-semibold mb-2">
+                              AI-Powered Knowledge Gap Analysis
+                            </h3>
+                            <p className="text-sm text-muted-foreground max-w-md mb-4">
+                              Automatically identify knowledge gaps, generate
+                              article suggestions, and improve your knowledge
+                              base coverage.
+                            </p>
+                            <Button
+                              onClick={() => {
+                                window.open(
+                                  "https://www.lyzr.ai/book-demo/",
+                                  "_blank"
+                                );
+                              }}
+                              className="bg-gradient-to-r from-[#603BFC] to-[#A94FA1] hover:opacity-90 text-white"
+                            >
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              Book a Demo to Unlock
+                            </Button>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="text-lg font-semibold mb-2">
-                            AI-Powered Knowledge Gap Analysis
-                          </h3>
-                          <p className="text-sm text-muted-foreground max-w-md mb-4">
-                            Automatically identify knowledge gaps, generate
-                            article suggestions, and improve your knowledge base
-                            coverage.
-                          </p>
-                          <Button
-                            onClick={() => {
-                              window.open(
-                                "https://www.lyzr.ai/book-demo/",
-                                "_blank"
-                              );
-                            }}
-                            className="bg-gradient-to-r from-[#603BFC] to-[#A94FA1] hover:opacity-90 text-white"
-                          >
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Book a Demo to Unlock
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {/* Controls Row */}
                   <div

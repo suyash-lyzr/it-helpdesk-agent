@@ -108,7 +108,7 @@ export async function createTicket(data: CreateTicketRequest): Promise<Ticket> {
     collected_details: data.collected_details || {},
     suggested_team: data.suggested_team || "Application Support",
     status: data.status || "open",
-    created_at: now,
+    created_at: data.created_at ? new Date(data.created_at) : now,
     updated_at: now,
     sla_due_at: slaDueAt,
     source: data.source || "chat",
@@ -116,6 +116,17 @@ export async function createTicket(data: CreateTicketRequest): Promise<Ticket> {
     asset_id: data.asset_id,
     external_ids: data.external_ids,
     lifecycle_stage: "new",
+    // Accept timestamp fields from data for demo seeding
+    first_response_at: data.first_response_at
+      ? new Date(data.first_response_at)
+      : undefined,
+    resolved_at: data.resolved_at ? new Date(data.resolved_at) : undefined,
+    csat_score: data.csat_score,
+    csat_submitted_at: data.csat_score !== undefined ? now : undefined,
+    lifecycle_stage: data.lifecycle_stage || "new",
+    sla_breached_at: data.sla_breached_at
+      ? new Date(data.sla_breached_at)
+      : undefined,
   });
 
   return mapTicket(doc.toObject() as TicketDoc);

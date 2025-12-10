@@ -91,6 +91,13 @@ export interface CreateTicketRequest {
   assignee?: string;
   asset_id?: string;
   external_ids?: Record<string, string>;
+  // Timestamp fields (for demo data seeding)
+  created_at?: string;
+  first_response_at?: string;
+  resolved_at?: string;
+  csat_score?: number;
+  lifecycle_stage?: LifecycleStage;
+  sla_breached_at?: string;
   // Conversation history (optional, for preserving full chat)
   conversation?: Array<{
     role: "user" | "assistant" | "system";

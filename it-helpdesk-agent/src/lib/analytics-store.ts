@@ -463,11 +463,16 @@ export function getTeamPerformance(tickets: Ticket[]): TeamPerformance[] {
     "DevOps",
   ] as const;
   const agents = [
-    "John Doe",
-    "Jane Smith",
-    "Bob Johnson",
-    "Alice Williams",
-    "Charlie Brown",
+    "Sarah Chen",
+    "Michael Rodriguez",
+    "Jennifer Park",
+    "Thomas Anderson",
+    "David Kim",
+    "Emma Watson",
+    "James Wilson",
+    "Amanda White",
+    "Kevin Zhang",
+    "Rachel Green",
   ];
 
   const result: TeamPerformance[] = [];
@@ -590,8 +595,8 @@ export function getForecast(days: number = 7): ForecastData[] {
     const isAccessAnomaly = date === accessAnomalyDate;
 
     if (isVpnAnomaly) {
-      // VPN surge forecasted anomaly
-      predicted = baseCount * 3; // 200% increase
+      // VPN and Network issues surge forecasted anomaly
+      predicted = baseCount * 2.8; // 180% increase
       forecast.push({
         date,
         predictedCount: Math.round(predicted),
@@ -599,24 +604,26 @@ export function getForecast(days: number = 7): ForecastData[] {
         confidenceUpper: Math.round(predicted + confidence * 2),
         anomalyFlag: true,
         anomalyType: "forecasted",
-        anomalyReason: "VPN surge +200% vs baseline",
-        anomalyHeadline: "VPN surge expected (+200% vs baseline)",
+        anomalyReason: "Network & VPN surge +180% vs baseline",
+        anomalyHeadline: "Network & VPN tickets expected to spike (+180%)",
         anomalyReasons: [
-          "Historical pattern: VPN spikes on Fridays during WFH (last 12 weeks).",
-          "Planned VPN gateway update scheduled on Dec 11.",
+          "Historical pattern: VPN disconnection issues increase on Fridays (WFH spike).",
+          "Multiple WiFi connectivity tickets flagged in west wing area.",
+          "Scheduled network maintenance may trigger support tickets.",
         ],
         anomalyConfidence: "high",
         anomalyImpact: "high",
         anomalyActions: [
-          { label: "Create Incident", primary: true },
-          { label: "Notify Network Team" },
+          { label: "Alert Network Team", primary: true },
+          { label: "Prepare Incident Response" },
+          { label: "Send Proactive Communication" },
         ],
         anomalyProvenance:
-          "Based on 90 days of ticket history + scheduled change calendar + integration events",
+          "Based on 90 days of ticket history + scheduled maintenance calendar + recent network incidents",
       });
     } else if (isAccessAnomaly) {
-      // Access request detected anomaly
-      predicted = baseCount * 1.8; // 80% increase
+      // Access request and security tickets detected anomaly
+      predicted = baseCount * 1.9; // 90% increase
       forecast.push({
         date,
         predictedCount: Math.round(predicted),
@@ -624,20 +631,22 @@ export function getForecast(days: number = 7): ForecastData[] {
         confidenceUpper: Math.round(predicted + confidence * 1.5),
         anomalyFlag: true,
         anomalyType: "detected",
-        anomalyReason: "Access request surge detected (+80%)",
-        anomalyHeadline: "Access request surge detected (+80%)",
+        anomalyReason: "Access requests & security alerts surge (+90%)",
+        anomalyHeadline: "Spike in IAM & Security tickets detected (+90%)",
         anomalyReasons: [
-          "New joiner batch processed by HR yesterday.",
-          "Approver delays observed in last 48h.",
+          "Multiple access requests: Salesforce admin, shared drive, MFA resets.",
+          "Suspicious login attempt detected requiring immediate attention.",
+          "Account lockout incidents increased 40% in last 24h.",
         ],
-        anomalyConfidence: "medium",
+        anomalyConfidence: "high",
         anomalyImpact: "medium",
         anomalyActions: [
-          { label: "Send Reminder to Approvers", primary: true },
-          { label: "Create Incident" },
+          { label: "Review Security Incidents", primary: true },
+          { label: "Send Reminder to Approvers" },
+          { label: "Enable Auto-approval for Low-risk" },
         ],
         anomalyProvenance:
-          "Based on 90 days of ticket history + scheduled change calendar + integration events",
+          "Based on access request patterns + security event logs + approval delays",
       });
     } else {
       // Normal forecast
@@ -751,84 +760,90 @@ export interface AccessRequestAnalytics {
 // Seeded demo data for access requests
 const seededManagers: ManagerPerformance[] = [
   {
-    manager: "John Manager",
-    avgApprovalTime: 72,
-    requestCount: 11,
-    overdueCount: 6,
-    overduePercentage: 54.5,
-  },
-  {
-    manager: "Jane Director",
-    avgApprovalTime: 6,
-    requestCount: 8,
+    manager: "Mary Johnson (VP Sales)",
+    avgApprovalTime: 4.5,
+    requestCount: 12,
     overdueCount: 0,
     overduePercentage: 0,
   },
   {
-    manager: "Bob VP",
-    avgApprovalTime: 48,
+    manager: "Lisa Anderson (HR Director)",
+    avgApprovalTime: 2.3,
     requestCount: 15,
-    overdueCount: 3,
+    overdueCount: 0,
+    overduePercentage: 0,
+  },
+  {
+    manager: "Patricia Lee",
+    avgApprovalTime: 18,
+    requestCount: 8,
+    overdueCount: 2,
+    overduePercentage: 25,
+  },
+  {
+    manager: "Thomas Anderson (IT Director)",
+    avgApprovalTime: 36,
+    requestCount: 10,
+    overdueCount: 2,
     overduePercentage: 20,
   },
   {
-    manager: "Alice Smith",
-    avgApprovalTime: 36,
-    requestCount: 12,
-    overdueCount: 2,
-    overduePercentage: 16.7,
+    manager: "Sarah Chen (Engineering Manager)",
+    avgApprovalTime: 8.5,
+    requestCount: 14,
+    overdueCount: 0,
+    overduePercentage: 0,
   },
   {
-    manager: "Charlie Brown",
-    avgApprovalTime: 24,
+    manager: "Michael Rodriguez (Team Lead)",
+    avgApprovalTime: 12.3,
     requestCount: 9,
-    overdueCount: 1,
-    overduePercentage: 11.1,
-  },
-  {
-    manager: "Diana Prince",
-    avgApprovalTime: 12,
-    requestCount: 7,
     overdueCount: 0,
     overduePercentage: 0,
   },
   {
-    manager: "Edward Norton",
-    avgApprovalTime: 60,
-    requestCount: 10,
-    overdueCount: 4,
-    overduePercentage: 40,
-  },
-  {
-    manager: "Fiona Apple",
-    avgApprovalTime: 18,
+    manager: "James Wilson (Operations)",
+    avgApprovalTime: 48,
     requestCount: 6,
+    overdueCount: 3,
+    overduePercentage: 50,
+  },
+  {
+    manager: "Jennifer Park (Product Manager)",
+    avgApprovalTime: 6.8,
+    requestCount: 11,
     overdueCount: 0,
     overduePercentage: 0,
   },
   {
-    manager: "George Lucas",
-    avgApprovalTime: 42,
-    requestCount: 13,
-    overdueCount: 2,
-    overduePercentage: 15.4,
+    manager: "David Kim (Sales Ops Manager)",
+    avgApprovalTime: 24,
+    requestCount: 7,
+    overdueCount: 1,
+    overduePercentage: 14.3,
   },
   {
-    manager: "Helen Mirren",
-    avgApprovalTime: 30,
-    requestCount: 8,
-    overdueCount: 1,
-    overduePercentage: 12.5,
+    manager: "Amanda White (Marketing Director)",
+    avgApprovalTime: 15.5,
+    requestCount: 5,
+    overdueCount: 0,
+    overduePercentage: 0,
   },
 ];
 
 const seededApplications = [
-  "Jira",
   "Salesforce",
-  "GitHub",
-  "Google Workspace",
-  "Slack",
+  "Jira",
   "Okta",
+  "VPN",
+  "Shared Drive",
+  "Google Drive",
+  "Microsoft Teams",
+  "GitHub",
+  "Adobe Creative Suite",
+  "Slack",
+  "Zoom",
+  "Google Workspace",
 ];
 const seededDepartments = [
   "Engineering",
@@ -837,6 +852,8 @@ const seededDepartments = [
   "Operations",
   "HR",
   "Finance",
+  "IT",
+  "Security",
 ];
 
 // Generate seeded pending approvals
