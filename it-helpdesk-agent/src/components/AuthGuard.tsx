@@ -6,19 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Loader2, LogIn } from "lucide-react";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, login } = useAuth();
+  const { isAuthenticated, isInitialized, login } = useAuth();
 
-  if (isLoading) {
+  // Show loading only while the first auth check is running
+  if (!isInitialized) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-background/80">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Initializing...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
   }
 
+  // Only show auth screen after initialization confirms user is not authenticated
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-background/80">

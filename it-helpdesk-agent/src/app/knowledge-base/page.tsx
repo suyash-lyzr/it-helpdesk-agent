@@ -36,7 +36,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
   Collapsible,
@@ -47,7 +46,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -62,20 +60,14 @@ import {
   Download,
   RefreshCw,
   Trash2,
-  FileCheck,
   TrendingUp,
   Eye,
-  Pencil,
   Archive,
   AlertCircle,
   Loader2,
   ExternalLink,
-  Link as LinkIcon,
-  Filter,
-  Calendar,
   ChevronRight,
   ChevronDown,
-  Info,
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -90,7 +82,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Slider } from "@/components/ui/slider";
 import {
   Sheet,
   SheetContent,
@@ -98,7 +89,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
 
 // Types
 type DocumentStatus = "Uploading" | "Processing" | "Processed" | "Failed";
@@ -123,15 +113,6 @@ interface Document {
   chunks?: number;
   embeddings?: number;
   lastEmbedTime?: string;
-}
-
-interface AuditLogEntry {
-  id: string;
-  timestamp: string;
-  action: string;
-  document?: string;
-  status: "success" | "error" | "info";
-  details?: string;
 }
 
 interface AIInsight {
@@ -190,334 +171,30 @@ interface InsertAuditEntry {
   kbDocumentTitle?: string;
 }
 
-// Mock data
-const initialDocuments: Document[] = [
-  {
-    id: "1",
-    title: "VPN Setup Guide",
-    category: ["Network", "Security"],
-    source: "Manual",
-    size: 245,
-    pages: 3,
-    status: "Processed",
-    processedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-    version: 1,
-    chunks: 12,
-    embeddings: 1536,
-    lastEmbedTime: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
+// Initial empty state - will be loaded from API
+const initialDocuments: Document[] = [];
 
 const initialAIInsights: AIInsight = {
-  topTopics: ["VPN setup", "Password reset", "Onboarding"],
-  gaps: ["Outlook troubleshooting guide"],
+  topTopics: [],
+  gaps: [],
   duplicateWarnings: 0,
 };
 
-// Seeded demo suggestions data
-const initialCoverageGaps: CoverageGap[] = [
-  {
-    id: "gap1",
-    title: "Outlook troubleshooting guide",
-    occurrences: 15,
-    slaImpact: true,
-  },
-  {
-    id: "gap2",
-    title: "MFA enrollment troubleshooting",
-    occurrences: 8,
-    slaImpact: false,
-  },
-  {
-    id: "gap3",
-    title: "Jira SSO password reset via Okta",
-    occurrences: 12,
-    slaImpact: false,
-  },
-];
-
-const initialSuggestions: AISuggestion[] = [
-  {
-    id: "s1",
-    title: "Outlook troubleshooting guide",
-    summary: "Comprehensive guide for common Outlook issues and solutions",
-    draft: `Steps:
-
-1. Open System Settings → Network → VPN → Add IKEv2 connection.
-
-2. Enter company gateway, username, and company-issued certificate. (If prompted import cert from /Downloads)
-
-3. On Apple silicon ensure VPN client vX+ is installed; run \`sudo spctl --master-enable\` if kernel extension blocked.
-
-Troubleshooting:
-
-- Error "authentication failed": check username & certificate expiry.
-
-- If disconnects on sleep: set VPN to reconnect on wake in settings.`,
-    ticketCount: 12,
-    priority: "High",
-    confidence: 0.92,
-    status: "pending",
-    lastSeen: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    category: ["Network", "Security"],
-    tags: ["VPN", "macOS", "Apple Silicon"],
-    exampleTickets: [
-      {
-        id: "t1",
-        title: "VPN disconnects on Mac M2 while WFH",
-        excerpt: "VPN connection drops every 30 minutes on M2 MacBook Pro...",
-        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        id: "t2",
-        title: "Cannot connect to VPN after password rotation",
-        excerpt:
-          "After password change, VPN connection fails with auth error...",
-        timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-    ],
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "s2",
-    title: "Jira SSO password reset via Okta",
-    summary: "Guide for resetting Jira SSO password through Okta portal",
-    draft: `Steps to reset SSO password for Jira:
-
-1. Navigate to Okta portal (company.okta.com)
-2. Go to Settings → My Account → Change Password
-3. Complete password reset flow with strong password requirements
-4. Wait 5-10 minutes for SSO sync across all applications
-5. Clear browser cache and cookies
-6. Log back into Jira using new password
-
-Common issues:
-- If still can't login: wait 15 minutes for full propagation
-- Browser cache: Use incognito/private mode to test
-- Multi-factor authentication: ensure MFA device is accessible
-
-Manager approval template for admin access:
-[Manager approval required for admin access requests - use separate process]`,
-    ticketCount: 12,
-    priority: "High",
-    confidence: 0.85,
-    status: "pending",
-    lastSeen: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    category: ["Authentication", "Software"],
-    tags: ["SSO", "Jira", "Okta"],
-    exampleTickets: [
-      {
-        id: "t3",
-        title: "Forgot Jira password, need SSO reset",
-        excerpt: "Unable to access Jira, need to reset password via Okta...",
-        timestamp: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        id: "t7",
-        title: "Jira SSO not working after password change",
-        excerpt: "Changed Okta password but still can't login to Jira...",
-        timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-    ],
-    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "s3",
-    title: "MFA enrollment troubleshooting",
-    summary: "Troubleshooting guide for common MFA enrollment issues",
-    draft: `Common MFA enrollment failures and solutions:
-
-1. App installation issues:
-   - Ensure authenticator app is latest version (Microsoft Authenticator, Google Authenticator, Duo Mobile)
-   - Check device compatibility and OS requirements
-
-2. QR code scan failures:
-   - Clean camera lens and ensure good lighting
-   - Increase screen brightness
-   - Use manual entry code instead of QR scan
-
-3. Time sync errors:
-   - Ensure device time is set to automatic
-   - Restart authenticator app after time correction
-   - Verify time zone is correct
-
-4. Backup code generation:
-   - Save codes securely before completing enrollment
-   - Store in password manager or secure note app
-   - Print and store physical copy in safe location
-
-5. Account lockout issues:
-   - Contact IT helpdesk to reset MFA
-   - Use backup codes if available
-   - Verify username is correct`,
-    ticketCount: 8,
-    priority: "High",
-    confidence: 0.91,
-    status: "pending",
-    lastSeen: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    category: ["Authentication", "Security"],
-    tags: ["MFA", "2FA", "Enrollment"],
-    exampleTickets: [
-      {
-        id: "t4",
-        title: "MFA enrollment QR code won't scan",
-        excerpt: "Trying to set up MFA but QR code scanner fails repeatedly...",
-        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        id: "t8",
-        title: "Time sync error during MFA setup",
-        excerpt: "Getting 'invalid code' error during MFA enrollment...",
-        timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-    ],
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "s4",
-    title: "How to set up VPN on macOS (Apple silicon)",
-    summary: "Step-by-step guide for configuring VPN on Apple Silicon Macs",
-    draft: `Steps:
-
-1. Open System Settings → Network → VPN → Add IKEv2 connection.
-
-2. Enter company gateway, username, and company-issued certificate. (If prompted import cert from /Downloads)
-
-3. On Apple silicon ensure VPN client vX+ is installed; run \`sudo spctl --master-enable\` if kernel extension blocked.
-
-Troubleshooting:
-
-- Error "authentication failed": check username & certificate expiry.
-
-- If disconnects on sleep: set VPN to reconnect on wake in settings.`,
-    ticketCount: 7,
-    priority: "Medium",
-    confidence: 0.82,
-    status: "pending",
-    lastSeen: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    category: ["Network", "Security"],
-    tags: ["VPN", "macOS", "Apple Silicon"],
-    exampleTickets: [
-      {
-        id: "t5",
-        title: "VPN disconnects on Mac M2 while WFH",
-        excerpt: "VPN connection drops every 30 minutes on M2 MacBook Pro...",
-        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-    ],
-    createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "s5",
-    title: "How to request admin access to Jira (manager approval template)",
-    summary:
-      "Process and template for requesting Jira admin access with manager approval",
-    draft: `Jira Admin Access Request Process:
-
-1. Identify required permissions:
-   - Project admin
-   - Space admin
-   - Global admin (rare)
-
-2. Submit request via IT portal:
-   - Include justification
-   - Attach manager approval email
-   - Specify project/space names
-
-3. Manager approval template:
-   Subject: Approval for Jira Admin Access - [Your Name]
-   
-   I approve [Name]'s request for Jira admin access to [Project/Space] for [Reason].
-   
-   [Manager Name]
-   [Date]
-
-4. Wait for IT review (2-3 business days)
-5. Receive access confirmation email
-6. Test permissions before production use`,
-    ticketCount: 5,
-    priority: "Medium",
-    confidence: 0.73,
-    status: "pending",
-    lastSeen: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
-    category: ["Access", "Software"],
-    tags: ["Jira", "Admin", "Approval"],
-    exampleTickets: [
-      {
-        id: "t6",
-        title: "Need admin access to Jira project",
-        excerpt:
-          "Requesting admin permissions for Project X, manager approved...",
-        timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-    ],
-    createdAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
+// Initial empty state - will be loaded from API
+const initialCoverageGaps: CoverageGap[] = [];
+const initialSuggestions: AISuggestion[] = [];
 const initialDuplicates: DuplicatePair[] = [];
-
 const initialInsertAudit: InsertAuditEntry[] = [];
-
-const initialAuditLog: AuditLogEntry[] = [
-  {
-    id: "a1",
-    timestamp: "2024-12-08T11:00:00Z",
-    action: "Document uploaded",
-    document: "VPN Setup Guide",
-    status: "success",
-  },
-  {
-    id: "a2",
-    timestamp: "2024-12-08T10:45:00Z",
-    action: "Embeddings updated",
-    document: "Password Reset Procedure",
-    status: "success",
-  },
-  {
-    id: "a3",
-    timestamp: "2024-12-08T10:30:00Z",
-    action: "Document processed",
-    document: "Laptop Setup Instructions",
-    status: "success",
-  },
-  {
-    id: "a4",
-    timestamp: "2024-12-08T10:15:00Z",
-    action: "Document upload failed",
-    document: "Printer Troubleshooting",
-    status: "error",
-    details: "Corrupted PDF structure",
-  },
-  {
-    id: "a5",
-    timestamp: "2024-12-08T09:00:00Z",
-    action: "Bulk reprocess initiated",
-    status: "info",
-    details: "3 documents reprocessed",
-  },
-  {
-    id: "a6",
-    timestamp: "2024-12-08T08:30:00Z",
-    action: "Import from Confluence",
-    document: "Outlook Configuration Guide",
-    status: "success",
-  },
-];
 
 export default function KnowledgeBasePage() {
   const [documents, setDocuments] =
     React.useState<Document[]>(initialDocuments);
-  const [auditLog, setAuditLog] =
-    React.useState<AuditLogEntry[]>(initialAuditLog);
   const [aiInsights] = React.useState<AIInsight>(initialAIInsights);
   const [selectedRows, setSelectedRows] = React.useState<Set<string>>(
     new Set()
   );
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [categoryFilter, setCategoryFilter] = React.useState<string[]>([]);
-  const [statusFilter, setStatusFilter] = React.useState<DocumentStatus[]>([]);
-  const [sourceFilter, setSourceFilter] = React.useState<DocumentSource[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
 
   // Improve with AI state
   const [suggestions, setSuggestions] =
@@ -538,16 +215,9 @@ export default function KnowledgeBasePage() {
   const [editingVisibility, setEditingVisibility] = React.useState<
     "Internal" | "Public"
   >("Internal");
-  const [timeWindow, setTimeWindow] = React.useState<7 | 30 | 90>(30);
-  const [confidencePreset, setConfidencePreset] = React.useState<
-    "Conservative" | "Balanced" | "Aggressive"
-  >("Balanced");
-  const [showAdvancedConfidence, setShowAdvancedConfidence] =
-    React.useState(false);
-  const [confidenceThreshold, setConfidenceThreshold] = React.useState([50]);
-  const [teamFilter, setTeamFilter] = React.useState<string>("all");
-  const [suggestionSearchQuery, setSuggestionSearchQuery] = React.useState("");
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [timeWindow] = React.useState<7 | 30 | 90>(30);
+  const [teamFilter] = React.useState<string>("all");
+  const [suggestionSearchQuery] = React.useState("");
   const [showInsertConfirm, setShowInsertConfirm] = React.useState(false);
   const [insertingSuggestionId, setInsertingSuggestionId] = React.useState<
     string | null
@@ -561,12 +231,57 @@ export default function KnowledgeBasePage() {
     "You are a helpful IT support assistant. Provide accurate, actionable troubleshooting steps and follow IT service guidelines."
   );
 
-  // KPI calculations - simplified
-  const totalDocuments = 1;
-  const processedDocuments = 1;
-  const processedPercentage = 100;
-  const lastIngestionTime = "1 day ago";
-  const coverageScore = 72; // Mock value
+  // KPI state
+  const [totalDocuments, setTotalDocuments] = React.useState(0);
+  const [processedDocuments, setProcessedDocuments] = React.useState(0);
+  const [processedPercentage, setProcessedPercentage] = React.useState(0);
+  const [lastIngestionTime, setLastIngestionTime] = React.useState<
+    string | null
+  >(null);
+  const [coverageScore, setCoverageScore] = React.useState(0);
+
+  // Load data on mount
+  React.useEffect(() => {
+    fetchDocumentsAndKPIs();
+    fetchAIConfig();
+  }, []);
+
+  async function fetchDocumentsAndKPIs() {
+    try {
+      setIsLoading(true);
+      const res = await fetch("/api/knowledge-base/documents");
+      const data = await res.json();
+
+      if (data.success) {
+        setDocuments(data.documents);
+        setTotalDocuments(data.kpis.totalDocuments);
+        setProcessedDocuments(data.kpis.processedDocuments);
+        setProcessedPercentage(data.kpis.processedPercentage);
+        setLastIngestionTime(data.kpis.lastIngestionTime);
+        setCoverageScore(data.kpis.coverageScore);
+      } else {
+        toast.error("Failed to load knowledge base data");
+      }
+    } catch (error) {
+      console.error("Failed to fetch documents:", error);
+      toast.error("Failed to load knowledge base data");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function fetchAIConfig() {
+    try {
+      const res = await fetch("/api/knowledge-base/config");
+      const data = await res.json();
+
+      if (data.success) {
+        setSystemInstructions(data.config.systemInstructions);
+      }
+    } catch (error) {
+      console.error("Failed to fetch AI config:", error);
+    }
+  }
 
   // Filter documents
   const filteredDocuments = documents.filter((doc) => {
@@ -574,18 +289,6 @@ export default function KnowledgeBasePage() {
       searchQuery &&
       !doc.title.toLowerCase().includes(searchQuery.toLowerCase())
     ) {
-      return false;
-    }
-    if (
-      categoryFilter.length > 0 &&
-      !categoryFilter.some((cat) => doc.category.includes(cat))
-    ) {
-      return false;
-    }
-    if (statusFilter.length > 0 && !statusFilter.includes(doc.status)) {
-      return false;
-    }
-    if (sourceFilter.length > 0 && !sourceFilter.includes(doc.source)) {
       return false;
     }
     return true;
@@ -602,6 +305,32 @@ export default function KnowledgeBasePage() {
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     return `${diffDays}d ago`;
+  }
+
+  function formatLastIngestionTime(): string {
+    if (!lastIngestionTime) return "Never";
+    return getTimeAgo(new Date(lastIngestionTime));
+  }
+
+  async function saveAIConfiguration() {
+    try {
+      const res = await fetch("/api/knowledge-base/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ systemInstructions }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.error);
+      }
+
+      toast.success("Configuration saved successfully");
+    } catch (error) {
+      console.error("Failed to save configuration:", error);
+      toast.error("Failed to save configuration");
+    }
   }
 
   function getStatusBadge(status: DocumentStatus) {
@@ -670,17 +399,6 @@ export default function KnowledgeBasePage() {
       };
 
       setDocuments((prev) => [newDoc, ...prev]);
-      setAuditLog((prev) => [
-        {
-          id: Date.now().toString(),
-          timestamp: new Date().toISOString(),
-          action: "Document uploaded",
-          document: file.name,
-          status: "success",
-        },
-        ...prev,
-      ]);
-
       // Call backend to upload and train KB for this user
       try {
         const formData = new FormData();
@@ -713,21 +431,10 @@ export default function KnowledgeBasePage() {
           return;
         }
 
-        setDocuments((prev) =>
-          prev.map((d) =>
-            d.id === newDoc.id
-              ? {
-                  ...d,
-                  status: "Processed",
-                  processedAt: new Date().toISOString(),
-                  chunks: Math.floor(Math.random() * 20) + 5,
-                  embeddings: 1536,
-                  lastEmbedTime: new Date().toISOString(),
-                }
-              : d
-          )
-        );
         toast.success(`${file.name} processed successfully`);
+
+        // Refresh documents and KPIs
+        await fetchDocumentsAndKPIs();
       } catch (error) {
         console.error("KB upload error:", error);
         setDocuments((prev) =>
@@ -746,71 +453,61 @@ export default function KnowledgeBasePage() {
     });
   }
 
-  function handleReprocess(docId: string) {
-    setDocuments((prev) =>
-      prev.map((d) =>
-        d.id === docId ? { ...d, status: "Processing", processedAt: null } : d
-      )
-    );
-
-    toast.success("Reprocessing document...");
-
-    setTimeout(() => {
+  async function handleReprocess(docId: string) {
+    try {
       setDocuments((prev) =>
         prev.map((d) =>
-          d.id === docId
-            ? {
-                ...d,
-                status: "Processed",
-                processedAt: new Date().toISOString(),
-                version: d.version + 1,
-                lastEmbedTime: new Date().toISOString(),
-              }
-            : d
+          d.id === docId ? { ...d, status: "Processing", processedAt: null } : d
         )
       );
-      setAuditLog((prev) => [
-        {
-          id: Date.now().toString(),
-          timestamp: new Date().toISOString(),
-          action: "Document reprocessed",
-          document: prev.find((d) => d.document)?.document || "Document",
-          status: "success",
-        },
-        ...prev,
-      ]);
-      toast.success("Document reprocessed successfully");
-    }, 2000);
-  }
 
-  function handleDelete(docId: string) {
-    const doc = documents.find((d) => d.id === docId);
-    setDocuments((prev) => prev.filter((d) => d.id !== docId));
-    setAuditLog((prev) => [
-      {
-        id: Date.now().toString(),
-        timestamp: new Date().toISOString(),
-        action: "Document deleted",
-        document: doc?.title,
-        status: "info",
-      },
-      ...prev,
-    ]);
-    toast.success("Document deleted");
-  }
+      toast.success("Reprocessing document...");
 
-  function handleBulkReprocess() {
-    if (selectedRows.size === 0) {
-      toast.error("No documents selected");
-      return;
+      const res = await fetch("/api/knowledge-base/reprocess", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ docId }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.error);
+      }
+
+      // Poll for status update
+      setTimeout(async () => {
+        await fetchDocumentsAndKPIs();
+        toast.success("Document reprocessed successfully");
+      }, 2500);
+    } catch (error) {
+      console.error("Reprocess error:", error);
+      toast.error("Failed to reprocess document");
+      await fetchDocumentsAndKPIs();
     }
+  }
 
-    selectedRows.forEach((id) => {
-      handleReprocess(id);
-    });
+  async function handleDelete(docId: string) {
+    try {
+      const res = await fetch(`/api/knowledge-base/documents?id=${docId}`, {
+        method: "DELETE",
+      });
 
-    setSelectedRows(new Set());
-    toast.success(`Reprocessing ${selectedRows.size} document(s)...`);
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.error);
+      }
+
+      setDocuments((prev) => prev.filter((d) => d.id !== docId));
+      toast.success("Document deleted");
+
+      // Refresh KPIs
+      await fetchDocumentsAndKPIs();
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete document");
+    }
   }
 
   // Improve with AI handlers
@@ -924,52 +621,6 @@ export default function KnowledgeBasePage() {
     toast.success("Suggestion archived");
   }
 
-  function handleRefreshSuggestions() {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-      toast.success("Analysis refreshed");
-    }, 2000);
-  }
-
-  function handleAutoGenerateFromGap(gapId: string) {
-    // Check if it's a gap or a suggestion ID
-    if (gapId.startsWith("suggestion-")) {
-      const suggestionId = gapId.replace("suggestion-", "");
-      const suggestion = suggestions.find((s) => s.id === suggestionId);
-      if (suggestion) {
-        handleSelectSuggestion(suggestion);
-        toast.success(`Opened draft editor for ${suggestion.title}`);
-      }
-      return;
-    }
-
-    const gap = coverageGaps.find((g) => g.id === gapId);
-    if (!gap) return;
-
-    // Create a suggestion from the gap
-    const newSuggestion: AISuggestion = {
-      id: "gap-suggestion-" + gapId,
-      title: gap.title,
-      summary: `Auto-generated suggestion for ${gap.title}`,
-      draft: `# ${gap.title}\n\nThis article addresses ${gap.occurrences} ticket occurrences.\n\n[Content will be generated from ticket analysis]`,
-      ticketCount: gap.occurrences,
-      priority:
-        gap.occurrences > 10 ? "High" : gap.occurrences > 5 ? "Medium" : "Low",
-      confidence: 0.75,
-      status: "pending",
-      lastSeen: new Date().toISOString(),
-      category: [],
-      tags: [],
-      exampleTickets: [],
-      createdAt: new Date().toISOString(),
-    };
-
-    setSuggestions((prev) => [newSuggestion, ...prev]);
-    handleSelectSuggestion(newSuggestion);
-    toast.success(`Generated suggestion for ${gap.title}`);
-  }
-
   // Filter suggestions (using default balanced threshold of 50%)
   const filteredSuggestions = suggestions.filter((s) => {
     if (s.status === "archived") return false;
@@ -1066,7 +717,7 @@ export default function KnowledgeBasePage() {
                               Last ingestion
                             </p>
                             <p className="text-2xl font-semibold">
-                              {lastIngestionTime}
+                              {formatLastIngestionTime()}
                             </p>
                           </div>
                           <Clock className="h-5 w-5 text-muted-foreground" />
@@ -1089,13 +740,11 @@ export default function KnowledgeBasePage() {
                               Coverage score
                             </p>
                             <div className="flex items-center gap-2">
-                              <p className="text-2xl font-semibold">
-                                {coverageScore}
-                              </p>
+                              <p className="text-2xl font-semibold">-</p>
                               <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                                 <div
                                   className="h-full bg-gradient-to-r from-[#603BFC] to-[#A94FA1]"
-                                  style={{ width: `${coverageScore}%` }}
+                                  style={{ width: "0%" }}
                                 />
                               </div>
                             </div>
@@ -1105,9 +754,8 @@ export default function KnowledgeBasePage() {
                       </CardContent>
                     </Card>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    Estimated coverage of commonly asked help topics
-                    (algorithmic estimate)
+                  <TooltipContent className="max-w-sm">
+                    Coverage score placeholder (not in use currently).
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -1249,13 +897,25 @@ export default function KnowledgeBasePage() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {filteredDocuments.length === 0 ? (
+                              {isLoading ? (
                                 <TableRow>
                                   <TableCell
                                     colSpan={9}
                                     className="text-center text-muted-foreground py-8"
                                   >
-                                    No documents found
+                                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                                    Loading documents...
+                                  </TableCell>
+                                </TableRow>
+                              ) : filteredDocuments.length === 0 ? (
+                                <TableRow>
+                                  <TableCell
+                                    colSpan={9}
+                                    className="text-center text-muted-foreground py-8"
+                                  >
+                                    {documents.length === 0
+                                      ? "No documents uploaded yet. Upload your first document to get started."
+                                      : "No documents found"}
                                   </TableCell>
                                 </TableRow>
                               ) : (
@@ -1372,16 +1032,33 @@ export default function KnowledgeBasePage() {
                 </TabsContent>
 
                 <TabsContent value="improve-with-ai" className="space-y-4">
+                  <Card>
+                    <CardContent className="p-8">
+                      <div className="flex flex-col items-center gap-4 text-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-[#603BFC]/10 to-[#A94FA1]/10">
+                          <Zap className="h-6 w-6 text-[#603BFC]" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold mb-2">
+                            AI-Powered Knowledge Gap Analysis
+                          </h3>
+                          <p className="text-sm text-muted-foreground max-w-md">
+                            Coming soon. Upload documents and create tickets to
+                            enable intelligent gap detection.
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   {/* Controls Row */}
-                  <div className="flex flex-wrap items-center gap-3 pb-4 border-b">
+                  <div
+                    className="flex flex-wrap items-center gap-3 pb-4 border-b"
+                    style={{ display: "none" }}
+                  >
                     <div className="flex items-center gap-2">
                       <Label className="text-xs">Time window:</Label>
-                      <Select
-                        value={timeWindow.toString()}
-                        onValueChange={(value) =>
-                          setTimeWindow(Number(value) as 7 | 30 | 90)
-                        }
-                      >
+                      <Select value={timeWindow.toString()} disabled>
                         <SelectTrigger className="w-24 h-8 text-xs">
                           <SelectValue />
                         </SelectTrigger>
@@ -1395,20 +1072,15 @@ export default function KnowledgeBasePage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={handleRefreshSuggestions}
-                      disabled={isRefreshing}
+                      disabled={true}
                       className="h-8"
                     >
-                      {isRefreshing ? (
-                        <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                      ) : (
-                        <RefreshCw className="h-3 w-3 mr-2" />
-                      )}
+                      <RefreshCw className="h-3 w-3 mr-2" />
                       Refresh
                     </Button>
                     <div className="flex items-center gap-2">
                       <Label className="text-xs">Team:</Label>
-                      <Select value={teamFilter} onValueChange={setTeamFilter}>
+                      <Select value={teamFilter} disabled>
                         <SelectTrigger className="w-32 h-8 text-xs">
                           <SelectValue />
                         </SelectTrigger>
@@ -1582,9 +1254,7 @@ export default function KnowledgeBasePage() {
                             <Input
                               placeholder="Search suggestions..."
                               value={suggestionSearchQuery}
-                              onChange={(e) =>
-                                setSuggestionSearchQuery(e.target.value)
-                              }
+                              disabled
                               className="pl-8 text-sm h-8"
                             />
                           </div>
@@ -2112,12 +1782,7 @@ export default function KnowledgeBasePage() {
                         </p>
                       </div>
                       <div className="flex justify-end">
-                        <Button
-                          size="default"
-                          onClick={() => {
-                            toast.success("Configuration saved successfully");
-                          }}
-                        >
+                        <Button size="default" onClick={saveAIConfiguration}>
                           Save Configuration
                         </Button>
                       </div>

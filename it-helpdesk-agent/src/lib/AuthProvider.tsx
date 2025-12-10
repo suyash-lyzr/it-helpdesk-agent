@@ -23,6 +23,7 @@ export interface TokenData {
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
+  isInitialized: boolean; // True only after first auth check is complete
   userId: string | null;
   token: string | null;
   email: string | null;
@@ -42,8 +43,10 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // Avoid SSR mismatch; client-only hydration will restore from storage
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false); // Only true after first auth check
   const [userId, setUserId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
@@ -53,19 +56,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const authCallInProgress = useRef(false);
   const lastSuccessfulAuthCall = useRef<string | null>(null);
 
-  const clearAuthData = useCallback(() => {
-    Cookies.remove("user_id");
-    Cookies.remove("token");
-    setIsAuthenticated(false);
-    setUserId(null);
-    setToken(null);
-    setEmail(null);
-    setDisplayName(null);
-    setIsLoading(false);
-    // Reset auth tracking refs
-    authCallInProgress.current = false;
-    lastSuccessfulAuthCall.current = null;
-  }, []);
+  const clearAuthData = useCallback(
+    (options?: { markInitialized?: boolean }) => {
+      Cookies.remove("user_id");
+      Cookies.remove("token");
+      setIsAuthenticated(false);
+      setUserId(null);
+      setToken(null);
+      setEmail(null);
+      setDisplayName(null);
+      setIsLoading(false);
+      // Reset auth tracking refs
+      authCallInProgress.current = false;
+      lastSuccessfulAuthCall.current = null;
+      // Clear sessionStorage auth flag
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("auth_verified");
+      }
+      if (options?.markInitialized) {
+        setIsInitialized(true);
+      }
+    },
+    []
+  );
 
   const setAuthData = useCallback(
     (
@@ -78,8 +91,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(tokenData.api_key);
       setEmail(userEmail);
       setDisplayName(userName);
+      setIsInitialized(true);
       Cookies.set("user_id", tokenData.user_id, { expires: 7 });
       Cookies.set("token", tokenData.api_key, { expires: 7 });
+      // Persist auth state in sessionStorage for faster page loads
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("auth_verified", "true");
+        if (userEmail) sessionStorage.setItem("auth_email", userEmail);
+        if (userName) sessionStorage.setItem("auth_name", userName);
+      }
     },
     []
   );
@@ -178,13 +198,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setAuthData(tokenData[0], userEmail, finalUserName);
       } else {
-        clearAuthData();
+        clearAuthData({ markInitialized: true });
       }
     } catch (err) {
       // Silently handle expected authentication errors
-      clearAuthData();
+      clearAuthData({ markInitialized: true });
     } finally {
       setIsLoading(false);
+      setIsInitialized(true); // Always mark as initialized after first check
       authCallInProgress.current = false;
     }
   }, [clearAuthData, setAuthData]);
@@ -208,11 +229,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { default: lyzr } = await import("lyzr-agent");
       await lyzr.logout();
-      clearAuthData();
+      clearAuthData({ markInitialized: true });
       window.location.href = window.location.origin;
     } catch (error) {
       console.error("Logout failed:", error);
-      clearAuthData();
+      clearAuthData({ markInitialized: true });
     }
   };
 
@@ -227,20 +248,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (isAuth) {
             void checkAuth();
           } else {
-            clearAuthData();
+            clearAuthData({ markInitialized: true });
           }
         });
 
-        // Check for existing session without triggering login UI
-        // The SDK may log expected errors if no session exists - this is normal
-        setTimeout(() => {
+        // Warm-restore from stored state to avoid SDK popup:
+        // 1) If cookies + auth_verified flag exist, hydrate state from storage without hitting SDK.
+        // 2) If cookies exist but no verified flag, run checkAuth (may prompt if session really expired).
+        // 3) If no cookies, just mark initialized so UI can show login screen without SDK popup.
+        const userIdCookie = Cookies.get("user_id");
+        const tokenCookie = Cookies.get("token");
+        const authVerified = sessionStorage.getItem("auth_verified") === "true";
+        const storedEmail = sessionStorage.getItem("auth_email");
+        const storedName = sessionStorage.getItem("auth_name");
+
+        if (userIdCookie && tokenCookie && authVerified) {
+          // Fast restore from storage, no SDK call
+          setAuthData(
+            {
+              _id: "",
+              api_key: tokenCookie,
+              user_id: userIdCookie,
+              organization_id: "",
+              usage_id: "",
+              policy_id: "",
+            },
+            storedEmail,
+            storedName
+          );
+          setIsInitialized(true);
+          setIsLoading(false);
+        } else if (userIdCookie && tokenCookie) {
+          // Have cookies but no verified flag — do a real check (may show SDK UI if session expired)
           void checkAuth();
-        }, 100);
+        } else {
+          // No prior session; mark initialized so UI can show login screen without SDK popup
+          setIsLoading(false);
+          setIsInitialized(true);
+        }
 
         return () => unsubscribe();
       } catch (err) {
         console.error("Lyzr init failed:", err);
-        clearAuthData();
+        clearAuthData({ markInitialized: true });
       }
     };
     void init();
@@ -251,6 +301,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         isAuthenticated,
         isLoading,
+        isInitialized,
         userId,
         token,
         email,

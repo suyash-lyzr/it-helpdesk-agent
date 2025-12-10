@@ -14,6 +14,7 @@ export interface IUserKnowledgeBase {
   ragId: string;
   ragName: string;
   baseUrl: string;
+  systemInstructions?: string;
 }
 
 export interface IUser {
@@ -69,6 +70,7 @@ const UserSchema: Schema<IUserDocument> = new Schema<IUserDocument>(
       ragId: { type: String },
       ragName: { type: String },
       baseUrl: { type: String },
+      systemInstructions: { type: String },
     },
     schemaVersion: { type: Number, default: 1 },
   },

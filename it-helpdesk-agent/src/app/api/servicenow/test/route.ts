@@ -53,7 +53,11 @@ async function refreshAccessToken(
 async function testServiceNowConnection(
   accessToken: string,
   instanceUrl: string
-): Promise<{ success: boolean; message: string; data?: any }> {
+): Promise<{
+  success: boolean;
+  message: string;
+  data?: Record<string, unknown>;
+}> {
   const testUrl = `${instanceUrl}/api/now/table/incident?sysparm_limit=1`;
 
   const response = await fetch(testUrl, {
