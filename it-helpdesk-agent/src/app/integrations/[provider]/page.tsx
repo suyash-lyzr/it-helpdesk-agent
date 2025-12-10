@@ -1642,7 +1642,7 @@ export default function IntegrationDetailPage() {
                             <code className="px-2 py-1 bg-muted rounded text-xs font-mono">
                               {typeof window !== "undefined"
                                 ? `${window.location.origin}/oauth/callback/servicenow`
-                                : "http://localhost:3000/oauth/callback/servicenow"}
+                                : "https://it-helpdesk.lyzr.app/oauth/callback/servicenow"}
                             </code>
                             <Button
                               variant="outline"
@@ -1651,7 +1651,7 @@ export default function IntegrationDetailPage() {
                                 const uri =
                                   typeof window !== "undefined"
                                     ? `${window.location.origin}/oauth/callback/servicenow`
-                                    : "http://localhost:3000/oauth/callback/servicenow";
+                                    : "https://it-helpdesk.lyzr.app/oauth/callback/servicenow";
                                 navigator.clipboard.writeText(uri);
                                 toast.success(
                                   "Redirect URI copied to clipboard"
@@ -2122,160 +2122,164 @@ export default function IntegrationDetailPage() {
               </Card>
             </Collapsible>
 
-            {/* Test & Validate Integration */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <RefreshCw className="h-4 w-4" />
-                  Test & Validate Integration
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label className="text-sm">Demo Incident Title</Label>
-                    <Input
-                      value={demoTitle}
-                      onChange={(e) => setDemoTitle(e.target.value)}
-                      placeholder="Enter incident title"
-                      disabled={!isAdmin || busy}
-                    />
+            {/* Test & Validate Integration - Only show when connected */}
+            {integration.status === "connected" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4" />
+                    Test & Validate Integration
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label className="text-sm">Demo Incident Title</Label>
+                      <Input
+                        value={demoTitle}
+                        onChange={(e) => setDemoTitle(e.target.value)}
+                        placeholder="Enter incident title"
+                        disabled={!isAdmin || busy}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm">
+                        Demo Incident Description
+                      </Label>
+                      <Textarea
+                        value={demoDescription}
+                        onChange={(e) => setDemoDescription(e.target.value)}
+                        placeholder="Enter incident description"
+                        className="min-h-[80px]"
+                        disabled={!isAdmin || busy}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm">Severity / Priority</Label>
+                      <Select
+                        value={demoSeverity}
+                        onValueChange={setDemoSeverity}
+                        disabled={!isAdmin || busy}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 - Critical</SelectItem>
+                          <SelectItem value="2">2 - High</SelectItem>
+                          <SelectItem value="3">3 - Medium</SelectItem>
+                          <SelectItem value="4">4 - Low</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        onClick={handleCreateServiceNowIncident}
+                        disabled={
+                          busy || !isAdmin || !demoTitle || !demoDescription
+                        }
+                        className="w-full"
+                      >
+                        Create Test Incident in ServiceNow
+                      </Button>
+                      <p className="text-xs text-muted-foreground text-center">
+                        This will create a real incident in your ServiceNow
+                        instance tagged with [Lyzr Test]
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">Demo Incident Description</Label>
-                    <Textarea
-                      value={demoDescription}
-                      onChange={(e) => setDemoDescription(e.target.value)}
-                      placeholder="Enter incident description"
-                      className="min-h-[80px]"
-                      disabled={!isAdmin || busy}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">Severity / Priority</Label>
-                    <Select
-                      value={demoSeverity}
-                      onValueChange={setDemoSeverity}
-                      disabled={!isAdmin || busy}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 - Critical</SelectItem>
-                        <SelectItem value="2">2 - High</SelectItem>
-                        <SelectItem value="3">3 - Medium</SelectItem>
-                        <SelectItem value="4">4 - Low</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      onClick={handleCreateServiceNowIncident}
-                      disabled={
-                        busy || !isAdmin || !demoTitle || !demoDescription
-                      }
-                      className="w-full"
-                    >
-                      Create Test Incident in ServiceNow
-                    </Button>
-                    <p className="text-xs text-muted-foreground text-center">
-                      This will create a real incident in your ServiceNow
-                      instance tagged with [Lyzr Test]
-                    </p>
-                  </div>
-                </div>
 
-                <Separator />
+                  <Separator />
 
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">
-                    Recent Integration Activity Log
-                  </Label>
-                  <div className="rounded-md border bg-muted/30 max-h-[300px] overflow-y-auto">
-                    {logs.length > 0 ? (
-                      <div className="divide-y">
-                        {logs.map((log) => {
-                          // Format ServiceNow-specific action names for better readability
-                          const formatActionName = (action: string) => {
-                            const replacements: Record<string, string> = {
-                              "oauth.connected": "OAuth Connected",
-                              "connection.test.succeeded":
-                                "Connection Test Succeeded",
-                              "connection.test.failed":
-                                "Connection Test Failed",
-                              "incident.created": "Incident Created",
-                              "incident.create.failed":
-                                "Incident Creation Failed",
-                              "tickets.sync.completed": "Tickets Synced",
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">
+                      Recent Integration Activity Log
+                    </Label>
+                    <div className="rounded-md border bg-muted/30 max-h-[300px] overflow-y-auto">
+                      {logs.length > 0 ? (
+                        <div className="divide-y">
+                          {logs.map((log) => {
+                            // Format ServiceNow-specific action names for better readability
+                            const formatActionName = (action: string) => {
+                              const replacements: Record<string, string> = {
+                                "oauth.connected": "OAuth Connected",
+                                "connection.test.succeeded":
+                                  "Connection Test Succeeded",
+                                "connection.test.failed":
+                                  "Connection Test Failed",
+                                "incident.created": "Incident Created",
+                                "incident.create.failed":
+                                  "Incident Creation Failed",
+                                "tickets.sync.completed": "Tickets Synced",
+                              };
+
+                              if (replacements[action]) {
+                                return replacements[action];
+                              }
+
+                              // Fallback: capitalize and format
+                              return action
+                                .replace(/\./g, " ")
+                                .split(" ")
+                                .map(
+                                  (word) =>
+                                    word.charAt(0).toUpperCase() + word.slice(1)
+                                )
+                                .join(" ");
                             };
 
-                            if (replacements[action]) {
-                              return replacements[action];
-                            }
-
-                            // Fallback: capitalize and format
-                            return action
-                              .replace(/\./g, " ")
-                              .split(" ")
-                              .map(
-                                (word) =>
-                                  word.charAt(0).toUpperCase() + word.slice(1)
-                              )
-                              .join(" ");
-                          };
-
-                          return (
-                            <div key={log.id} className="p-3 text-xs">
-                              <div className="flex items-start justify-between gap-2 mb-1">
-                                <div className="flex items-center gap-2">
-                                  {log.action.includes("error") ||
-                                  log.action.includes("fail") ? (
-                                    <XCircle className="h-3 w-3 text-destructive" />
-                                  ) : log.action.includes("success") ||
-                                    log.action.includes("connect") ||
-                                    log.action.includes("succeeded") ||
-                                    log.action.includes("created") ||
-                                    log.action.includes("sync") ? (
-                                    <CheckCircle className="h-3 w-3 text-green-600" />
-                                  ) : (
-                                    <Info className="h-3 w-3 text-muted-foreground" />
-                                  )}
-                                  <span className="font-medium">
-                                    {formatActionName(log.action)}
+                            return (
+                              <div key={log.id} className="p-3 text-xs">
+                                <div className="flex items-start justify-between gap-2 mb-1">
+                                  <div className="flex items-center gap-2">
+                                    {log.action.includes("error") ||
+                                    log.action.includes("fail") ? (
+                                      <XCircle className="h-3 w-3 text-destructive" />
+                                    ) : log.action.includes("success") ||
+                                      log.action.includes("connect") ||
+                                      log.action.includes("succeeded") ||
+                                      log.action.includes("created") ||
+                                      log.action.includes("sync") ? (
+                                      <CheckCircle className="h-3 w-3 text-green-600" />
+                                    ) : (
+                                      <Info className="h-3 w-3 text-muted-foreground" />
+                                    )}
+                                    <span className="font-medium">
+                                      {formatActionName(log.action)}
+                                    </span>
+                                  </div>
+                                  <span className="text-muted-foreground whitespace-nowrap">
+                                    {new Date(log.timestamp).toLocaleString()}
                                   </span>
                                 </div>
-                                <span className="text-muted-foreground whitespace-nowrap">
-                                  {new Date(log.timestamp).toLocaleString()}
-                                </span>
+                                {log.details && (
+                                  <details className="mt-2">
+                                    <summary className="cursor-pointer text-[10px] text-muted-foreground hover:text-foreground">
+                                      View JSON details
+                                    </summary>
+                                    <pre className="mt-2 text-[10px] bg-background p-2 rounded border overflow-x-auto">
+                                      {JSON.stringify(log.details, null, 2)}
+                                    </pre>
+                                  </details>
+                                )}
                               </div>
-                              {log.details && (
-                                <details className="mt-2">
-                                  <summary className="cursor-pointer text-[10px] text-muted-foreground hover:text-foreground">
-                                    View JSON details
-                                  </summary>
-                                  <pre className="mt-2 text-[10px] bg-background p-2 rounded border overflow-x-auto">
-                                    {JSON.stringify(log.details, null, 2)}
-                                  </pre>
-                                </details>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="p-4 text-center text-sm text-muted-foreground">
-                        No activity log entries yet. Connect and run a test to
-                        see activity.
-                      </div>
-                    )}
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                          No activity log entries yet. Connect and run a test to
+                          see activity.
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Footer Actions */}
-            <div className="flex items-center justify-end gap-3 pt-2 border-t mb-6">
+            {/* <div className="flex items-center justify-end gap-3 pt-2 border-t mb-6">
               {integration.status === "connected" && (
                 <Button
                   variant="destructive"
@@ -2305,7 +2309,7 @@ export default function IntegrationDetailPage() {
               <Button onClick={handleSaveMappings} disabled={busy || !isAdmin}>
                 Save Settings
               </Button>
-            </div>
+            </div> */}
           </div>
         </SidebarInset>
       </SidebarProvider>

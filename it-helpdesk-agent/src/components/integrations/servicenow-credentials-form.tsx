@@ -418,7 +418,7 @@ export function ServiceNowCredentialsForm({
           <div className="space-y-2">
             <Label>Redirect URI</Label>
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
+              {/* <div className="flex items-center gap-2">
                 <Input
                   readOnly
                   value={redirectUri}
@@ -431,7 +431,7 @@ export function ServiceNowCredentialsForm({
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
-              </div>
+              </div> */}
               <p className="text-xs text-muted-foreground">
                 Copy this exact URI to your ServiceNow OAuth app configuration
               </p>
