@@ -107,9 +107,6 @@ export async function POST(request: NextRequest) {
 
     console.log("✓ Demo account verified, proceeding with seed");
 
-    // Allow reseeding - will add more tickets without deleting existing ones
-    const body = await request.json().catch(() => ({}));
-
     // Seed demo tickets
     console.log("🌱 Seeding demo tickets...");
     const tickets = await seedDemoTickets(lyzrUserId);

@@ -2,8 +2,8 @@
 // Generates realistic dummy tickets for demo and video purposes
 
 import { createTicket } from "./ticket-store";
-import { CreateTicketRequest } from "./ticket-types";
-import { subDays, subHours, subMinutes } from "date-fns";
+import { CreateTicketRequest, LifecycleStage } from "./ticket-types";
+import { subDays, subHours } from "date-fns";
 
 /**
  * Generate diverse dummy tickets for demo purposes
@@ -532,7 +532,7 @@ Monitor works with other laptops, so cable and monitor are functioning.`,
 
     // Calculate realistic timestamps for better metrics
     let resolvedAt: string | undefined;
-    let lifecycleStage: string = "new";
+    let lifecycleStage: LifecycleStage = "new";
     let finalStatus = ticket.status;
     let finalCsatScore = ticket.csat_score;
     let slaBreachedAt: string | undefined;
@@ -603,7 +603,7 @@ Monitor works with other laptops, so cable and monitor are functioning.`,
         first_response_at: firstResponseAt,
         csat_score: finalCsatScore,
         status: finalStatus,
-        lifecycle_stage: lifecycleStage as any,
+        lifecycle_stage: lifecycleStage,
         sla_breached_at: slaBreachedAt,
       } as CreateTicketRequest);
 
@@ -626,6 +626,6 @@ Monitor works with other laptops, so cable and monitor are functioning.`,
  */
 export async function hasDemoData(lyzrUserId: string): Promise<boolean> {
   const { getTickets } = await import("./ticket-store");
-  const { tickets, total } = await getTickets({ lyzrUserId, limit: 1 });
+  const { total } = await getTickets({ lyzrUserId, limit: 1 });
   return total > 0;
 }
