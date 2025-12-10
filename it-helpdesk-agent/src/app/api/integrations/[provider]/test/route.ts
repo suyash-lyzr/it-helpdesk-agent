@@ -27,7 +27,7 @@ export async function OPTIONS() {
 
 // POST /api/integrations/:provider/test
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ provider: string }> }
 ) {
   const { provider: providerParam } = await params;
