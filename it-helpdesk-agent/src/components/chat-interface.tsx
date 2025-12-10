@@ -344,6 +344,37 @@ export function ChatInterface() {
                       </p>
                     </div>
                   </div>
+
+                  {/* Centered Input Box - Only shown when no messages */}
+                  <div className="w-full max-w-2xl px-6">
+                    <div className="relative flex items-center gap-2">
+                      <Textarea
+                        ref={textareaRef}
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Ask a question about IT support, access permissions, or technical issues…"
+                        className="min-h-[64px] max-h-32 resize-none pr-14 py-4 rounded-xl border-border text-base"
+                        disabled={isLoading}
+                      />
+                      <Button
+                        size="icon"
+                        className="absolute right-2 h-9 w-9"
+                        onClick={() => sendMessage(inputValue)}
+                        disabled={!inputValue.trim() || isLoading}
+                      >
+                        {isLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    <p className="mt-3 text-center text-xs text-muted-foreground">
+                      Press Enter to send, Shift+Enter for new line
+                    </p>
+                  </div>
+
                   <SuggestedQuestions onSelect={handleSuggestedQuestion} />
                 </div>
               ) : (
@@ -371,37 +402,39 @@ export function ChatInterface() {
         </ScrollArea>
       </div>
 
-      {/* Input Area - Fixed at bottom */}
-      <div className="shrink-0 border-t bg-background px-6 py-4">
-        <div className="mx-auto max-w-3xl">
-          <div className="relative flex items-end gap-2">
-            <Textarea
-              ref={textareaRef}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask a question about IT support, access permissions, or technical issues…"
-              className="min-h-[52px] max-h-32 resize-none pr-14 rounded-xl border-border text-base"
-              disabled={isLoading}
-            />
-            <Button
-              size="icon"
-              className="absolute right-2 bottom-2 h-9 w-9"
-              onClick={() => sendMessage(inputValue)}
-              disabled={!inputValue.trim() || isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </Button>
+      {/* Input Area - Fixed at bottom - Only shown when messages exist */}
+      {messages.length > 0 && (
+        <div className="shrink-0 border-t bg-background px-6 py-4">
+          <div className="mx-auto max-w-2xl">
+            <div className="relative flex items-end gap-2">
+              <Textarea
+                ref={textareaRef}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask a question about IT support, access permissions, or technical issues…"
+                className="min-h-[52px] max-h-32 resize-none pr-14 rounded-xl border-border text-base"
+                disabled={isLoading}
+              />
+              <Button
+                size="icon"
+                className="absolute right-2 bottom-2 h-9 w-9"
+                onClick={() => sendMessage(inputValue)}
+                disabled={!inputValue.trim() || isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Press Enter to send, Shift+Enter for new line
+            </p>
           </div>
-          <p className="mt-3 text-center text-xs text-muted-foreground">
-            Press Enter to send, Shift+Enter for new line
-          </p>
         </div>
-      </div>
+      )}
     </div>
   );
 }
