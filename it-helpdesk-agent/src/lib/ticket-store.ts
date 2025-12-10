@@ -1,8 +1,6 @@
 // In-memory ticket store for managing tickets
 // Can be replaced with a database in production
 
-import mongoose from "mongoose";
-
 // Type definitions for mongoose v9+
 type FilterQuery<T> = Record<string, unknown> & Partial<T>;
 type LeanDocument<T> = T;
@@ -115,7 +113,6 @@ export async function createTicket(data: CreateTicketRequest): Promise<Ticket> {
     assignee: assignee,
     asset_id: data.asset_id,
     external_ids: data.external_ids,
-    lifecycle_stage: "new",
     // Accept timestamp fields from data for demo seeding
     first_response_at: data.first_response_at
       ? new Date(data.first_response_at)
