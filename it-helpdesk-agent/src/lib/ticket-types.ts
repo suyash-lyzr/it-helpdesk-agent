@@ -97,6 +97,7 @@ export interface CreateTicketRequest {
   resolved_at?: string;
   csat_score?: number;
   lifecycle_stage?: LifecycleStage;
+  sla_due_at?: string;
   sla_breached_at?: string;
   // Conversation history (optional, for preserving full chat)
   conversation?: Array<{
