@@ -196,8 +196,9 @@ export function AdminTicketsDashboard({
     // Reset loading state when component mounts or filters change
     setIsLoadingAnalytics(true);
     fetchAnalytics();
-    const interval = setInterval(fetchAnalytics, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
+    // Removed auto-refresh interval to avoid periodic page refresh/re-renders
+    // Users can manually refresh via existing controls if needed
+    return () => undefined;
   }, [fetchAnalytics]);
 
   async function handleResolveTicket() {
