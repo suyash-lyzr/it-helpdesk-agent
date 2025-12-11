@@ -1325,7 +1325,9 @@ export default function KnowledgeBasePage() {
                         <CardHeader className="pb-3">
                           <CardTitle className="text-base flex items-center gap-2">
                             Coverage map — high-level overview
-                            <Lock className="h-4 w-4 text-[#603BFC]" />
+                            {showPremiumLock && (
+                              <Lock className="h-4 w-4 text-[#603BFC]" />
+                            )}
                           </CardTitle>
                           <CardDescription className="text-xs">
                             View topic coverage and identify knowledge gaps in
@@ -1401,7 +1403,9 @@ export default function KnowledgeBasePage() {
                         <CardHeader className="pb-3">
                           <CardTitle className="text-base flex items-center gap-2">
                             Duplicate detection
-                            <Lock className="h-4 w-4 text-[#603BFC]" />
+                            {showPremiumLock && (
+                              <Lock className="h-4 w-4 text-[#603BFC]" />
+                            )}
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -1449,7 +1453,9 @@ export default function KnowledgeBasePage() {
                             <div>
                               <CardTitle className="text-base flex items-center gap-2">
                                 Knowledge gaps & suggestions — actionable drafts
-                                <Lock className="h-4 w-4 text-[#603BFC]" />
+                                {showPremiumLock && (
+                                  <Lock className="h-4 w-4 text-[#603BFC]" />
+                                )}
                               </CardTitle>
                               <CardDescription className="text-xs mt-1">
                                 AI-generated article suggestions based on recent
@@ -1461,8 +1467,13 @@ export default function KnowledgeBasePage() {
                               <Button
                                 size="sm"
                                 variant="default"
-                                onClick={() => setShowUpsellModal(true)}
+                                onClick={() =>
+                                  showPremiumLock
+                                    ? setShowUpsellModal(true)
+                                    : handleBulkInsert()
+                                }
                                 className="text-xs"
+                                disabled={showPremiumLock}
                               >
                                 Insert Selected ({selectedSuggestions.size})
                               </Button>
@@ -1476,7 +1487,7 @@ export default function KnowledgeBasePage() {
                             <Input
                               placeholder="Search suggestions..."
                               value={suggestionSearchQuery}
-                              disabled
+                              disabled={showPremiumLock}
                               className="pl-8 text-sm h-8"
                             />
                           </div>
@@ -1496,19 +1507,35 @@ export default function KnowledgeBasePage() {
                                       ? "border-[#603BFC] shadow-md"
                                       : "hover:shadow-sm"
                                   }`}
-                                  onClick={() => setShowUpsellModal(true)}
+                                  onClick={() =>
+                                    showPremiumLock
+                                      ? setShowUpsellModal(true)
+                                      : handleSelectSuggestion(suggestion)
+                                  }
                                 >
                                   <CardContent className="p-3">
                                     <div className="flex items-start gap-2">
                                       <Checkbox
-                                        checked={false}
-                                        onCheckedChange={() => {
-                                          setShowUpsellModal(true);
+                                        checked={selectedSuggestions.has(
+                                          suggestion.id
+                                        )}
+                                        disabled={showPremiumLock}
+                                        onCheckedChange={(checked) => {
+                                          if (showPremiumLock) {
+                                            setShowUpsellModal(true);
+                                            return;
+                                          }
+                                          setSelectedSuggestions((prev) => {
+                                            const next = new Set(prev);
+                                            if (checked) {
+                                              next.add(suggestion.id);
+                                            } else {
+                                              next.delete(suggestion.id);
+                                            }
+                                            return next;
+                                          });
                                         }}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setShowUpsellModal(true);
-                                        }}
+                                        onClick={(e) => e.stopPropagation()}
                                         className="mt-1"
                                       />
                                       <div className="flex-1 space-y-2">
@@ -1523,16 +1550,23 @@ export default function KnowledgeBasePage() {
                                                   variant="ghost"
                                                   size="icon"
                                                   className="h-6 w-6"
+                                                  disabled={showPremiumLock}
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setShowUpsellModal(true);
+                                                    showPremiumLock
+                                                      ? setShowUpsellModal(true)
+                                                      : handleSelectSuggestion(
+                                                          suggestion
+                                                        );
                                                   }}
                                                 >
                                                   <Eye className="h-3 w-3" />
                                                 </Button>
                                               </TooltipTrigger>
                                               <TooltipContent>
-                                                Preview (Premium)
+                                                {showPremiumLock
+                                                  ? "Preview (Premium)"
+                                                  : "Preview"}
                                               </TooltipContent>
                                             </Tooltip>
                                             <Tooltip>
@@ -1541,16 +1575,23 @@ export default function KnowledgeBasePage() {
                                                   variant="ghost"
                                                   size="icon"
                                                   className="h-6 w-6"
+                                                  disabled={showPremiumLock}
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setShowUpsellModal(true);
+                                                    showPremiumLock
+                                                      ? setShowUpsellModal(true)
+                                                      : handleInsertSuggestion(
+                                                          suggestion.id
+                                                        );
                                                   }}
                                                 >
                                                   <Zap className="h-3 w-3" />
                                                 </Button>
                                               </TooltipTrigger>
                                               <TooltipContent>
-                                                Auto-generate draft (Premium)
+                                                {showPremiumLock
+                                                  ? "Auto-generate draft (Premium)"
+                                                  : "Auto-generate draft"}
                                               </TooltipContent>
                                             </Tooltip>
                                             <Tooltip>
@@ -1559,16 +1600,23 @@ export default function KnowledgeBasePage() {
                                                   variant="ghost"
                                                   size="icon"
                                                   className="h-6 w-6"
+                                                  disabled={showPremiumLock}
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setShowUpsellModal(true);
+                                                    showPremiumLock
+                                                      ? setShowUpsellModal(true)
+                                                      : handleInsertSuggestion(
+                                                          suggestion.id
+                                                        );
                                                   }}
                                                 >
                                                   <CheckCircle2 className="h-3 w-3" />
                                                 </Button>
                                               </TooltipTrigger>
                                               <TooltipContent>
-                                                Insert into KB (Premium)
+                                                {showPremiumLock
+                                                  ? "Insert into KB (Premium)"
+                                                  : "Insert into KB"}
                                               </TooltipContent>
                                             </Tooltip>
                                             <Tooltip>
@@ -1577,16 +1625,23 @@ export default function KnowledgeBasePage() {
                                                   variant="ghost"
                                                   size="icon"
                                                   className="h-6 w-6"
+                                                  disabled={showPremiumLock}
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setShowUpsellModal(true);
+                                                    showPremiumLock
+                                                      ? setShowUpsellModal(true)
+                                                      : handleArchiveSuggestion(
+                                                          suggestion.id
+                                                        );
                                                   }}
                                                 >
                                                   <XCircle className="h-3 w-3" />
                                                 </Button>
                                               </TooltipTrigger>
                                               <TooltipContent>
-                                                Ignore (Premium)
+                                                {showPremiumLock
+                                                  ? "Ignore (Premium)"
+                                                  : "Ignore"}
                                               </TooltipContent>
                                             </Tooltip>
                                           </div>
