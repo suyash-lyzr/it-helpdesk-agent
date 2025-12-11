@@ -77,10 +77,13 @@ export async function createTicket(data: CreateTicketRequest): Promise<Ticket> {
   await connectToDatabase();
   const now = new Date();
 
+  const createdAt = data.created_at ? new Date(data.created_at) : now;
+
   const slaHours =
     data.priority === "high" ? 24 : data.priority === "medium" ? 48 : 72;
-  const slaDueAt = new Date(now);
-  slaDueAt.setHours(slaDueAt.getHours() + slaHours);
+  const slaDueAt = data.sla_due_at
+    ? new Date(data.sla_due_at)
+    : new Date(createdAt.getTime() + slaHours * 60 * 60 * 1000);
 
   // Auto-assign access requests to the manager mentioned in collected_details
   let assignee = data.assignee;
@@ -106,7 +109,7 @@ export async function createTicket(data: CreateTicketRequest): Promise<Ticket> {
     collected_details: data.collected_details || {},
     suggested_team: data.suggested_team || "Application Support",
     status: data.status || "open",
-    created_at: data.created_at ? new Date(data.created_at) : now,
+    created_at: createdAt,
     updated_at: now,
     sla_due_at: slaDueAt,
     source: data.source || "chat",

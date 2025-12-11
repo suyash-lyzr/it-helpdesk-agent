@@ -230,11 +230,21 @@ export function calculateFirstResponseTime(tickets: Ticket[]): number {
 // Helper function to check if SLA is breached
 export function checkSLABreach(ticket: Ticket): boolean {
   if (!ticket.sla_due_at) return false;
-  const now = new Date().getTime();
   const slaDue = new Date(ticket.sla_due_at).getTime();
-  return (
-    now > slaDue && ticket.status !== "resolved" && ticket.status !== "closed"
-  );
+
+  // Check if ticket is resolved/closed
+  if (ticket.status === "resolved" || ticket.status === "closed") {
+    // For resolved tickets, check if they were resolved after SLA deadline
+    if (ticket.resolved_at) {
+      const resolvedTime = new Date(ticket.resolved_at).getTime();
+      return resolvedTime > slaDue;
+    }
+    return false;
+  }
+
+  // For open/in-progress tickets, check if current time exceeds SLA
+  const now = new Date().getTime();
+  return now > slaDue;
 }
 
 // Helper function to get lifecycle stage from status

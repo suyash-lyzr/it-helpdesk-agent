@@ -266,7 +266,7 @@ export default function TicketsPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              {isDemo && counts.total < 15 && (
+              {isDemo && counts.total < 20 && (
                 <Button
                   onClick={handleSeedDemoData}
                   disabled={isSeedingData}
@@ -282,7 +282,7 @@ export default function TicketsPage() {
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4" />
-                      Seed Demo Data ({20 - counts.total} tickets)
+                      Seed Demo Data (14 tickets)
                     </>
                   )}
                 </Button>
