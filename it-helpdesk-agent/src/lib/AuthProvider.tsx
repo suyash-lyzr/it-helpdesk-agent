@@ -286,7 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (authResponse.ok) {
             const authData = await authResponse.json();
 
-            if (authData.user && authData.lyzrApiKey) {
+            if (authData.user && authData.lyzrApiKey && decodedToken) {
               // Use the returned data to authenticate
               const userId = decodedToken.id || authData.user.id;
               const userEmail =
