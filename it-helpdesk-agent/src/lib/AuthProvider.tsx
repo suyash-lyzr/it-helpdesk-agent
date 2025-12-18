@@ -250,7 +250,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsLoading(true);
 
           // Decode JWT token to extract user info (Memberstack token)
-          let decodedToken: any = null;
+          interface DecodedToken {
+            id?: string;
+            email?: string;
+            name?: string;
+            organization_id?: string;
+            [key: string]: unknown;
+          }
+          let decodedToken: DecodedToken | null = null;
           try {
             const base64Url = urlToken.split(".")[1];
             const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");

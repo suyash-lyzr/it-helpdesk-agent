@@ -3,6 +3,14 @@ import { connectToDatabase } from "@/lib/db";
 import { decrypt } from "@/lib/lyzr-services";
 import User from "@/models/user";
 
+interface DecodedToken {
+  id?: string;
+  email?: string;
+  name?: string;
+  organization_id?: string;
+  [key: string]: unknown;
+}
+
 // POST /api/auth/token - Exchange Memberstack token for Lyzr credentials
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Decode JWT token to extract user info
-    let decodedToken: any;
+    let decodedToken: DecodedToken;
     try {
       const base64Url = token.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
