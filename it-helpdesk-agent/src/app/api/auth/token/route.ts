@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
         user: {
           id: userId,
           email: existingUser.email || userEmail,
-          name: existingUser.name || userName,
+          name: existingUser.displayName || userName,
         },
         lyzrApiKey: decryptedApiKey,
       });
