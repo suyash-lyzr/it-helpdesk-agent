@@ -11,10 +11,26 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   // Automatically trigger SDK login modal when not authenticated
   useEffect(() => {
+    // Don't trigger login if there's a token in the URL (let AuthProvider handle it)
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlToken = urlParams.get("token");
+      if (urlToken) {
+        // Token is being processed by AuthProvider, don't trigger SDK login
+        return;
+      }
+    }
+
+    // Add a small delay to ensure token processing is complete
     if (isInitialized && !isAuthenticated && !loginTriggered.current) {
       loginTriggered.current = true;
-      // Trigger login which will show the Lyzr SDK popup
-      void login();
+      // Small delay to ensure token auth has finished processing
+      const timeoutId = setTimeout(() => {
+        // Trigger login which will show the Lyzr SDK popup
+        void login();
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [isInitialized, isAuthenticated, login]);
 

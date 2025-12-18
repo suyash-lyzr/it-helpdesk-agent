@@ -23,7 +23,7 @@ export interface TokenData {
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
-  isInitialized: boolean; // True only after first auth check is complete
+  isInitialized: boolean; // Keep for backward compatibility
   userId: string | null;
   token: string | null;
   email: string | null;
@@ -43,10 +43,9 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Avoid SSR mismatch; client-only hydration will restore from storage
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false); // Only true after first auth check
+  const [isInitialized, setIsInitialized] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
@@ -56,32 +55,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const authCallInProgress = useRef(false);
   const lastSuccessfulAuthCall = useRef<string | null>(null);
 
-  const clearAuthData = useCallback(
-    (options?: { markInitialized?: boolean }) => {
-      Cookies.remove("user_id");
-      Cookies.remove("token");
-      setIsAuthenticated(false);
-      setUserId(null);
-      setToken(null);
-      setEmail(null);
-      setDisplayName(null);
-      setIsLoading(false);
-      // Reset auth tracking refs
-      authCallInProgress.current = false;
-      lastSuccessfulAuthCall.current = null;
-      // Clear ALL sessionStorage auth flags
-      if (typeof window !== "undefined") {
-        sessionStorage.removeItem("session_trusted");
-        sessionStorage.removeItem("auth_email");
-        sessionStorage.removeItem("auth_name");
-        sessionStorage.removeItem("auth_verified"); // Legacy cleanup
-      }
-      if (options?.markInitialized) {
-        setIsInitialized(true);
-      }
-    },
-    []
-  );
+  const clearAuthData = useCallback(() => {
+    Cookies.remove("user_id");
+    Cookies.remove("token");
+    setIsAuthenticated(false);
+    setUserId(null);
+    setToken(null);
+    setEmail(null);
+    setDisplayName(null);
+    setIsLoading(false);
+    // Reset auth tracking refs
+    authCallInProgress.current = false;
+    lastSuccessfulAuthCall.current = null;
+  }, []);
 
   const setAuthData = useCallback(
     (
@@ -97,12 +83,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsInitialized(true);
       Cookies.set("user_id", tokenData.user_id, { expires: 7 });
       Cookies.set("token", tokenData.api_key, { expires: 7 });
-      // Mark session as trusted for browser session - avoids SDK popup on refresh
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem("session_trusted", "true");
-        if (userEmail) sessionStorage.setItem("auth_email", userEmail);
-        if (userName) sessionStorage.setItem("auth_name", userName);
-      }
     },
     []
   );
@@ -201,14 +181,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setAuthData(tokenData[0], userEmail, finalUserName);
       } else {
-        clearAuthData({ markInitialized: true });
+        clearAuthData();
       }
     } catch (err) {
-      // Silently handle expected authentication errors
-      clearAuthData({ markInitialized: true });
+      console.error("Auth check failed:", err);
+      clearAuthData();
     } finally {
       setIsLoading(false);
-      setIsInitialized(true); // Always mark as initialized after first check
+      setIsInitialized(true);
       authCallInProgress.current = false;
     }
   }, [clearAuthData, setAuthData]);
@@ -216,102 +196,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async () => {
     if (typeof window === "undefined") return;
     try {
-      setIsLoading(true);
-      setIsInitialized(false);
-
       const { default: lyzr } = await import("lyzr-agent");
-
-      // Initialize SDK (will show the login modal)
+      
       const lyzrPublicKey = process.env.NEXT_PUBLIC_LYZR_PUBLIC_KEY;
       if (!lyzrPublicKey) {
         throw new Error(
           "NEXT_PUBLIC_LYZR_PUBLIC_KEY environment variable is required"
         );
       }
+
+      await lyzr.logout(); // Ensure clean state before attempting login
       await lyzr.init(lyzrPublicKey);
-
-      // Set up auth state change listener
-      lyzr.onAuthStateChange((isAuth: boolean) => {
-        if (isAuth) {
-          void checkAuth();
-        } else {
-          clearAuthData({ markInitialized: true });
-        }
-      });
-
-      // Trigger login flow which will show SDK modal and get tokens
-      const tokenData = (await lyzr.getKeys()) as unknown as TokenData[];
-
-      if (tokenData && tokenData[0]) {
-        // Get user details
-        let userEmail: string | null = null;
-        let userName: string | null = null;
-
-        try {
-          const userKeys = await lyzr.getKeysUser();
-          userEmail = userKeys?.data?.user?.email;
-          userName = userKeys?.data?.user?.name;
-        } catch (error) {
-          console.error("Error fetching user keys:", error);
-        }
-
-        const nameFromEmail = userEmail
-          ? userEmail.split("@")[0].charAt(0).toUpperCase() +
-            userEmail.split("@")[0].slice(1)
-          : "User";
-        const finalUserName = userName || nameFromEmail;
-
-        // Sync with backend
-        await fetch("/api/auth", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user: {
-              id: tokenData[0].user_id,
-              email: userEmail,
-              name: finalUserName,
-            },
-            lyzrApiKey: tokenData[0].api_key,
-          }),
-        });
-
-        // Set auth data and mark as initialized
-        setAuthData(tokenData[0], userEmail, finalUserName);
-        setIsLoading(false);
-      } else {
-        throw new Error("No token data received from login");
-      }
+      clearAuthData();
+      await checkAuth();
+      await lyzr.getKeys(); // This will trigger the login modal
     } catch (error) {
       console.error("Login failed:", error);
-      setIsLoading(false);
-      setIsInitialized(true);
     }
   };
 
   const logout = async () => {
     if (typeof window === "undefined") return;
     try {
-      // Clear local auth state immediately
-      clearAuthData({ markInitialized: true });
-
+      const { default: lyzr } = await import("lyzr-agent");
+      await lyzr.logout();
+      clearAuthData();
+      
       // Clear chat history from localStorage
       localStorage.removeItem("it-helpdesk-messages");
       localStorage.removeItem("it-helpdesk-session-id");
-
-      // Try to logout from SDK if it was initialized
-      try {
-        const { default: lyzr } = await import("lyzr-agent");
-        await lyzr.logout();
-      } catch (err) {
-        // SDK might not be initialized, that's ok
-        console.log("SDK not initialized, skipping SDK logout");
-      }
-
-      // Redirect to home
+      
       window.location.href = window.location.origin;
     } catch (error) {
       console.error("Logout failed:", error);
-      clearAuthData({ markInitialized: true });
+      clearAuthData();
       // Still clear chat history even if logout fails
       localStorage.removeItem("it-helpdesk-messages");
       localStorage.removeItem("it-helpdesk-session-id");
@@ -322,43 +240,148 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const init = async () => {
       if (typeof window === "undefined") return;
 
-      // Check for trusted session BEFORE initializing SDK to prevent popup
-      const userIdCookie = Cookies.get("user_id");
-      const tokenCookie = Cookies.get("token");
-      const sessionTrusted =
-        sessionStorage.getItem("session_trusted") === "true";
-      const storedEmail = sessionStorage.getItem("auth_email");
-      const storedName = sessionStorage.getItem("auth_name");
+      // Check for token in URL query parameters first
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlToken = urlParams.get("token");
 
-      if (userIdCookie && tokenCookie && sessionTrusted) {
-        // Trusted session exists - restore immediately WITHOUT initializing SDK
-        console.log("✓ Restoring trusted session from cache (no SDK init)");
-        setAuthData(
-          {
-            _id: "",
-            api_key: tokenCookie,
-            user_id: userIdCookie,
-            organization_id: "",
-            usage_id: "",
-            policy_id: "",
-          },
-          storedEmail,
-          storedName
-        );
-        setIsInitialized(true);
-        setIsLoading(false);
-        return; // Exit early - don't initialize SDK
+      // If token is in URL, try to authenticate with it
+      if (urlToken) {
+        try {
+          setIsLoading(true);
+
+          // Decode JWT token to extract user info (Memberstack token)
+          let decodedToken: any = null;
+          try {
+            const base64Url = urlToken.split(".")[1];
+            const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+            const jsonPayload = decodeURIComponent(
+              atob(base64)
+                .split("")
+                .map(
+                  (c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)
+                )
+                .join("")
+            );
+            decodedToken = JSON.parse(jsonPayload);
+            console.log("Decoded token:", decodedToken);
+          } catch (decodeError) {
+            console.error("Error decoding token:", decodeError);
+            throw new Error("Invalid token format");
+          }
+
+          // Try to exchange token with backend API
+          const authResponse = await fetch("/api/auth/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: urlToken }),
+          });
+
+          if (authResponse.ok) {
+            const authData = await authResponse.json();
+
+            if (authData.user && authData.lyzrApiKey) {
+              // Use the returned data to authenticate
+              const userId = decodedToken.id || authData.user.id;
+              const userEmail =
+                authData.user.email || decodedToken.email || null;
+              const userName = authData.user.name || decodedToken.name || null;
+
+              const nameFromEmail = userEmail
+                ? userEmail.split("@")[0].charAt(0).toUpperCase() +
+                  userEmail.split("@")[0].slice(1)
+                : "User";
+              const finalUserName = userName || nameFromEmail;
+
+              // Set auth data directly
+              setAuthData(
+                {
+                  _id: "",
+                  api_key: authData.lyzrApiKey,
+                  user_id: userId,
+                  organization_id: decodedToken.organization_id || "",
+                  usage_id: "",
+                  policy_id: "",
+                },
+                userEmail,
+                finalUserName
+              );
+
+              // Clean up URL by removing token parameter
+              const newUrl = new URL(window.location.href);
+              newUrl.searchParams.delete("token");
+              window.history.replaceState({}, "", newUrl.toString());
+
+              setIsLoading(false);
+              return;
+            }
+          } else {
+            const errorData = await authResponse.json().catch(() => ({}));
+            console.error("Token exchange failed:", errorData);
+            
+            // If user not found, clean up URL and continue with normal SDK flow
+            if (authResponse.status === 404 && errorData.requiresSdkAuth) {
+              console.log(
+                "User not found in database, continuing with SDK authentication"
+              );
+              const newUrl = new URL(window.location.href);
+              newUrl.searchParams.delete("token");
+              window.history.replaceState({}, "", newUrl.toString());
+            }
+          }
+        } catch (error) {
+          console.error("Error authenticating with URL token:", error);
+          // Clean up URL on error
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete("token");
+          window.history.replaceState({}, "", newUrl.toString());
+        }
       }
 
-      // No trusted session - mark initialized so our login UI shows (no SDK init yet)
-      console.log(
-        "No trusted session found, showing login UI (SDK not initialized)"
-      );
-      setIsLoading(false);
-      setIsInitialized(true);
+      // Initialize SDK and set up auth state listener (following reference pattern)
+      try {
+        const { default: lyzr } = await import("lyzr-agent");
+        
+        const lyzrPublicKey = process.env.NEXT_PUBLIC_LYZR_PUBLIC_KEY;
+        if (!lyzrPublicKey) {
+          console.error("NEXT_PUBLIC_LYZR_PUBLIC_KEY not set");
+          setIsLoading(false);
+          setIsInitialized(true);
+          return;
+        }
+
+        await lyzr.init(lyzrPublicKey);
+
+        const unsubscribe = lyzr.onAuthStateChange((isAuth) => {
+          if (isAuth) {
+            checkAuth();
+          } else {
+            clearAuthData();
+          }
+        });
+
+        // Perform initial check silently
+        try {
+          const tokenData = (await lyzr.getKeys()) as unknown as TokenData[];
+          if (tokenData && tokenData[0]) {
+            await checkAuth();
+          } else {
+            setIsLoading(false);
+            setIsInitialized(true);
+          }
+        } catch {
+          setIsLoading(false); // Not logged in
+          setIsInitialized(true);
+        }
+
+        return () => unsubscribe();
+      } catch (err) {
+        console.error("Lyzr init failed:", err);
+        clearAuthData();
+        setIsInitialized(true);
+      }
     };
     void init();
-  }, [setAuthData]);
+  }, [checkAuth, clearAuthData, setAuthData]);
 
   return (
     <AuthContext.Provider
