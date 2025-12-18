@@ -222,7 +222,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { default: lyzr } = await import("lyzr-agent");
 
       // Initialize SDK (will show the login modal)
-      await lyzr.init("pk_c14a2728e715d9ea67bf");
+      const lyzrPublicKey = process.env.NEXT_PUBLIC_LYZR_PUBLIC_KEY;
+      if (!lyzrPublicKey) {
+        throw new Error(
+          "NEXT_PUBLIC_LYZR_PUBLIC_KEY environment variable is required"
+        );
+      }
+      await lyzr.init(lyzrPublicKey);
 
       // Set up auth state change listener
       lyzr.onAuthStateChange((isAuth: boolean) => {
