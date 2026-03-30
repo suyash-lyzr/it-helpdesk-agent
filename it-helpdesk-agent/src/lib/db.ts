@@ -3,14 +3,8 @@ import mongoose from "mongoose";
 const MONGODB_URI = process.env.MONGODB_URI;
 const MONGODB_DB = process.env.MONGODB_DB || "it_helpdesk_agent";
 
-if (!MONGODB_URI) {
-  throw new Error(
-    "MONGODB_URI is not set. Add it to your environment (e.g. .env.local)."
-  );
-}
-
-// TypeScript assertion: MONGODB_URI is guaranteed to be a string after the check above
-const MONGODB_URI_STRING: string = MONGODB_URI;
+// Allow build to succeed without MONGODB_URI — check at runtime instead
+const MONGODB_URI_STRING: string = MONGODB_URI || "";
 
 type MongooseCache = {
   conn: typeof mongoose | null;
@@ -27,6 +21,12 @@ const cached: MongooseCache = global.mongooseCache || {
 };
 
 export async function connectToDatabase(): Promise<typeof mongoose> {
+  if (!MONGODB_URI_STRING) {
+    throw new Error(
+      "MONGODB_URI is not set. Add it to your environment (e.g. .env.local)."
+    );
+  }
+
   if (cached.conn) {
     return cached.conn;
   }

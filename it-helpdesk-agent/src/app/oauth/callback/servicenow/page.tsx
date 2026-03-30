@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,14 @@ import {
 } from "@/components/ui/card";
 
 export default function ServiceNowCallbackPage() {
+  return (
+    <Suspense fallback={null}>
+      <ServiceNowCallbackInner />
+    </Suspense>
+  );
+}
+
+function ServiceNowCallbackInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<"loading" | "success" | "error">(

@@ -64,7 +64,15 @@ const navMain = [
 
 // Removed navSecondary - Settings and Help buttons
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+  return (
+    <React.Suspense fallback={null}>
+      <AppSidebarInner {...props} />
+    </React.Suspense>
+  );
+}
+
+function AppSidebarInner({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { email, displayName, logout } = useAuth();

@@ -93,6 +93,14 @@ interface TicketCounts {
 }
 
 export default function TicketsPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <TicketsPageInner />
+    </React.Suspense>
+  );
+}
+
+function TicketsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { email } = useAuth();

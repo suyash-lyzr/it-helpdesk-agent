@@ -43,6 +43,14 @@ const priorityColors: Record<string, string> = {
 };
 
 export default function TicketDetailPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <TicketDetailPageInner />
+    </React.Suspense>
+  );
+}
+
+function TicketDetailPageInner() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
