@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { format, subDays, differenceInMinutes } from "date-fns";
+import { format, differenceInMinutes } from "date-fns";
 import { Ticket } from "@/lib/ticket-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -98,99 +98,97 @@ export function AdminTicketsDashboard({
   >([]);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = React.useState(true);
 
-  // Fetch analytics data
+  // Provide dummy analytics data for demo
   const fetchAnalytics = React.useCallback(async () => {
     setIsLoadingAnalytics(true);
-    try {
-      const startDate =
-        filters.startDate || format(subDays(new Date(), 7), "yyyy-MM-dd");
-      const endDate = filters.endDate || format(new Date(), "yyyy-MM-dd");
+    // Simulate loading delay
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
-      // Build query params from filters
-      const queryParams = new URLSearchParams({
-        start_date: startDate,
-        end_date: endDate,
-      });
+    setKpiMetrics({
+      totalTickets: tickets.length || 7,
+      open: tickets.filter((t) => t.status === "open").length || 2,
+      inProgress: tickets.filter((t) => t.status === "in_progress").length || 2,
+      resolved: tickets.filter((t) => t.status === "resolved" || t.status === "closed").length || 3,
+      mttr: 4.2,
+      firstResponseTime: 0.8,
+      slaCompliance: 87.5,
+      csat: 85,
+      totalTicketsDelta: 12,
+      openDelta: -5,
+      inProgressDelta: 8,
+      resolvedDelta: 15,
+      mttrDelta: -10,
+      firstResponseTimeDelta: -15,
+      slaComplianceDelta: 3,
+      csatDelta: 5,
+      totalTicketsTrend: [3, 5, 4, 7, 6, 5, 7],
+      openTrend: [2, 3, 2, 4, 3, 2, 2],
+      inProgressTrend: [1, 1, 2, 1, 2, 2, 2],
+      resolvedTrend: [0, 1, 0, 2, 1, 1, 3],
+      mttrTrend: [6, 5.5, 5, 4.8, 4.5, 4.3, 4.2],
+      firstResponseTimeTrend: [1.2, 1.0, 0.9, 0.85, 0.8, 0.8, 0.8],
+      slaComplianceTrend: [80, 82, 85, 84, 86, 87, 87.5],
+      csatTrend: [78, 80, 82, 83, 84, 85, 85],
+    });
 
-      if (filters.team && filters.team !== "all") {
-        queryParams.set("team", filters.team);
-      }
-      if (filters.priority && filters.priority !== "all") {
-        queryParams.set("priority", filters.priority);
-      }
-      if (filters.category && filters.category !== "all") {
-        queryParams.set("category", filters.category);
-      }
-      if (filters.assignee && filters.assignee !== "all") {
-        queryParams.set("assignee", filters.assignee);
-      }
-      if (filters.slaStatus && filters.slaStatus !== "all") {
-        queryParams.set("sla_status", filters.slaStatus);
-      }
-      if (filters.source && filters.source !== "all") {
-        queryParams.set("source", filters.source);
-      }
+    setSlaFunnel([
+      { priority: "High", total: 3, meetingSLA: 2, breached: 1, slaPercentage: 66.7, breachedTickets: [] },
+      { priority: "Medium", total: 2, meetingSLA: 2, breached: 0, slaPercentage: 100, breachedTickets: [] },
+      { priority: "Low", total: 2, meetingSLA: 2, breached: 0, slaPercentage: 100, breachedTickets: [] },
+    ]);
 
-      const queryString = queryParams.toString();
+    setTopIssues([
+      { issue: "VPN Connectivity", count: 12, trend: 15, sampleTicketIds: ["TKT-1024"], suggestedKBArticle: "VPN Troubleshooting Guide", category: "Network" },
+      { issue: "Password Reset", count: 9, trend: -5, sampleTicketIds: ["TKT-1020"], suggestedKBArticle: "Password Reset Guide", category: "IAM" },
+      { issue: "Email Issues", count: 7, trend: 8, sampleTicketIds: ["TKT-1022"], category: "Application Support" },
+      { issue: "Software Installation", count: 5, trend: 0, sampleTicketIds: ["TKT-1021"], category: "Endpoint Support" },
+      { issue: "Access Requests", count: 4, trend: 20, sampleTicketIds: ["TKT-1023", "TKT-1019"], category: "IAM" },
+    ]);
 
-      const [
-        kpisRes,
-        slaRes,
-        topIssuesRes,
-        teamRes,
-        lifecycleRes,
-        forecastRes,
-        accessRes,
-        eventsRes,
-      ] = await Promise.all([
-        fetch(`/api/analytics/kpis?${queryString}`),
-        fetch(`/api/analytics/sla-funnel?${queryString}`),
-        fetch(`/api/analytics/top-issues?limit=10&${queryString}`),
-        fetch(`/api/analytics/team-performance?${queryString}`),
-        fetch(`/api/analytics/lifecycle?${queryString}`),
-        fetch(`/api/analytics/forecast?days=7&${queryString}`),
-        fetch(`/api/analytics/access-requests?${queryString}`),
-        fetch(`/api/analytics/live-events?${queryString}`),
-      ]);
+    setTeamPerformance([
+      { team: "Network", queueSize: 3, avgFirstResponse: 0.5, avgResolution: 3.2, backlog: 1, loadScore: "medium", agents: [{ name: "Alex Chen", ticketsAssigned: 5, ticketsResolved: 4, avgHandleTime: 2.8, reopenRate: 5, currentWorkload: "medium" }] },
+      { team: "Endpoint Support", queueSize: 4, avgFirstResponse: 0.7, avgResolution: 4.5, backlog: 2, loadScore: "high", agents: [{ name: "Sarah Kim", ticketsAssigned: 6, ticketsResolved: 4, avgHandleTime: 3.5, reopenRate: 8, currentWorkload: "high" }] },
+      { team: "IAM", queueSize: 2, avgFirstResponse: 0.3, avgResolution: 2.1, backlog: 0, loadScore: "low", agents: [{ name: "Mike Ross", ticketsAssigned: 3, ticketsResolved: 3, avgHandleTime: 1.8, reopenRate: 2, currentWorkload: "low" }] },
+      { team: "DevOps", queueSize: 1, avgFirstResponse: 0.4, avgResolution: 3.8, backlog: 0, loadScore: "low", agents: [{ name: "Priya Patel", ticketsAssigned: 2, ticketsResolved: 2, avgHandleTime: 3.0, reopenRate: 0, currentWorkload: "low" }] },
+    ]);
 
-      if (kpisRes.ok) {
-        const kpis = await kpisRes.json();
-        setKpiMetrics(kpis.data);
-      }
-      if (slaRes.ok) {
-        const sla = await slaRes.json();
-        setSlaFunnel(sla.data);
-      }
-      if (topIssuesRes.ok) {
-        const issues = await topIssuesRes.json();
-        setTopIssues(issues.data);
-      }
-      if (teamRes.ok) {
-        const team = await teamRes.json();
-        setTeamPerformance(team.data);
-      }
-      if (lifecycleRes.ok) {
-        const lifecycle = await lifecycleRes.json();
-        setLifecycleData(lifecycle.data);
-      }
-      if (forecastRes.ok) {
-        const forecast = await forecastRes.json();
-        setForecastData(forecast.data);
-      }
-      if (accessRes.ok) {
-        const access = await accessRes.json();
-        setAccessRequestAnalytics(access.data);
-      }
-      if (eventsRes.ok) {
-        const events = await eventsRes.json();
-        setLiveEvents(events.data);
-      }
-    } catch (error) {
-      console.error("Error fetching analytics:", error);
-    } finally {
-      setIsLoadingAnalytics(false);
-    }
-  }, [filters]);
+    setLifecycleData([
+      { stage: "New", count: 2, conversionRate: 100, medianTime: 0.5, tickets: [] },
+      { stage: "Triage", count: 1, conversionRate: 85, medianTime: 1.2, tickets: [] },
+      { stage: "In Progress", count: 2, conversionRate: 90, medianTime: 3.5, tickets: [] },
+      { stage: "Resolved", count: 2, conversionRate: 75, medianTime: 4.2, tickets: [] },
+      { stage: "Closed", count: 1, conversionRate: 95, medianTime: 0.5, tickets: [] },
+    ]);
+
+    const today = new Date();
+    setForecastData(
+      Array.from({ length: 7 }, (_, i) => {
+        const date = new Date(today);
+        date.setDate(date.getDate() + i);
+        return {
+          date: format(date, "yyyy-MM-dd"),
+          predictedCount: Math.floor(Math.random() * 5) + 3,
+          confidenceLower: 2,
+          confidenceUpper: 10,
+          anomalyFlag: i === 4,
+          anomalyReason: i === 4 ? "Predicted spike due to scheduled maintenance window" : undefined,
+          anomalyHeadline: i === 4 ? "Maintenance Window Spike" : undefined,
+          anomalyConfidence: i === 4 ? ("high" as const) : undefined,
+          anomalyImpact: i === 4 ? ("medium" as const) : undefined,
+        };
+      })
+    );
+
+    setLiveEvents([
+      { id: "evt-1", type: "ticket_created", timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), ticketId: "TKT-1024", actor: "Demo User", description: "New ticket created: VPN connection failing", severity: "high", category: "tickets" },
+      { id: "evt-2", type: "ticket_assigned", timestamp: new Date(Date.now() - 1000 * 60 * 10).toISOString(), ticketId: "TKT-1022", actor: "System", description: "Ticket auto-assigned to Sarah Kim (Endpoint Support)", category: "tickets" },
+      { id: "evt-3", type: "sla_warning", timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), ticketId: "TKT-1022", description: "SLA warning: Outlook crash ticket approaching deadline", severity: "medium", category: "sla" },
+      { id: "evt-4", type: "ticket_resolved", timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(), ticketId: "TKT-1020", actor: "Alex Chen", description: "File server access issue resolved — permissions updated", category: "tickets" },
+      { id: "evt-5", type: "access_request_approved", timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(), requestId: "AR-001", actor: "Mike Ross", description: "AWS staging admin access approved for Demo User", category: "access" },
+    ]);
+
+    setIsLoadingAnalytics(false);
+  }, [filters, tickets]);
 
   React.useEffect(() => {
     // Reset loading state when component mounts or filters change

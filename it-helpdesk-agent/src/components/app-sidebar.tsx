@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -11,6 +11,8 @@ import {
   LogOut,
   Puzzle,
   CalendarDays,
+  LayoutDashboard,
+  Activity,
 } from "lucide-react";
 
 import { useAuth } from "@/lib/AuthProvider";
@@ -64,6 +66,7 @@ const navMain = [
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { email, displayName, logout } = useAuth();
 
   // Get user initials for avatar
@@ -128,7 +131,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupContent>
             <SidebarMenu>
               {navMain.map((item) => {
-                const isActive = pathname === item.url;
+                const isActive = item.url === "/tickets"
+                  ? pathname === "/tickets" && searchParams.get("admin") !== "true"
+                  : pathname === item.url;
                 const isDisabled = "disabled" in item && Boolean(item.disabled);
 
                 return (
@@ -167,6 +172,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === "/tickets" && searchParams.get("admin") === "true"}
+                  tooltip="Admin Dashboard"
+                >
+                  <Link href="/tickets?admin=true">
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span>Admin Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === "/telemetry"}
+                  tooltip="Telemetry"
+                >
+                  <Link href="/telemetry">
+                    <Activity className="h-4 w-4" />
+                    <span>Telemetry</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Book Demo">
                   <a

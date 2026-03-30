@@ -47,7 +47,7 @@ export function ChatInterface() {
   const { theme, setTheme } = useTheme();
   const { displayName, email, logout } = useAuth();
 
-  // Initialize session ID on mount
+  // Initialize session ID and load dummy messages on mount
   React.useEffect(() => {
     const storedSessionId = localStorage.getItem("it-helpdesk-session-id");
     const storedMessages = localStorage.getItem("it-helpdesk-messages");
@@ -109,70 +109,35 @@ export function ChatInterface() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: content.trim(),
-          session_id: sessionId,
-        }),
-      });
-
-      if (!response.ok || !response.body) {
-        throw new Error("Failed to get response");
-      }
-
-      // Stream the SSE/text response and build the assistant reply
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let fullText = "";
-      let buffer = "";
-      let done = false;
-
-      while (!done) {
-        const { value, done: streamDone } = await reader.read();
-        done = streamDone;
-        if (value) {
-          buffer += decoder.decode(value, { stream: !done });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() ?? ""; // keep incomplete line
-
-          for (const line of lines) {
-            if (!line.startsWith("data:")) continue;
-            // Preserve leading spaces in tokens; only strip the literal prefix
-            const payload = line.startsWith("data: ")
-              ? line.slice(6)
-              : line.slice(5);
-            if (payload.trim() === "[DONE]") {
-              done = true;
-              break;
-            }
-            let text = payload;
-            if (text.trim().startsWith("{")) {
-              try {
-                const parsed = JSON.parse(text);
-                text = parsed.response ?? parsed.message ?? parsed.data ?? text;
-              } catch {
-                // fallback to raw text
-              }
-            }
-            text = text
-              .replace(/\\n/g, "\n")
-              .replace(/\\"/g, '"')
-              .replace(/\\\\/g, "\\");
-            fullText += text;
-          }
+      const response = await fetch(
+        "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": LYZR_CONFIG.apiKey,
+          },
+          body: JSON.stringify({
+            user_id: LYZR_CONFIG.defaultUserId,
+            agent_id: LYZR_CONFIG.agentId,
+            session_id: sessionId,
+            message: content.trim(),
+          }),
         }
+      );
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
       }
+
+      const data = await response.json();
+      const assistantContent =
+        data.response || data.message || data.data || "I couldn't process your request. Please try again.";
 
       const assistantMessage: ChatMessageType = {
         id: generateMessageId(),
         role: "assistant",
-        content:
-          fullText.trim() ||
-          "I apologize, but I couldn't process your request. Please try again.",
+        content: assistantContent,
         timestamp: new Date(),
       };
 
@@ -180,8 +145,6 @@ export function ChatInterface() {
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message. Please try again.");
-
-      // Remove the user message if there was an error
       setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
       setInputValue(content);
     } finally {

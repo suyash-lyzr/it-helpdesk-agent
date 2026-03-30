@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { format, differenceInMinutes } from "date-fns";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -38,6 +38,7 @@ import { AdminTicketsDashboard } from "@/components/admin-tickets-dashboard";
 import { NewTicketSidebar } from "@/components/new-ticket-sidebar";
 import { useAuth } from "@/lib/AuthProvider";
 import { isDemoAccount } from "@/lib/demo-utils";
+import { telemetryGeneratedTickets } from "@/lib/telemetry-data";
 
 // Status color mapping
 const statusColors: Record<string, string> = {
@@ -93,9 +94,10 @@ interface TicketCounts {
 
 export default function TicketsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { email } = useAuth();
   const isDemo = isDemoAccount(email);
-  const [isAdmin, setIsAdmin] = React.useState(false);
+  const [isAdmin, setIsAdmin] = React.useState(searchParams.get("admin") === "true");
   const [tickets, setTickets] = React.useState<Ticket[]>([]);
   const [counts, setCounts] = React.useState<TicketCounts>({
     total: 0,
@@ -112,29 +114,132 @@ export default function TicketsPage() {
   const [isSubmittingRating, setIsSubmittingRating] = React.useState(false);
   const [isSeedingData, setIsSeedingData] = React.useState(false);
 
+  // Dummy tickets for demo
+  const dummyTickets: Ticket[] = React.useMemo(() => [
+    {
+      id: "TKT-1024",
+      lyzrUserId: "demo-user-001",
+      ticket_type: "incident" as const,
+      title: "VPN connection failing from laptop",
+      description: "Unable to connect to corporate VPN since this morning. Error: Connection timed out.",
+      user_name: "Demo User",
+      app_or_system: "GlobalProtect VPN",
+      priority: "high" as const,
+      status: "open" as const,
+      suggested_team: "Network" as const,
+      collected_details: { os: "Windows 11", vpn_client: "GlobalProtect 6.1" },
+      created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+      updated_at: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+    },
+    {
+      id: "TKT-1023",
+      lyzrUserId: "demo-user-001",
+      ticket_type: "access_request" as const,
+      title: "Request access to Salesforce CRM",
+      description: "Need read/write access to Salesforce for the Q2 sales reporting project.",
+      user_name: "Demo User",
+      app_or_system: "Salesforce",
+      priority: "medium" as const,
+      status: "in_progress" as const,
+      suggested_team: "IAM" as const,
+      collected_details: { access_level: "read/write", justification: "Q2 sales reporting" },
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+      updated_at: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(),
+    },
+    {
+      id: "TKT-1022",
+      lyzrUserId: "demo-user-001",
+      ticket_type: "incident" as const,
+      title: "Outlook keeps crashing on startup",
+      description: "Microsoft Outlook crashes immediately after opening. Tried restarting, issue persists.",
+      user_name: "Demo User",
+      app_or_system: "Microsoft Outlook",
+      priority: "high" as const,
+      status: "in_progress" as const,
+      suggested_team: "Endpoint Support" as const,
+      collected_details: { outlook_version: "365", last_update: "2 days ago" },
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+      updated_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    },
+    {
+      id: "TKT-1021",
+      lyzrUserId: "demo-user-001",
+      ticket_type: "request" as const,
+      title: "New monitor setup for workstation",
+      description: "Requesting a second monitor for my desk in Building A, Floor 3.",
+      user_name: "Demo User",
+      app_or_system: "Hardware",
+      priority: "low" as const,
+      status: "open" as const,
+      suggested_team: "Endpoint Support" as const,
+      collected_details: { location: "Building A, Floor 3", monitor_type: "27-inch" },
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
+      updated_at: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
+    },
+    {
+      id: "TKT-1020",
+      lyzrUserId: "demo-user-001",
+      ticket_type: "incident" as const,
+      title: "Cannot access shared drive \\\\fileserver\\marketing",
+      description: "Getting 'Access Denied' error when trying to open the marketing shared drive.",
+      user_name: "Demo User",
+      app_or_system: "File Server",
+      priority: "medium" as const,
+      status: "resolved" as const,
+      suggested_team: "Network" as const,
+      collected_details: { error_message: "Access Denied", drive_path: "\\\\fileserver\\marketing" },
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+      updated_at: new Date(Date.now() - 1000 * 60 * 60 * 20).toISOString(),
+      resolved_at: new Date(Date.now() - 1000 * 60 * 60 * 20).toISOString(),
+    },
+    {
+      id: "TKT-1019",
+      lyzrUserId: "demo-user-001",
+      ticket_type: "access_request" as const,
+      title: "Admin access to AWS staging environment",
+      description: "Need admin access to AWS staging for deploying the new microservice.",
+      user_name: "Demo User",
+      app_or_system: "AWS",
+      priority: "high" as const,
+      status: "resolved" as const,
+      suggested_team: "DevOps" as const,
+      collected_details: { aws_account: "staging", access_level: "admin" },
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+      updated_at: new Date(Date.now() - 1000 * 60 * 60 * 44).toISOString(),
+      resolved_at: new Date(Date.now() - 1000 * 60 * 60 * 44).toISOString(),
+    },
+    {
+      id: "TKT-1018",
+      lyzrUserId: "demo-user-001",
+      ticket_type: "incident" as const,
+      title: "Laptop battery draining unusually fast",
+      description: "Battery only lasting ~2 hours when it used to last 6+. MacBook Pro 2023.",
+      user_name: "Demo User",
+      app_or_system: "MacBook Pro",
+      priority: "low" as const,
+      status: "closed" as const,
+      suggested_team: "Endpoint Support" as const,
+      collected_details: { device: "MacBook Pro 2023", battery_health: "78%" },
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
+      updated_at: new Date(Date.now() - 1000 * 60 * 60 * 68).toISOString(),
+      resolved_at: new Date(Date.now() - 1000 * 60 * 60 * 68).toISOString(),
+      csat_score: 1,
+    },
+    ...telemetryGeneratedTickets,
+  ], []);
+
   const fetchTickets = React.useCallback(async () => {
     setIsLoading(true);
-    try {
-      const ticketsRes = await fetch("/api/tickets");
-      const ticketsData = await ticketsRes.json();
-
-      if (ticketsData.success) {
-        setTickets(ticketsData.data);
-      }
-
-      const countsRes = await fetch("/api/tickets?counts_only=true");
-      const countsData = await countsRes.json();
-
-      if (countsData.success) {
-        setCounts(countsData.data);
-      }
-    } catch (error) {
-      console.error("Error fetching tickets:", error);
-      toast.error("Failed to load tickets");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    // Use dummy data instead of API calls
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    setTickets(dummyTickets);
+    const open = dummyTickets.filter((t) => t.status === "open").length;
+    const inProgress = dummyTickets.filter((t) => t.status === "in_progress").length;
+    const resolved = dummyTickets.filter((t) => t.status === "resolved").length;
+    const closed = dummyTickets.filter((t) => t.status === "closed").length;
+    setCounts({ total: dummyTickets.length, open, in_progress: inProgress, resolved, closed });
+    setIsLoading(false);
+  }, [dummyTickets]);
 
   React.useEffect(() => {
     fetchTickets();

@@ -176,8 +176,23 @@ interface InsertAuditEntry {
   kbDocumentTitle?: string;
 }
 
-// Initial empty state - will be loaded from API
-const initialDocuments: Document[] = [];
+// Pre-loaded document from public folder
+const initialDocuments: Document[] = [
+  {
+    id: "doc-it-support-kb",
+    title: "IT Support Knowledge Base.pdf",
+    category: ["Troubleshooting", "VPN", "Password Reset", "Network", "Access"],
+    source: "Manual",
+    size: 1240000,
+    pages: 42,
+    status: "Processed",
+    processedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    version: 1,
+    chunks: 187,
+    embeddings: 187,
+    lastEmbedTime: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+  },
+];
 
 const initialAIInsights: AIInsight = {
   topTopics: [],
@@ -445,40 +460,20 @@ export default function KnowledgeBasePage() {
   }, []);
 
   async function fetchDocumentsAndKPIs() {
-    try {
-      setIsLoading(true);
-      const res = await fetch("/api/knowledge-base/documents");
-      const data = await res.json();
-
-      if (data.success) {
-        setDocuments(data.documents);
-        setTotalDocuments(data.kpis.totalDocuments);
-        setProcessedDocuments(data.kpis.processedDocuments);
-        setProcessedPercentage(data.kpis.processedPercentage);
-        setLastIngestionTime(data.kpis.lastIngestionTime);
-        setCoverageScore(data.kpis.coverageScore);
-      } else {
-        toast.error("Failed to load knowledge base data");
-      }
-    } catch (error) {
-      console.error("Failed to fetch documents:", error);
-      toast.error("Failed to load knowledge base data");
-    } finally {
-      setIsLoading(false);
-    }
+    setIsLoading(true);
+    // Use pre-loaded dummy document — no API call
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    setDocuments(initialDocuments);
+    setTotalDocuments(1);
+    setProcessedDocuments(1);
+    setProcessedPercentage(100);
+    setLastIngestionTime(new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString());
+    setCoverageScore(78);
+    setIsLoading(false);
   }
 
   async function fetchAIConfig() {
-    try {
-      const res = await fetch("/api/knowledge-base/config");
-      const data = await res.json();
-
-      if (data.success) {
-        setSystemInstructions(data.config.systemInstructions);
-      }
-    } catch (error) {
-      console.error("Failed to fetch AI config:", error);
-    }
+    // No API call — keep default system instructions
   }
 
   // Filter documents
@@ -511,24 +506,8 @@ export default function KnowledgeBasePage() {
   }
 
   async function saveAIConfiguration() {
-    try {
-      const res = await fetch("/api/knowledge-base/config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ systemInstructions }),
-      });
-
-      const data = await res.json();
-
-      if (!data.success) {
-        throw new Error(data.error);
-      }
-
-      toast.success("Configuration saved successfully");
-    } catch (error) {
-      console.error("Failed to save configuration:", error);
-      toast.error("Failed to save configuration");
-    }
+    // Demo mode — no API call
+    toast.success("Configuration saved successfully");
   }
 
   function getStatusBadge(status: DocumentStatus) {
@@ -590,122 +569,48 @@ export default function KnowledgeBasePage() {
         title: file.name,
         category: ["Uncategorized"],
         source: "Manual",
-        size: Math.round(file.size / 1024),
-        status: "Uploading",
+        size: file.size,
+        status: "Processing",
         processedAt: null,
         version: 1,
       };
 
       setDocuments((prev) => [newDoc, ...prev]);
-      // Call backend to upload and train KB for this user
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
 
-        setDocuments((prev) =>
-          prev.map((d) =>
-            d.id === newDoc.id ? { ...d, status: "Processing" } : d
-          )
-        );
-
-        const res = await fetch("/api/knowledge-base/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!res.ok) {
-          const data = await res.json().catch(() => null);
-          const errorMessage =
-            data?.error || "Failed to upload and process document";
-
-          setDocuments((prev) =>
-            prev.map((d) =>
-              d.id === newDoc.id
-                ? { ...d, status: "Failed", error: errorMessage }
-                : d
-            )
-          );
-          toast.error(errorMessage);
-          return;
-        }
-
-        toast.success(`${file.name} processed successfully`);
-
-        // Refresh documents and KPIs
-        await fetchDocumentsAndKPIs();
-      } catch (error) {
-        console.error("KB upload error:", error);
-        setDocuments((prev) =>
-          prev.map((d) =>
-            d.id === newDoc.id
-              ? {
-                  ...d,
-                  status: "Failed",
-                  error: "Failed to upload and process document",
-                }
-              : d
-          )
-        );
-        toast.error("Failed to upload and process document");
-      }
+      // Simulate processing delay — no API call in demo
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      setDocuments((prev) =>
+        prev.map((d) =>
+          d.id === newDoc.id
+            ? { ...d, status: "Processed", processedAt: new Date().toISOString() }
+            : d
+        )
+      );
+      toast.success(`${file.name} processed successfully`);
     });
   }
 
   async function handleReprocess(docId: string) {
-    try {
-      setDocuments((prev) =>
-        prev.map((d) =>
-          d.id === docId ? { ...d, status: "Processing", processedAt: null } : d
-        )
-      );
-
-      toast.success("Reprocessing document...");
-
-      const res = await fetch("/api/knowledge-base/reprocess", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ docId }),
-      });
-
-      const data = await res.json();
-
-      if (!data.success) {
-        throw new Error(data.error);
-      }
-
-      // Poll for status update
-      setTimeout(async () => {
-        await fetchDocumentsAndKPIs();
-        toast.success("Document reprocessed successfully");
-      }, 2500);
-    } catch (error) {
-      console.error("Reprocess error:", error);
-      toast.error("Failed to reprocess document");
-      await fetchDocumentsAndKPIs();
-    }
+    setDocuments((prev) =>
+      prev.map((d) =>
+        d.id === docId ? { ...d, status: "Processing", processedAt: null } : d
+      )
+    );
+    toast.success("Reprocessing document...");
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    setDocuments((prev) =>
+      prev.map((d) =>
+        d.id === docId
+          ? { ...d, status: "Processed", processedAt: new Date().toISOString() }
+          : d
+      )
+    );
+    toast.success("Document reprocessed successfully");
   }
 
   async function handleDelete(docId: string) {
-    try {
-      const res = await fetch(`/api/knowledge-base/documents?id=${docId}`, {
-        method: "DELETE",
-      });
-
-      const data = await res.json();
-
-      if (!data.success) {
-        throw new Error(data.error);
-      }
-
-      setDocuments((prev) => prev.filter((d) => d.id !== docId));
-      toast.success("Document deleted");
-
-      // Refresh KPIs
-      await fetchDocumentsAndKPIs();
-    } catch (error) {
-      console.error("Delete error:", error);
-      toast.error("Failed to delete document");
-    }
+    setDocuments((prev) => prev.filter((d) => d.id !== docId));
+    toast.success("Document deleted");
   }
 
   // Improve with AI handlers

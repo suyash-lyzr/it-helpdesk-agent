@@ -26,7 +26,7 @@ const getIntegrationLogo = (providerId: string): string | null => {
     jira: "https://pnghdpro.com/wp-content/themes/pnghdpro/download/social-media-and-brands/jira-app-icon.png",
     servicenow:
       "https://logosandtypes.com/wp-content/uploads/2020/12/servicenow.svg",
-    okta: "https://logos-world.net/wp-content/uploads/2021/04/Okta-Emblem.png",
+    okta: "/Okta_logo.svg.png",
     google:
       "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png",
   };
